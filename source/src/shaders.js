@@ -497,7 +497,11 @@ struct GO { @builtin(position) cp: vec4f, @location(0) uv: vec2f, @location(1) @
 }
 `;
 
-// ---------------------------------------------------------------- fish + mantas
+// ---------------------------------------------------------------- fish + mantas + plesiosaurs
+// plesiosaur flippers (front pair, hind pair): length (the body is 2 long) and sweep back in radians, and how far all
+// four droop. meshPlesio in world.js builds them from this; vsPlesio needs their sideways reach to flap them
+const PLF = [[0.43, 0.52], [0.4, 0.7]], PLDROOP = 0.21;
+const plReach = (k) => (PLF[k][0] * cos(PLF[k][1]) * cos(PLDROOP)).toFixed(4);
 const W_ANIM = S_B + /*wgsl*/`
 struct VI { @location(0) p: vec3f, @location(1) n: vec4f, @location(2) a: vec4f, @location(3) b: vec4f };
 struct VO { @builtin(position) cp: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) op: vec3f, @location(3) @interpolate(flat) sd: f32, @location(4) lt: f32 };
@@ -574,6 +578,67 @@ struct VO { @builtin(position) cp: vec4f, @location(0) wp: vec3f, @location(1) n
   c += E * pow(sat(dot(n, normalize(V + L))), 30.) * .5 * (.3 + ca);
   let sky = amb(i.wp, vec3f(0., 1., 0.), vv.g, z);
   c += alb * sky * ca * .45 * (1. - top) + sky * pow(1. - ndv, 3.) * .35;
+  return fin(fog(c, i.wp, z));
+}
+// plesiosaur. Instance: a = centre of its path + radius, b = phase, speed (rad/s, sign = direction), size, seed.
+// The path is an oval lying along z. Every vertex sits its own z further along that path, so the body follows it like
+// a train on rails and bends through the turns
+fn plP(ta: f32, a: vec4f, ph: f32) -> vec3f { return a.xyz + vec3f(a.w * .72 * sin(ta), 2. * sin(2. * ta + ph), a.w * cos(ta)); }
+fn plT(ta: f32, a: vec4f, ph: f32) -> vec3f { return vec3f(a.w * .72 * cos(ta), 4. * cos(2. * ta + ph), -a.w * sin(ta)); }
+@vertex fn vsPlesio(i: VI) -> VO {
+  var o: VO;
+  let t = g.cam.w; let sz = i.b.z; let sd = i.b.w; let dir = sign(i.b.y); let ph = sd * 6.3;
+  // aux (n.w): 0 on the body, .1 to .5 along a front flipper, .55 to .95 along a hind one, its sign is the side
+  let au = abs(i.n.w); let fl = step(.05, au); let hind = step(.525, au);
+  let sgn = select(1., sign(i.n.w), au > .05);
+  let s = sat((au - mix(.1, .55, hind)) * 2.5) * fl;
+  var l = i.p; var n = i.n.xyz;
+  // the flippers beat up and down about their roots: the hind pair follows the front pair, the tips trail behind
+  let fp = t * 1.9 + sd * 20. - hind * 1.9;
+  let th = (.5 * sin(fp - s * 1.1) - .05) * fl;
+  let D = mix(${plReach(0)}, ${plReach(1)}, hind) * s; let dy = -.26 * D;
+  let ct = cos(th); let st = sin(th);
+  l.x += sgn * (D * ct - dy * st - D); l.y += D * st + dy * ct - dy;
+  let nx = sgn * n.x; n = vec3f(sgn * (nx * ct - n.y * st), nx * st + n.y * ct, n.z);
+  // the neck and the tail sway, the body rises and sinks with the strokes
+  let nk = sat((l.z - .15) / .85); let tl = sat((-.5 - l.z) * 2.);
+  let s1 = sin(t * .5 + sd * 9.); let s2 = sin(t * 1.1 + sd * 5.); let s3 = sin(t * .37 + sd * 13.);
+  l.x += .09 * nk * nk * s1 + .05 * tl * tl * s2;
+  l.y += (.03 + .035 * s3) * nk * nk + .012 * sin(fp + 1.3);
+  n.z -= (.212 * nk * s1 - .2 * tl * s2) * n.x + (.0706 + .0824 * s3) * nk * n.y;
+  // onto the path, banked into the turn
+  let ta0 = t * i.b.y + i.b.x;
+  let ta = ta0 + dir * l.z * sz / length(plT(ta0, i.a, ph));
+  let T = normalize(plT(ta, i.a, ph)) * dir;
+  var S = normalize(cross(vec3f(0., 1., 0.), T)); var Up = cross(T, S);
+  let bank = .2 * dir;
+  let S2 = S * cos(bank) - Up * sin(bank); Up = Up * cos(bank) + S * sin(bank); S = S2;
+  let w = plP(ta, i.a, ph) + (S * l.x + Up * l.y) * sz;
+  o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = sd;
+  o.lt = i.n.y;
+  return o;
+}
+@fragment fn fsPlesio(i: VO) -> @location(0) vec4f {
+  let dist = length(i.wp - g.cam.xyz);
+  let ca = caus(i.wp, dist);
+  let fine = textureSample(tD, sR, i.op.zy * vec2f(7., 11.) + i.op.x * 4. + i.sd);
+  let blot = textureSample(tD, sR, i.op.zx * vec2f(1.3, 2.) + i.op.y * .9 + i.sd * 3.);
+  let n = normalize(i.n + (vec3f(fine.r, 0., fine.g) - vec3f(.5, 0., .5)) * .4); let L = g.sun.xyz; let V = normalize(g.cam.xyz - i.wp);
+  let z = zone(i.wp); let vv = vol(i.wp);
+  // dark mottled back, pale belly, a ragged line between the two (lt: which way the skin faced before any animation)
+  let top = ss(-.45, .25, i.lt + (blot.a - .5) * .9);
+  var back = mix(vec3f(.030, .055, .065), vec3f(.11, .16, .14), ss(.42, .68, blot.a));
+  back = mix(back, vec3f(.015, .025, .03), ss(.5, .72, blot.b) * .45);
+  var alb = mix(vec3f(.27, .29, .25), back, top) * (.75 + .5 * fine.b);
+  let eye = ss(.013, .008, length(vec3f(abs(i.op.x), i.op.y, i.op.z) - vec3f(.036, .05, .915)));
+  alb = mix(alb, vec3f(.003), eye);
+  let E = sunE(i.wp.y, z) * shadow4(i.wp + n * .3);
+  let ndv = sat(dot(n, V));
+  let fillN = vec3f(n.x, abs(n.y) * .55 + .25, n.z);
+  var c = alb * (E * sat(dot(n, L)) * (.3 + ca) + amb(i.wp, fillN, vv.g, z) * 1.1 + side(i.wp, n, 1., z) * .8);
+  c += E * pow(sat(dot(n, normalize(V + L))), mix(40., 90., eye)) * (.12 + 2. * eye) * (.3 + ca);
+  let sky = amb(i.wp, vec3f(0., 1., 0.), vv.g, z);
+  c += alb * sky * ca * .4 * (1. - top) + sky * pow(1. - ndv, 3.) * .3;
   return fin(fog(c, i.wp, z));
 }
 `;
