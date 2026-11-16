@@ -1,9 +1,9 @@
-# Abyssal Garden
+# Historic Ocean
 
-**A dreamy underwater world you can swim through, right in your browser.**
+**An underwater zoo you can swim through, right in your browser: the sea of today, and step by step the seas of the past.**
 
 Towering kelp forests, sunbeams pouring through a rippling surface, a sunken ship, manta rays gliding overhead.
-And all of it is made by code: no images, no 3D models, no sound files. The whole world fits in **one 96 KB HTML file**.
+And all of it is made by code: no images, no 3D models, no sound files. Every era is a world of its own that fits in **one HTML file of about 116 KB**.
 
 ![Kelp forest with a stone whale tail and a manta ray](.github/screenshots/whale-fluke.jpg)
 
@@ -14,6 +14,10 @@ And all of it is made by code: no images, no 3D models, no sound files. The whol
 3. Wait a few seconds while the world is built, then press **Dive in** and start swimming.
 
 Nothing to install, and it works offline. It needs a browser with **WebGPU**. If you see *"This scene needs WebGPU"*, update your browser or switch to Chrome / Edge.
+
+## Eras
+
+The title menu has a timeline from the formation of the Earth to today. Every era is meant to become a world of its own, with its own sea floor, its own life and its own light. An era that is built is a link in the timeline and opens its own page. The others are shown dimmed, with their dates. So far there are two: **Today**, which is `index.html`, and the **Cambrian** (`cambrian.html`), which is under construction: a deep basin at the foot of a reef wall, 508 million years ago, with its own water and light. Fields of tulip animals, sponges and algae stand in it, and the first animals swim there: swarms of Marrella, shoals of the early fish Metaspriggina, jellyfish, Opabinia with its five eyes and its trunk, and the big hunter Anomalocaris. The animals that walk are still to come.
 
 ## What's down there
 
@@ -40,6 +44,7 @@ Nothing to install, and it works offline. It needs a browser with **WebGPU**. If
 | Up / down | `E` / `Q` |
 | Swim faster | Hold `Shift` |
 | Jump to a viewpoint | `1` to `6` (the spots in the screenshots) |
+| Read about an animal, a plant or a set piece | Swim close and look at it: its name appears at the bottom of the screen. `Space` or a left click opens a card with a few facts, the same again closes it |
 | Menu | `Esc` releases the mouse and opens the menu with the list of controls; **Resume** takes you back |
 | Sound on / off | `M` (sound starts when you dive in) |
 | Performance stats | `H` |
@@ -47,7 +52,7 @@ Nothing to install, and it works offline. It needs a browser with **WebGPU**. If
 
 The seabed, cliffs and arches are solid: you glide along the rock instead of swimming into it, and you still fit through every tunnel and arch. Kelp, plants, corals, sponges, loose rocks, the floating boulders, the ship and the whale tail you can swim through.
 
-**On a touchscreen:** hold one finger down to swim forward and slide it to steer. Put a second finger down to go faster. The `≡` button in the corner opens the menu. Phones always show the scene in landscape and start on Low or Medium detail. (Touch support is experimental.)
+**On a touchscreen:** hold one finger down to swim forward and slide it to steer. Put a second finger down to go faster. When a name appears at the bottom of the screen, tap it to read about what you are looking at, and tap the card to close it. The `≡` button in the corner opens the menu. Phones always show the scene in landscape and start on Low or Medium detail. (Touch support is experimental.)
 
 ## Detail levels
 
@@ -71,7 +76,7 @@ If loading crashes the tab, or the graphics driver gives up, the page starts aga
 
 ## Make it your own
 
-The readable source code is in the [`source`](source) folder. To change something and rebuild `index.html` you need [Node.js](https://nodejs.org) 18 or newer:
+The readable source code is in the [`source`](source) folder. To change something and rebuild the pages you need [Node.js](https://nodejs.org) 18 or newer:
 
 ```bash
 cd source
@@ -79,28 +84,41 @@ npm install
 npm run build
 ```
 
-This writes a new `index.html` next to this README. `npm run build:readable` writes an unminified version instead, which is easier to debug in the browser's developer tools.
+This writes one page per era next to this README: `index.html` for the era Today, and `<id>.html` for every other folder under [`source/eras`](source/eras). `npm run build:readable` writes unminified pages instead, which are easier to debug in the browser's developer tools.
 
-`npm run build:dev` writes a separate `dev.html` with two extra tools that are not part of `index.html`: `F` flies the camera along a one-minute path through the whole world, and `B` runs that flight as a benchmark and reports frame and GPU times.
+`npm run build:dev` writes separate pages (`dev.html`, and `<id>-dev.html` for other eras) with two extra tools that are not part of the game: `F` flies the camera along a one-minute path through the whole world, and `B` runs that flight as a benchmark and reports frame and GPU times.
+
+The code has two parts. The **engine** in [`source/engine`](source/engine) is the same for every era and knows no animal, no place and no colour of water. An **era** is one folder under [`source/eras`](source/eras) with everything that makes its world. [`CLAUDE.md`](CLAUDE.md) has the recipes for adding an animal and for adding an era.
 
 | File | What's inside |
 |---|---|
-| [`source/src/world.js`](source/src/world.js) | The world layout: rock walls, arches, tunnels, kelp forests, sponge gardens, fish schools, mantas, the ship and the whale tail. **A good place to start.** |
-| [`source/src/shaders.js`](source/src/shaders.js) | The look: water and fog colors, lighting, kelp, rocks, the water surface and light rays (WGSL shader code) |
-| [`source/src/main.js`](source/src/main.js) | The renderer, the camera, the controls, the six viewpoints and the camera path the world is laid out around |
-| [`source/src/audio.js`](source/src/audio.js) | The soundscape |
-| [`source/src/quality.js`](source/src/quality.js) | The detail levels: which one a device starts on, and what is remembered between visits |
-| [`source/src/math.js`](source/src/math.js) | Noise, random numbers and mesh-building helpers |
-| [`source/src/dev.js`](source/src/dev.js) | Development tools (fly-through and benchmark), only in `dev.html` |
-| [`source/template.html`](source/template.html) | The page around the scene: loading bar, start menu, links and their styles |
+| [`source/eras/today/world.js`](source/eras/today/world.js) | The world of today: what is drawn and where it stands, from kelp forests and sponge gardens to fish schools, mantas, the ship and the whale tail. **A good place to start.** |
+| [`source/eras/today/floor.js`](source/eras/today/floor.js) | Its sea floor: rock walls, arches and tunnels |
+| [`source/eras/today/air.js`](source/eras/today/air.js), [`look.js`](source/eras/today/look.js) | Its look: the colours of water and light, the materials of rock, wood, sponges and corals, the kinds of leaf (WGSL shader code) |
+| [`source/eras/today/sealife.js`](source/eras/today/sealife.js), [`setpieces.js`](source/eras/today/setpieces.js) | Its animals and set pieces: their shapes and how they move |
+| [`source/eras/today/era.js`](source/eras/today/era.js) | Its six viewpoints, the camera path the world is laid out around, sun, brightness and the mood of the sound |
+| [`source/eras/today/zoo.js`](source/eras/today/zoo.js), [`about.txt`](source/eras/today/about.txt) | The zoo texts about its animals, plants and set pieces, and the sentences about the era in the title menu |
+| [`source/eras.mjs`](source/eras.mjs) | The list of all eras with their dates |
+| [`source/engine/main.js`](source/engine/main.js) | The renderer, the camera and the controls |
+| [`source/engine/shaders.js`](source/engine/shaders.js) | Lighting, fog, the water surface, light rays and the frame of every other shader |
+| [`source/engine/tools.js`](source/engine/tools.js) | The tools an era builds its world with |
+| [`source/engine/zoo.js`](source/engine/zoo.js) | The zoo: finding what you look at, the hint and the card |
+| [`source/engine/audio.js`](source/engine/audio.js) | The soundscape |
+| [`source/engine/quality.js`](source/engine/quality.js) | The detail levels: which one a device starts on, and what is remembered between visits |
+| [`source/engine/math.js`](source/engine/math.js) | Noise, random numbers and mesh-building helpers |
+| [`source/engine/dev.js`](source/engine/dev.js) | Development tools (fly-through and benchmark), only in the dev pages |
+| [`source/template.html`](source/template.html) | The page around the scene: loading bar, title menu with the timeline, and their styles |
+| [`tools`](tools) | Checks for the pages, run with Node: see [`tools/README.md`](tools/README.md) |
 
 Some easy first tweaks:
 
-- **Water color:** `WCOL` (blue-green water) and `PCOL` (purple grotto) near the top of the shared scene code in `shaders.js`
+- **Water color:** `WCOL` (blue-green water) and `PCOL` (purple grotto) in `source/eras/today/air.js`
 - **Sunlight color:** `SUNC` right next to them
-- **Brightness and light rays:** `EXPO` and `RAYS` in `main.js`
-- **Swimming speed:** search for `26 : 7` in `main.js` (fast speed : normal speed)
+- **Brightness and light rays:** `expo` and `rays` in `source/eras/today/era.js`
+- **Swimming speed:** search for `26 : 7` in `source/engine/main.js` (fast speed : normal speed)
 
 ## License
 
 [MIT](LICENSE): free to use, change and share, including in your own projects.
+
+Historic Ocean started as a copy of [Abyssal Garden](https://github.com/Noniv/abyssal-garden) by Noniv, which is under the same license.

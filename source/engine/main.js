@@ -1,8 +1,30 @@
 // ============================================================================
 // renderer, camera and input
 // ============================================================================
+// The engine's part of the page. What makes a world one era and not another, it asks the era for: ERA, FLOOR, KINDS,
+// makeWorld and the shader pieces (see CLAUDE.md, "adding an era")
 const $ = (id) => document.getElementById(id);
 const canvas = $('c'), info = $('i'), body = document.body;
+// The ammonite on the title screen (template.html): the edge of a shell that doubles in size with every turn, three
+// and a quarter turns of it, and ribs across the outer whorl, each curving from the turn before out to the edge. The
+// picture has two paths, the edge and the finer ribs. Its viewBox in template.html fits this shape
+{
+  const shell = (a, k, g = 2) => { const r = 46 * k * pow(g, a / TAU); return (r * cos(a)).toFixed(1) + ' ' + (r * sin(a)).toFixed(1); };
+  let edge = '', ribs = '';
+  for (let i = -204; i <= 0; i++) edge += (edge ? 'L' : 'M') + shell(i / 10, 1);
+  for (let i = -19; i <= 0; i++) { const a = i * TAU / 17; ribs += 'M' + shell(a - 0.2, 0.5) + 'Q' + shell(a + 0.06, 0.75) + ' ' + shell(a, 1); }
+  const f = $('f'); f.setAttribute('d', edge); f.nextSibling.setAttribute('d', ribs);
+  // The icon of the browser tab has to work at 16 pixels: a shell that grows faster (3.2 times with every turn), so
+  // that its whorls stay apart, with seven bold ribs, on a dark tile
+  edge = ribs = '';
+  for (let i = -113; i <= 0; i++) edge += (edge ? 'L' : 'M') + shell(i / 10, 1, 3.2);
+  for (let i = -6; i <= 0; i++) { const a = i * TAU / 7.5; ribs += 'M' + shell(a - 0.3, 1 / 3.2, 3.2) + 'Q' + shell(a + 0.08, 0.66, 3.2) + ' ' + shell(a, 1, 3.2); }
+  const ico = document.createElement('link'); ico.rel = 'icon';
+  ico.href = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-38 -56 96 96" fill="none" stroke="#ecc98b" stroke-linecap="round"><rect x="-38" y="-56" width="96" height="96" rx="21" fill="#03222d" stroke="none"/><path stroke-width="9" d="${edge}"/><path stroke-width="5.5" d="${ribs}"/></svg>`);
+  document.head.append(ico);
+}
+// the timeline of the title menu scrolls sideways where it does not fit: bring the era of this page into view
+document.querySelector('nav b').scrollIntoView({ inline: 'center', block: 'nearest' });
 // a phone held upright gets the page turned on its side (see template.html)
 const rot = matchMedia('(orientation:portrait) and (pointer:coarse)');
 // loading bar: each stage glides it to `to` (the share done) over ~`ms` on the compositor, so it moves while this
@@ -102,11 +124,13 @@ const pLeaf = scenePipe(mLeaf, 'vs', 'fs', [ibLeaf], { strip: true, constants: {
 const pLeaf5 = scenePipe(mLeaf, 'vs', 'fs', [ibLeaf], { strip: true, constants: { ROWS: 5 } });
 const pLeafS = scenePipe(mLeaf, 'vs', 'fs', [ibLeaf], { strip: true, constants: { ROWS: 3, FAR: 70 } });
 const pLeafF = scenePipe(mLeaf, 'vs', 'fs', [ibLeaf], { strip: true, constants: { ROWS: 3 } });
-const pFish = scenePipe(mAnim, 'vsFish', 'fsFish', [vbSolid, ibAnim]);
-const pManta = scenePipe(mAnim, 'vsManta', 'fsManta', [vbSolid, ibAnim]);
-const pPlesio = scenePipe(mAnim, 'vsPlesio', 'fsPlesio', [vbSolid, ibAnim]);
+// what the era draws (KINDS in tools.js): solid things share one pipeline, each animal has its own shaders. A
+// see-through animal (glass) is laid over what is behind it and leaves the depth as it is: GLASS lists those
+const OVER = { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } };
+for (const k of KINDS) k.pipe = k.solid ? pSolid : scenePipe(mAnim, k.vs, k.fs, [vbSolid, ibAnim], k.glass ? { blend: OVER } : {});
+const GLASS = KINDS.filter((k) => k.glass);
 const pSurf = scenePipe(mSurf, 'vs', 'fs', [], { strip: true }), pBack = scenePipe(mSurf, 'vsB', 'fsB', [], { strip: true });
-const pBub = scenePipe(mSpr, 'vsBub', 'fsBub', [ibBub], { strip: true, blend: { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } });
+const pBub = scenePipe(mSpr, 'vsBub', 'fsBub', [ibBub], { strip: true, blend: OVER });
 const ADD = { color: { srcFactor: 'one', dstFactor: 'one' }, alpha: { srcFactor: 'one', dstFactor: 'one' } };
 const pSnow = scenePipe(mSpr, 'vsSnow', 'fsSnow', [ibSnow], { strip: true, blend: ADD });
 const pGl = scenePipe(mLeaf, 'vsGl', 'fsGl', [ibBub], { strip: true, blend: ADD, constants: { ROWS: 7 } });
@@ -126,7 +150,7 @@ const pRays = device.createRenderPipeline({ layout: 'auto', vertex: { module: mR
 const pPost = device.createRenderPipeline({ layout: 'auto', vertex: { module: mPost, entryPoint: 'vs' }, fragment: { module: mPost, entryPoint: 'fs', targets: [{ format: FMT }] } });
 
 // ---------------------------------------------------------------- sun + shadow matrix
-const SUN = (() => { const v = [0.27, 1, -0.24], l = hypot(...v); return v.map((c) => c / l); })();
+const SUN = (() => { const v = ERA.sun, l = hypot(...v); return v.map((c) => c / l); })();
 {
   const L = SUN, lr = [L[1], -L[0], 0], ll = hypot(...lr); lr[0] /= ll; lr[1] /= ll;
   const lu = [L[1] * lr[2] - L[2] * lr[1], L[2] * lr[0] - L[0] * lr[2], L[0] * lr[1] - L[1] * lr[0]];
@@ -142,18 +166,18 @@ const SUN = (() => { const v = [0.27, 1, -0.24], l = hypot(...v); return v.map((
 }
 
 // ---------------------------------------------------------------- world generation
-await say('Sculpting the seabed…', 0.25, 1200);
+await say(ERA.load[0], 0.25, 1200);
 // marks a load in progress (quality.js); leaving the page before it ends is not a crash
 keep('abyssalLoad', 1);
 addEventListener('pagehide', () => keep('abyssalLoad', ''));
 let D;
 {
-  const prims = primBuffer();
+  const prims = FLOOR.prims;
   const m = mod(W_DENS), p = device.createComputePipeline({ layout: 'auto', compute: { module: m, entryPoint: 'main' } });
   const size = NX * NY * NZ * 4;
   const u = new ArrayBuffer(48), uu = new Uint32Array(u), uf = new Float32Array(u);
   uu[0] = NX; uu[1] = NY; uu[2] = NZ; uf[4] = OX; uf[5] = OY; uf[6] = OZ; uf[7] = VS;
-  uu[8] = MESAS.length; uu[9] = ARCHES.length; uu[10] = HOLES.length; uu[11] = CLEARS.length;
+  uu.set(FLOOR.counts, 8);
   const bu = buf(new Uint8Array(u), BU.UNIFORM), bp = buf(prims, BU.STORAGE);
   const bd = device.createBuffer({ size, usage: BU.STORAGE | BU.COPY_SRC }), br = device.createBuffer({ size, usage: BU.MAP_READ | BU.COPY_DST });
   const bg = device.createBindGroup({ layout: p.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: bu } }, { binding: 1, resource: { buffer: bd } }, { binding: 2, resource: { buffer: bp } }] });
@@ -191,46 +215,12 @@ let CG = new Int8Array(64 * 65534);
   }
   CG = CG.slice(0, n * 64);
 }
-await say('Carving canyons…', 0.32, 400);
+await say(ERA.load[1], 0.32, 400);
 const T = buildTerrain(D);
 
-// preset viewpoints (position, look-at), keys 1-6; the world generator dresses the scene around them
-const POSES = [
-  [10, 1.3, 7, -9, -31, -10],
-  [50, 1.3, 34, 58, -23, 8],
-  [-26, 2.2, -100, 0, -9, -108],
-  [-55, 1.5, -18, -60, -30, 8],
-  [10, 1.2, -62, 6, -22, -90],
-  [3, 1.6, 62, 1, -28, 100],
-];
-// 60 s camera path (position + look-at, Catmull-Rom): the world generator keeps it clear, dev.js flies along it
-const FLY = new Float32Array([
-  10, -42.2, 7, -9, -31, -10,
-  7.5, -41.8, 5.5, -10, -31, -12,
-  9, -40.5, 18, 17, -37, 42,
-  22, -39.2, 40, 48, -36, 45,
-  38, -39.2, 46, 57, -27, 18,
-  50, -40.4, 35, 58, -24, 8,
-  55, -39, 20, 60, -18, -10,
-  58, -34, -12, 40, -26, -60,
-  50, -30, -44, 10, -26, -80,
-  30, -30, -70, 4, -28, -90,
-  12, -38.5, -62, 6, -27, -90,
-  -4, -36.5, -70, 0, -14, -100,
-  -16, -37, -84, 0, -22, -108,
-  -29, -38, -90, -44, -34, -60,
-  -41, -38, -70, -56, -34, -40,
-  -53, -38, -50, -60, -34, -20,
-  -58, -38, -28, -60, -32, 0,
-  -57, -38, -10, -60, -30, 16,
-  -60, -38, 10, -50, -36, 40,
-  -52, -37, 36, -20, -35, 44,
-  -22, -38, 43, 4, -38, 52,
-  -6, -39.2, 44.5, 4, -37, 70,
-  3, -40.6, 53, 3, -35, 84,
-  3, -41.5, 62, 1, -30, 100,
-  4, -39, 76, 3, -22, 100,
-]);
+// the era's six viewpoints (position, look-at; keys 1 to 6) and its 60 s camera path (position + look-at, Catmull-Rom),
+// which its makeWorld keeps clear and dev.js flies along
+const VIEWS = ERA.views, FLY = ERA.fly;
 const FLYN = FLY.length / 6, FLYT = 60, LUTN = 1024, flyLUT = new Float32Array(LUTN + 1);
 const flyPts = [];
 // per-frame float state lives in one preallocated array, so the frame loop allocates no heap numbers
@@ -265,38 +255,38 @@ function flyAt() {
   F[SPL] = flyLUT[k] + (flyLUT[k + 1] - flyLUT[k]) * (s - k); flyRaw();
 }
 for (let t = 0; t <= FLYT; t += 0.1) { F[FLT] = t; flyAt(); flyPts.push([F[CX], F[CY], F[CZ]]); }
-for (const p of POSES) flyPts.push([p[0], -40, p[2]]);
+for (const p of VIEWS) flyPts.push([p[0], -40, p[2]]);
 
-await say('Growing kelp…', 0.73, 2500);
-const Wd = makeWorld(D, T, flyPts, POSES);
-for (const p of POSES) p[1] += Wd.gy(p[0], p[2]);
-D = Wd.gy = T.smp = null; // with gy goes the generator's working memory (about 200 MB)
+await say(ERA.load[2], 0.73, 2500);
+// the era scatters its world with the engine's tools, then everything is packed for the graphics card
+let tools = makeTools(D, T, flyPts, VIEWS);
+makeWorld(tools);
+const Wd = tools.finish();
+for (const p of VIEWS) p[1] += Wd.gy(p[0], p[2]);
+tools = D = Wd.gy = T.smp = null; // with the tools goes the generator's working memory (about 200 MB)
 
-await say('Building set pieces…', 0.94, 1200);
-// mesh ids: 0-3 boulders, 4-6 sponges, 7-8 coral, 9 tube sponge, 10 whale fluke, 11 ship, 12 manta, 13 fish,
-// 14-20 rock chunks + pebbles, 21-22 coral LOD, 23-25 far LOD of the large rock chunks, 26 plesiosaur
-const meshes = [meshChunk(1, 3), meshChunk(7, 3), meshChunk(13, 3), meshChunk(22, 3),
-  meshLathe([[0, 0, 0.5], [0.34, 0, 0.6], [0.5, 0.2, 0.85], [0.6, 0.6, 1], [0.55, 0.95, 1], [0.47, 1.08, 1], [0.38, 1.1, 0.9], [0.3, 1.0, 0.45], [0.26, 0.6, 0.15], [0, 0.35, 0.05]], 18, 0.3, 9),
-  meshLathe([[0, 0, 0.5], [0.2, 0, 0.6], [0.26, 0.5, 0.85], [0.4, 1.25, 1], [0.4, 1.42, 1], [0.33, 1.48, 0.9], [0.26, 1.38, 0.4], [0.18, 0.8, 0.12], [0, 0.5, 0.05]], 16, 0.35, 8),
-  meshLathe([[0, 0, 0.5], [0.5, 0, 0.7], [0.72, 0.18, 1], [0.74, 0.38, 1], [0.62, 0.5, 0.9], [0.48, 0.42, 0.45], [0.4, 0.2, 0.15], [0, 0.14, 0.06]], 18, 0.25, 10),
-  meshCoral(0), meshCoral(1), meshTubes()].map((m) => m.build());
-meshes.push(meshFluke(), meshShip().build(), meshManta().build(), meshFish().build(),
-  meshChunk(3).build(), meshChunk(11).build(), meshChunk(29).build(), meshChunk(5, 3).build(), meshChunk(17, 3).build(), meshChunk(41, 3).build(), meshChunk(9, 1).build(), meshCoral(0, 1).build(), meshCoral(1, 1).build(), meshChunk(5, 2, 1).build(), meshChunk(17, 2, 1).build(), meshChunk(41, 2, 1).build(), meshPlesio().build());
+await say(ERA.load[3], 0.94, 1200);
+// the meshes of everything the era draws (KINDS, see tools.js), all in one vertex and one index buffer
+const meshes = [];
+for (const k of KINDS) { meshes.push(k.m = k.mesh()); if (k.lod) meshes.push(k.lm = k.lod()); }
 let nV = 0, nI = 0;
 for (const m of meshes) { m.v0 = nV; m.i0 = nI; nV += m.nv; nI += m.ib.length; }
 const allV = new Uint8Array(nV * 16), allI = new Uint32Array(nI);
 for (const m of meshes) { allV.set(new Uint8Array(m.vb), m.v0 * 16); allI.set(m.ib, m.i0); }
 const vbMesh = buf(allV, BU.VERTEX), ibMesh = buf(allI, BU.INDEX);
 const vbTerrain = buf(new Uint8Array(T.vb), BU.VERTEX), ibTerrain = buf(T.ib, BU.INDEX);
-const nSolid = Wd.solids.data.length / 12;
-const solidData = new Float32Array((nSolid + 1) * 12); solidData.set(Wd.solids.data); solidData.set([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0], nSolid * 12);
-const ibSolids = buf(solidData, BU.VERTEX);
-const ibChunk = Wd.chunks.map((c) => buf(c.data, BU.VERTEX)), ibProp = Wd.props.map((c) => buf(c.data, BU.VERTEX));
+// the one instance the terrain is drawn with: where it is, not turned
+const ibOne = buf(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]), BU.VERTEX);
+// each kind has its instances in a buffer of its own (an animal: eight floats each, a solid thing: twelve)
+for (const k of KINDS) { if (!k.solid) k.n = k.data.length / 8; if (k.n) k.buf = buf(k.data, BU.VERTEX); }
+// A see-through kind is drawn far to near, so that what is nearer lies over what is further away: render() puts its
+// instances in that order in every frame. For that the first three floats of such an instance have to say (about)
+// where the animal is. ord: the order, kept from frame to frame. far: how far each one is. out: the instances in order
+for (const k of GLASS) { k.ord = new Uint16Array(k.n); for (let i = 0; i < k.n; i++) k.ord[i] = i; k.far = new Float32Array(k.n); k.out = new Float32Array(k.n * 8); }
 const ibBig = buf(new Uint8Array(Wd.big.buf), BU.VERTEX), ibBigF = buf(new Uint8Array(Wd.bigF.buf), BU.VERTEX), ibSmall = buf(new Uint8Array(Wd.small.buf), BU.VERTEX);
-const ibFish = buf(Wd.fish, BU.VERTEX), ibManta = buf(Wd.mantas, BU.VERTEX), ibPlesio = buf(Wd.plesios, BU.VERTEX), ibBubbles = buf(Wd.bubbles, BU.VERTEX), ibSnowB = buf(Wd.snow, BU.VERTEX);
+const ibBubbles = buf(Wd.bubbles, BU.VERTEX), ibSnowB = buf(Wd.snow, BU.VERTEX);
 const ibGl = buf(Wd.glints, BU.VERTEX), nGl = Wd.glints.length / 8;
-const nFish = Wd.fish.length / 8, nManta = Wd.mantas.length / 8, nPlesio = Wd.plesios.length / 8, nBub = Wd.bubbles.length / 8, nSnow = Wd.snow.length / 4;
-const MANTA = meshes[12], FISH = meshes[13], PLESIO = meshes[26];
+const nBub = Wd.bubbles.length / 8, nSnow = Wd.snow.length / 4;
 Q.writeTexture({ texture: tVol }, Wd.volD, { bytesPerRow: NX, rowsPerImage: NY / 2 }, [NX / 2, NY / 2, NZ / 2]);
 Q.writeTexture({ texture: tMap }, Wd.gm, { bytesPerRow: 2048 }, [512, 512]);
 
@@ -313,19 +303,19 @@ Q.writeTexture({ texture: tMap }, Wd.gm, { bytesPerRow: 2048 }, [512, 512]);
   r = e.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: tShadow.createView(), depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' } });
   r.setBindGroup(0, bg0s);
   r.setPipeline(pTerrSh);
-  r.setVertexBuffer(0, vbTerrain); r.setVertexBuffer(1, ibSolids); r.setIndexBuffer(ibTerrain, 'uint32');
-  r.drawIndexed(T.ib.length, 1, 0, 0, nSolid);
+  r.setVertexBuffer(0, vbTerrain); r.setVertexBuffer(1, ibOne); r.setIndexBuffer(ibTerrain, 'uint32');
+  r.drawIndexed(T.ib.length, 1, 0, 0, 0);
   r.setPipeline(pSolidSh); r.setVertexBuffer(0, vbMesh); r.setIndexBuffer(ibMesh, 'uint32');
-  for (let i = 0; i < 12; i++) { const g = Wd.solids.ranges[i]; if (g[1]) r.drawIndexed(meshes[i].ib.length, g[1], meshes[i].i0, meshes[i].v0, g[0]); }
-  // small rocks, sponges and corals (~35M triangles) only on High: too much for a phone's driver
-  if (!LV) for (let i = 0; i < NCHUNK; i++) { r.setVertexBuffer(1, ibChunk[i]); r.drawIndexed(meshes[14 + i].ib.length, Wd.chunks[i].n, meshes[14 + i].i0, meshes[14 + i].v0, 0); }
-  if (!LV) for (let i = 0; i < 6; i++) if (Wd.props[i].n) { r.setVertexBuffer(1, ibProp[i]); r.drawIndexed(meshes[4 + i].ib.length, Wd.props[i].n, meshes[4 + i].i0, meshes[4 + i].v0, 0); }
-  r.setPipeline(pLeafSh); r.setVertexBuffer(0, ibBig); r.draw(6, Wd.big.n);
+  // solid kinds: shadow 1 always, shadow 2 (the many small things, tens of millions of triangles) only on High: too
+  // much for a phone's driver
+  for (const k of KINDS) if (k.solid && k.n && (k.shadow === 1 || (k.shadow === 2 && !LV))) { r.setVertexBuffer(1, k.buf); r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0); }
+  if (Wd.big.n) { r.setPipeline(pLeafSh); r.setVertexBuffer(0, ibBig); r.draw(6, Wd.big.n); }
   r.end();
   Q.submit([e.finish()]);
 }
 // the GPU has its own copies now: let go of the generator's (about 300 MB)
-for (const o of [Wd.big, Wd.bigF, Wd.small, ...Wd.chunks, ...Wd.props]) o.buf = o.data = 0;
+for (const o of [Wd.big, Wd.bigF, Wd.small]) o.buf = o.data = 0;
+for (const k of KINDS) if (k.solid) k.data = 0;
 Wd.glints = Wd.volD = Wd.gm = T.vb = T.ib = T.wp = T.wn = 0;
 
 // ---------------------------------------------------------------- render targets (rebuilt on resize)
@@ -391,7 +381,7 @@ if (hasTS) {
 // ---------------------------------------------------------------- frame
 let hud = false;
 let kf = 0, kb = 0, kl = 0, kr = 0, ku = 0, kd = 0, ks = 0, mdx = 0, mdy = 0, lkx = 0, lky = 0, l2x = 0, l2y = 0, hN = 0, hMax = 0, hMin = 1e9, hPer = 1e9, hLate = 0, hTot = 0, tId = -1, tN = 0, tx0 = 0, ty0 = 0, tx = 0, ty = 0;
-const TANH = 0.6, NEAR = 0.1, EXPO = 0.62, RAYS = 0.54;
+const TANH = 0.6, NEAR = 0.1, RAYS = ERA.rays, TOP = ERA.top, BOTTOM = ERA.bottom, EDGE = ERA.edge;
 const submitList = [null];
 const rowOrd = new Uint8Array(CELLS);
 // Draws the cells of a cell-sorted buffer that are in view and within [minD, maxD) (scaled by `det`, but not for the
@@ -417,7 +407,7 @@ function drawCells(r, start, lo, hi, mar, indexed, verts, minD, maxD) {
       }
       if (v) { if (run < 0) run = c; } else if (run >= 0) {
         const a = start[run], n = start[c] - a;
-        if (n > 0) { if (indexed === 1) r.drawIndexed(n * 6, 1, a * 6, 0, nSolid); else if (indexed) r.drawIndexed(indexed.ib.length, n, indexed.i0, indexed.v0, a); else r.draw(verts, n, 0, a); }
+        if (n > 0) { if (indexed === 1) r.drawIndexed(n * 6, 1, a * 6, 0, 0); else if (indexed) r.drawIndexed(indexed.ib.length, n, indexed.i0, indexed.v0, a); else r.draw(verts, n, 0, a); }
         run = -1;
       }
     }
@@ -438,12 +428,18 @@ function render() {
   m[36] = rx; m[37] = 0; m[38] = rz; m[39] = TANH * asp;
   m[40] = ux; m[41] = uy; m[42] = uz; m[43] = TANH;
   m[44] = fx; m[45] = fy; m[46] = fz; m[47] = NEAR;
-  const zx = cx - PURPLE[0], zz = cz - PURPLE[1]; let zt = (44 - sqrt(zx * zx + zz * zz)) / 18; zt = zt < 0 ? 0 : zt > 1 ? 1 : zt;
-  m[51] = zt * zt * (3 - 2 * zt);
-  let ek = (-cy - 8) / 26; ek = ek < 0 ? 0 : ek > 1 ? 1 : ek;
-  m[56] = EXPO * (0.6 + 0.4 * ek); m[57] = RAYS; m[58] = det;
+  ERA.tick(); // the era's own numbers: the share of its second water at the camera, the exposure
+  m[57] = RAYS; m[58] = det;
   Q.writeBuffer(ubo, 0, UB);
   WT[0] = F[TIME]; Q.writeBuffer(uboW, 0, WT);
+  // what is see-through: far to near (the order changes little from frame to frame, so sorting it is cheap)
+  for (let i = 0; i < GLASS.length; i++) {
+    const k = GLASS[i], d = k.data, f = k.far, o = k.ord, n = k.n; if (!n) continue;
+    for (let j = 0; j < n; j++) { const x = d[j * 8] - cx, y = d[j * 8 + 1] - cy, z = d[j * 8 + 2] - cz; f[j] = x * x + y * y + z * z; }
+    for (let j = 1; j < n; j++) { const v = o[j]; let m = j - 1; while (m >= 0 && f[o[m]] < f[v]) { o[m + 1] = o[m]; m--; } o[m + 1] = v; }
+    for (let j = 0; j < n; j++) { const s = o[j] * 8, t = j * 8; for (let q = 0; q < 8; q++) k.out[t + q] = d[s + q]; }
+    Q.writeBuffer(k.buf, 0, k.out);
+  }
 
   { let cr = floor((cz - OZ) / CELLW) | 0; cr = cr < 0 ? 0 : cr > CELLS - 1 ? CELLS - 1 : cr; let n = 0; rowOrd[n++] = cr; for (let d = 1; d < CELLS; d++) { if (cr - d >= 0) rowOrd[n++] = cr - d; if (cr + d < CELLS) rowOrd[n++] = cr + d; } }
   const e = device.createCommandEncoder();
@@ -457,33 +453,35 @@ function render() {
   // scene
   r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0);
-  r.setPipeline(pTerrain); r.setVertexBuffer(0, vbTerrain); r.setVertexBuffer(1, ibSolids); r.setIndexBuffer(ibTerrain, 'uint32');
+  r.setPipeline(pTerrain); r.setVertexBuffer(0, vbTerrain); r.setVertexBuffer(1, ibOne); r.setIndexBuffer(ibTerrain, 'uint32');
   drawCells(r, T.start, T.lo, T.hi, 1.5, 1, 0, 0, 240);
-  r.setPipeline(pSolid); r.setVertexBuffer(0, vbMesh); r.setIndexBuffer(ibMesh, 'uint32');
-  for (let i = 0; i < 12; i++) { const g = Wd.solids.ranges[i]; if (g[1]) r.drawIndexed(meshes[i].ib.length, g[1], meshes[i].i0, meshes[i].v0, g[0]); }
-  for (let i = 0; i < NCHUNK; i++) {
-    const c = Wd.chunks[i], big = i > 2 && i < 6; r.setVertexBuffer(1, ibChunk[i]);
-    drawCells(r, c.start, c.lo, c.hi, 3, meshes[14 + i], 0, 0, i > 5 ? 30 : big ? 40 : 96);
-    if (big) drawCells(r, c.start, c.lo, c.hi, 3, meshes[20 + i], 0, 40, 150);
+  // What the era draws, in its order (KINDS in tools.js). A kind is all drawn at once, or by culling cell up to its
+  // distance, with its simpler mesh from lodFrom on. Nothing here knows what the kinds are, and nothing is allocated
+  r.setVertexBuffer(0, vbMesh); r.setIndexBuffer(ibMesh, 'uint32');
+  for (let i = 0, p = null; i < KINDS.length; i++) {
+    const k = KINDS[i]; if (!k.n || k.glass) continue;
+    if (k.pipe !== p) r.setPipeline(p = k.pipe);
+    r.setVertexBuffer(1, k.buf);
+    if (!k.cells) r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0);
+    else if (k.lod) { drawCells(r, k.start, k.lo, k.hi, 3, k.m, 0, 0, k.lodFrom); drawCells(r, k.start, k.lo, k.hi, 3, k.lm, 0, k.lodFrom, k.far); }
+    else drawCells(r, k.start, k.lo, k.hi, 3, k.m, 0, 0, k.far);
   }
-  for (let i = 0; i < 6; i++) {
-    const lod = i === 3 || i === 4; r.setVertexBuffer(1, ibProp[i]);
-    drawCells(r, Wd.props[i].start, Wd.props[i].lo, Wd.props[i].hi, 3, meshes[4 + i], 0, 0, lod ? 6 : 110);
-    if (lod) drawCells(r, Wd.props[i].start, Wd.props[i].lo, Wd.props[i].hi, 3, meshes[18 + i], 0, 6, 110);
-  }
-  r.setPipeline(pManta); r.setVertexBuffer(1, ibManta); r.drawIndexed(MANTA.ib.length, nManta, MANTA.i0, MANTA.v0, 0);
-  r.setPipeline(pPlesio); r.setVertexBuffer(1, ibPlesio); r.drawIndexed(PLESIO.ib.length, nPlesio, PLESIO.i0, PLESIO.v0, 0);
-  r.setPipeline(pFish); r.setVertexBuffer(1, ibFish); r.drawIndexed(FISH.ib.length, nFish, FISH.i0, FISH.v0, 0);
-  // kelp and plants: 9-row blades up close, 5 rows mid-range, a decimated set far away
+  // leaves: 9-row blades up close, 5 rows mid-range, a decimated set far away
   r.setPipeline(pLeaf); r.setVertexBuffer(0, ibBig); drawCells(r, Wd.big.start, Wd.big.lo, Wd.big.hi, 5, false, 18, 0, 24);
   r.setPipeline(pLeaf5); drawCells(r, Wd.big.start, Wd.big.lo, Wd.big.hi, 5, false, 10, 24, 58);
   r.setPipeline(pLeafF); r.setVertexBuffer(0, ibBigF); drawCells(r, Wd.bigF.start, Wd.bigF.lo, Wd.bigF.hi, 5, false, 6, 58, 150);
   r.setPipeline(pLeafS); r.setVertexBuffer(0, ibSmall); drawCells(r, Wd.small.start, Wd.small.lo, Wd.small.hi, 1.5, false, 6, 0, 70);
   r.setPipeline(pSurf); r.draw(4);
   r.setPipeline(pBack); r.draw(4);
-  r.setPipeline(pBub); r.setVertexBuffer(0, ibBubbles); r.draw(4, nBub);
-  r.setPipeline(pGl); r.setVertexBuffer(0, ibGl); r.draw(4, nGl);
-  r.setPipeline(pSnow); r.setVertexBuffer(0, ibSnowB); r.draw(4, nSnow);
+  // what is see-through, over all of that
+  for (let i = 0; i < GLASS.length; i++) {
+    const k = GLASS[i]; if (!k.n) continue;
+    r.setPipeline(k.pipe); r.setVertexBuffer(0, vbMesh); r.setVertexBuffer(1, k.buf); r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0);
+  }
+  // sprites, where the era has any
+  if (nBub) { r.setPipeline(pBub); r.setVertexBuffer(0, ibBubbles); r.draw(4, nBub); }
+  if (nGl) { r.setPipeline(pGl); r.setVertexBuffer(0, ibGl); r.draw(4, nGl); }
+  if (nSnow) { r.setPipeline(pSnow); r.setVertexBuffer(0, ibSnowB); r.draw(4, nSnow); }
   r.end();
   // light shafts
   r = e.beginRenderPass(passRays); r.setPipeline(pRays); r.setBindGroup(0, bgRays); r.draw(3); r.end();
@@ -568,12 +566,13 @@ function frame(now) {
     const sp = ks || tN > 1 ? 26 : 7, k = 1 - exp(-dt * 4.5), mf = tId >= 0 ? 0.7 : kf - kb, mr = kr - kl, mu = ku - kd, cp = cos(pitch), sy = sin(yaw), cw = cos(yaw);
     const vx = F[VX] + ((sy * cp * mf + cw * mr) * sp - F[VX]) * k, vy = F[VY] + ((sin(pitch) * mf + mu) * sp - F[VY]) * k, vz = F[VZ] + ((-cw * cp * mf + sy * mr) * sp - F[VZ]) * k;
     let x = F[CX] + vx * dt, y = F[CY] + vy * dt, z = F[CZ] + vz * dt;
-    const rad = sqrt(x * x + z * z); if (rad > 150) { x *= 150 / rad; z *= 150 / rad; }
-    y = y < -52 ? -52 : y > -1.2 ? -1.2 : y;
+    const rad = sqrt(x * x + z * z); if (rad > EDGE) { x *= EDGE / rad; z *= EDGE / rad; }
+    y = y < BOTTOM ? BOTTOM : y > TOP ? TOP : y;
     F[YAW] = yaw; F[PIT] = pitch; F[VX] = vx; F[VY] = vy; F[VZ] = vz; F[MX] = x - F[CX]; F[MY] = y - F[CY]; F[MZ] = z - F[CZ];
     collide();
   }
   render();
+  zoo();
   if (hud) {
     hN++; if (dtr > hMax) hMax = dtr; if (dtr < hMin) hMin = dtr; if (dtr > hPer * 1.5) { hLate++; hTot++; }
     F[HUDT] += dtr / 1000;
@@ -590,7 +589,8 @@ const key = (e, v) => {
       if (e.code === 'KeyH') { hud = !hud; hTot = 0; hPer = 1e9; info.textContent = ''; }
       else if (e.code === 'KeyM') mute();
       else if (e.code === 'Escape') ui(true);
-      else if (e.code >= 'Digit1' && e.code <= 'Digit6') lookAt(...POSES[e.code.charCodeAt(5) - 49]);
+      else if (e.code === 'Space') zooKey();
+      else if (e.code >= 'Digit1' && e.code <= 'Digit6') lookAt(...VIEWS[e.code.charCodeAt(5) - 49]);
     }
   }
 };
@@ -599,7 +599,9 @@ addEventListener('keydown', (e) => { if (menu && e.code !== 'KeyH' && e.code !==
 addEventListener('keyup', (e) => key(e, 0));
 const release = () => { kf = kb = kl = kr = ku = kd = ks = 0; tId = -1; tN = 0; };
 const capture = () => { sound(); const p = canvas.requestPointerLock({ unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()).catch(() => 0); };
-canvas.addEventListener('click', capture);
+// A click on the scene captures the mouse and reads the card like Space does. Not a click that a touch left behind:
+// a tap on the hint or the card ends as a click on the scene when they have gone by the time the finger lifts
+canvas.addEventListener('click', (e) => { if (e.pointerType !== 'touch') { capture(); zooKey(); } });
 addEventListener('mousemove', (e) => { if (document.pointerLockElement === canvas) { mdx += e.movementX; mdy += e.movementY; } });
 addEventListener('blur', release);
 const touch = (e) => {
@@ -623,7 +625,7 @@ const ui = (m) => {
   if (dead) return;
   menu = m; body.className = m ? 'm' : document.pointerLockElement ? 'g p' : 'g';
   // focus the dive button so Enter works (delayed: it can't take focus while still hidden)
-  if (m) { release(); setTimeout(() => menu && bDive.focus(), 100); } else document.activeElement.blur();
+  if (m) { release(); zooOff(); setTimeout(() => menu && bDive.focus(), 100); } else document.activeElement.blur();
 };
 const go = () => {
   sound(); ui(false); bDive.textContent = 'Resume';
@@ -637,8 +639,8 @@ $('q').querySelectorAll('button').forEach((b, i) => { if (i === 2 - LV) b.classN
 document.addEventListener('pointerlockchange', () => ui(!document.pointerLockElement));
 
 // draw the first frame and wait for the GPU to finish it (pipelines get compiled on first use) before the reveal
-lookAt(...POSES[0]);
-await say('Letting the light in…', 1, 400);
+lookAt(...VIEWS[0]);
+await say(ERA.load[4], 1, 400);
 render(); await Q.onSubmittedWorkDone();
 setTimeout(keep, 15e3, 'abyssalLoad', ''); // the load counts as survived after 15 s of frames
 ui(true);

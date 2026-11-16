@@ -4,6 +4,7 @@
 //   F    fly the camera along the scripted path (FLY in main.js), one minute through the whole world
 //   B    the same flight as a benchmark: the resolution stays fixed, every frame is timed, the result is shown at the end
 //   F, B or 1-6 during a flight stop it
+//   a zoo card that is open when a flight starts stays open until it ends, so B can time a flight with a card open
 {
   const LOGN = 1 << 16, logFrame = new Float32Array(LOGN), logGpu = new Float32Array(LOGN);
   let flying = false, bench = false, last = 0, nFrame = 0, nGpu = 0;
@@ -20,6 +21,7 @@
     if (flying) {
       const dtr = F[LAST] - last; last = F[LAST];
       F[FLT] += min(dtr / 1000, 0.1); flyAt();
+      ZF[0] = F[CX]; ZF[1] = F[CY]; ZF[2] = F[CZ]; // an open zoo card flies along instead of closing after 15 m
       if (bench) { if (nFrame < LOGN) logFrame[nFrame++] = dtr; if (F[GPU] > 0 && nGpu < LOGN) logGpu[nGpu++] = F[GPU]; }
       if (F[FLT] >= FLYT) { if (bench) report(); stop(); }
     }
