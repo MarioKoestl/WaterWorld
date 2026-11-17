@@ -2,20 +2,23 @@
 // same made-up sea floor (the real one comes from a compute shader), and compares every buffer they produce: terrain,
 // leaves, specks, bubbles, particles, zoo places, the instances and the meshes of every kind, the zoo's animals.
 // No browser and no graphics card. It proves the same code path, not the same picture: for that see poses.mjs.
-//   node --max-old-space-size=8192 tools/generator.cjs <sourceBefore> <sourceAfter> [era] [levels]
-// era: default today. levels: detail levels to run, default 0,1,2 (about two minutes each).
+//   node --max-old-space-size=8192 tools/generator.cjs <sourceBefore> <sourceAfter> [era]
+// era: default today. About two minutes. A tree from before docs/briefs/scope.md had three detail levels: it runs at
+// the highest, which is the one level now.
 // A tree to compare with: a copy of source/ made before the change, or the last commit:
 //   mkdir tools/out/head; git archive HEAD source | tar -x -C tools/out/head      (reads Git, changes nothing)
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const [srcA, srcB, era = 'today', levels = '0,1,2'] = process.argv.slice(2);
-if (!srcB) { console.log('usage: node --max-old-space-size=8192 tools/generator.cjs <sourceBefore> <sourceAfter> [era] [levels]'); process.exit(2); }
+const [srcA, srcB, era = 'today'] = process.argv.slice(2);
+if (!srcB) { console.log('usage: node --max-old-space-size=8192 tools/generator.cjs <sourceBefore> <sourceAfter> [era]'); process.exit(2); }
 const hash = (o) => { const b = ArrayBuffer.isView(o) ? new Uint8Array(o.buffer, o.byteOffset, o.byteLength) : o instanceof ArrayBuffer ? new Uint8Array(o) : new Uint8Array(new Float64Array(o).buffer); let x = 2166136261; for (let i = 0; i < b.length; i++) { x ^= b[i]; x = Math.imul(x, 16777619); } return b.length + ':' + (x >>> 0).toString(16); };
-const el = () => ({ children: [{}, {}, { children: [] }, {}], firstChild: {}, nextSibling: { setAttribute() {} }, setAttribute() {}, scrollIntoView() {} });
+// (a stand-in for an element of the page: the card has five children, the size picture among them has its own)
+const el = () => ({ children: Array.from({ length: 5 }, () => ({ children: [] })), firstChild: {},nextSibling: { setAttribute() {} }, setAttribute() {}, scrollIntoView() {} });
 // one tree, loaded the way build.mjs joins a page, up to the zoo (which the generator registers its exhibits with)
-const load = (src, lv) => {
+const load = (src) => {
   const eraDir = path.join(src, 'eras', era);
   const files = [...['quality.js', 'math.js', 'tools.js'].map((f) => path.join(src, 'engine', f)), ...fs.readdirSync(eraDir).filter((f) => f.endsWith('.js')).sort().map((f) => path.join(eraDir, f)), path.join(src, 'engine', 'zoo.js')];
-  const box = { localStorage: { abyssal: String(lv) }, matchMedia: () => ({ matches: false }), navigator: { deviceMemory: 8 }, Math, console, location: { reload() {} }, document: { getElementById: el, querySelector: el, createElement: el, head: { append() {} }, body: {} },
+  // (an older tree read its detail level from localStorage and its guesses from the rest: "0" is the highest)
+  const box = { localStorage: { abyssal: '0' }, matchMedia: () => ({ matches: false }), navigator: { deviceMemory: 8 }, Math, console, location: { reload() {} }, document: { getElementById: el, querySelector: el, createElement: el, head: { append() {} }, body: {} },
     Float32Array, Float64Array, Uint8Array, Uint32Array, Int32Array, Int8Array, Uint16Array, ArrayBuffer, Set, Map, Array, Object };
   vm.createContext(box);
   vm.runInContext(files.map((f) => fs.readFileSync(f, 'utf8')).join('\n'), box);
@@ -51,7 +54,8 @@ const RESULT = `(() => {
   put('counts', [__T.nv, __W.big.n, __W.bigF.n, __W.small.n, __W.zoo.n, KINDS.length, ZA.length]);
   KINDS.forEach((k, i) => { const p = 'kind ' + i + (k.solid ? ' (solid)' : ' (animal)');
     for (const f of k.solid && k.cells ? ['data', 'start', 'lo', 'hi'] : ['data']) put(p + '.' + f, k[f] || []);
-    put(p + '.settings', [k.solid | 0, k.cells | 0, k.shadow | 0, k.far || 0, k.lodFrom || 0, (k.vs || '').length, (k.fs || '').length, (k.wgsl || '').length]);
+    // (whether it casts a shadow: an older tree also had 2, for "on the highest level only", which is the one level now)
+    put(p + '.settings', [k.solid | 0, k.cells | 0, k.shadow ? 1 : 0, k.far || 0, k.lodFrom || 0, (k.vs || '').length, (k.fs || '').length, (k.wgsl || '').length]);
     const m = k.mesh(); put(p + '.mesh.vb', m.vb); put(p + '.mesh.ib', m.ib);
     if (k.lod) { const l = k.lod(); put(p + '.lod.vb', l.vb); put(p + '.lod.ib', l.ib); } });
   ZA.forEach((o, i) => { put('zoo animal ' + i + '.list', o.list); put('zoo animal ' + i + '.settings', [o.k, o.reach, o.parts]); });
@@ -60,8 +64,8 @@ const RESULT = `(() => {
 const FLY = '(() => { const p = []; for (let i = 0; i < ERA.fly.length; i += 6) p.push([ERA.fly[i], ERA.fly[i + 1], ERA.fly[i + 2]]); for (const q of ERA.views) p.push([q[0], -40, q[2]]); return p; })()';
 
 let bad = 0;
-for (const lv of levels.split(',').map(Number)) {
-  const t0 = Date.now(), A = load(srcA, lv), B = load(srcB, lv), D = A(FLOOR), res = [];
+{
+  const t0 = Date.now(), A = load(srcA), B = load(srcB), D = A(FLOOR), res = [];
   for (const run of [A, B]) {
     run('globalThis.__take = (d) => { globalThis.__D = d; }'); run('__take')(D);
     run(`const __T = buildTerrain(__D), __tools = makeTools(__D, __T, ${FLY}, ERA.views); makeWorld(__tools); const __W = __tools.finish();`);
@@ -69,7 +73,7 @@ for (const lv of levels.split(',').map(Number)) {
   }
   const [ra, rb] = res, names = [...new Set([...Object.keys(ra), ...Object.keys(rb)])], diff = names.filter((n) => ra[n] !== rb[n]);
   const n = A('[__T.nv, __W.big.n, __W.small.n, __W.zoo.n, KINDS.length]');
-  console.log(`detail level ${lv}: ${names.length - diff.length} of ${names.length} buffers identical (${((Date.now() - t0) / 1000).toFixed(0)} s; made-up world: ${n[0]} terrain vertices, ${n[1]} large and ${n[2]} small leaves, ${n[3]} zoo places, ${n[4]} kinds)`);
+  console.log(`${names.length - diff.length} of ${names.length} buffers identical (${((Date.now() - t0) / 1000).toFixed(0)} s; made-up world: ${n[0]} terrain vertices, ${n[1]} large and ${n[2]} small leaves, ${n[3]} zoo places, ${n[4]} kinds)`);
   if (diff.length) { bad++; console.log('  DIFFERENT:\n  ' + diff.slice(0, 30).map((d) => `${d}: ${ra[d] || 'missing'} -> ${rb[d] || 'missing'}`).join('\n  ')); }
 }
 console.log(bad ? '\nTHE TWO TREES BUILD DIFFERENT WORLDS' : '\nboth trees build the same world');

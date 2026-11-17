@@ -1,14 +1,12 @@
 // ============================================================================
-// quality level, chosen before anything is built
+// quality: the one detail level, and what the page remembers between visits
 // ============================================================================
-// LV: 0 High, 1 Medium, 2 Low. Medium and Low keep every 2nd / 4th leaf, glint and pebble and bake fewer shadows;
-// Low also drops anti-aliasing and uses coarser meshes, cheaper filtering and fewer light shaft steps.
-// localStorage.abyssal = "level,pixels,detail". abyssalLoad is set while the world is built: still set on the next
-// visit means that load crashed the tab, so this one runs a level lower.
-const mob = matchMedia('(pointer:coarse)').matches, mem = navigator.deviceMemory;
+// The game has one detail level (docs/briefs/scope.md): the size of the shadow map, the samples of the anti-aliasing,
+// the size of the water texture and the steps of the light shafts are fixed.
+// localStorage.abyssal = "pixels,detail": the resolution and the draw distance the scene settled on last time (main.js
+// reads them back and keeps them in their range, so a value that an older page left there does no harm).
+// localStorage.abyssalSize: the size of the player (0 diver, 1 fish, 2 shrimp: main.js, key C).
+const SHADOW = 4096, AA = 4, WATER = 512, RAYN = 34;
 const keep = (k, v) => { try { localStorage[k] = v; } catch {} };
-let SV = [], LV, bad;
-try { SV = (localStorage.abyssal || '').split(','); bad = localStorage.abyssalLoad; } catch {}
-LV = SV[0] ? +SV[0] : mob ? (mem > 7 ? 1 : 2) : mem <= 4 ? 2 : 0;
-if (bad && LV < 2) { SV = [++LV]; keep('abyssal', LV); }
-const THIN = 1 << LV, SHADOW = LV ? 2048 : 4096, AA = LV > 1 ? 1 : 4, WATER = LV > 1 ? 256 : 512, RAYN = LV > 1 ? 12 : 34;
+let SV = [], PSZ = 0;
+try { SV = (localStorage.abyssal || '').split(','); PSZ = (+localStorage.abyssalSize | 0) % 3; } catch {}

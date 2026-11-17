@@ -27,6 +27,8 @@ const RAYCZ = vec3f(.28, .16, .12);
 // the tint of some of the drifting particles, and where they drift, in metres per second
 const SNOWC = vec3f(.7, 1., .9);
 const DRIFT = vec3f(.22, .05, .13);
+// how large they are, in metres: the smallest, and how much the largest are larger
+const SNOWZ = vec2f(.012, .045);
 // how far along a view the haze still takes its brightness from the skylight there (further out it is taken at
 // this distance): about as far as one sees
 const SKYD = 150.;

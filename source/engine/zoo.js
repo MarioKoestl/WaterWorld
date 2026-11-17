@@ -22,10 +22,11 @@ const zooMove = (id, list, at, reach, parts = 1) => ZA.push({ k: zooKind(id), li
 
 // ---------------------------------------------------------------- finding what the player looks at
 // Runs in every frame and allocates nothing: floats that outlive a call are in ZF (0 to 2: where the card was opened,
-// 3: the best score of the running search), the rest are small integers. -1 stands for none.
+// 3: the best score of the running search, 4: how far ahead along the view the place looked at is), the rest are
+// small integers. -1 stands for none.
 //   zAim   the place the player looks at (its position in Wd.zoo.data, the animals count on from there)
 //   zKind  its kind      zHint  the kind the hint shows      zCard  the kind the open card shows
-const ZF = new Float64Array(4);
+const ZF = new Float64Array(5);
 let zAim = -1, zKind = -1, zHint = -1, zCard = -1, zNew = -1, zNewK = -1;
 // A place counts as looked at when the view passes its line no further away than its radius plus ZTOL of the distance
 // (a cone of about 6 degrees around it). The one aimed at in the last frame keeps that a little longer (ZHOLD times
@@ -54,7 +55,7 @@ function zooScan(P, i0, i1, id0) {
     // worse than anything else that counts, so it is named only where nothing else is looked at
     if (wide) { if (off > 1.44 * t * t) continue; sc = 0.9 + 0.1 * sc; }
     if (cur) sc *= ZWIN;
-    if (sc < ZF[3]) { ZF[3] = sc; zNew = i + id0; zNewK = P[o + 8] | 0; }
+    if (sc < ZF[3]) { ZF[3] = sc; ZF[4] = t; zNew = i + id0; zNewK = P[o + 8] | 0; }
   }
 }
 // Once per frame, after render() has set the view: finds the place looked at, shows its name, closes a card left behind
@@ -86,12 +87,25 @@ function zoo() {
 // ---------------------------------------------------------------- hint and card
 // Both are plain HTML over the canvas (template.html), shown while they carry the class `on`. The card is filled from
 // ZOO when it opens.
-const zTip = document.getElementById('n'), zBox = document.getElementById('z'), [zH, zSub, zRows, zText] = zBox.children;
+const zTip = document.getElementById('n'), zBox = document.getElementById('z'), [zH, zSub, zRows, zPic, zText] = zBox.children;
+// The size picture under the fact rows: the `size` of the entry (its largest measure, in metres) as a bar, and under
+// it the diver (ZYOU) to the same scale, or the diver's hand (ZHAND) for anything shorter than ZSMALL. The longer bar
+// fills the width, the CSS keeps the shorter one 2 px long at least. An entry without `size` shows no picture
+const ZYOU = 1.8, ZHAND = 0.19, ZSMALL = 0.3, [zPicA, zBarA, zPicB, zBarB] = zPic.children;
+// a length in metres as the card writes it: metres with one decimal at most from 1 m on, whole centimetres from 10 cm,
+// centimetres with one decimal at most below that (2.5 cm), whole millimetres below 1 cm. A unit starts where the
+// next smaller one would round up to it (0.996 is 1 m, not 100 cm)
+const zooLen = (m) => m >= 0.995 ? round(m * 10) / 10 + ' m' : m >= 0.0995 ? round(m * 100) + ' cm' : m >= 0.0095 ? round(m * 1000) / 10 + ' cm' : max(round(m * 1000), 1) + ' mm';
 const zooOpen = (k) => {
-  const z = ZOO[ZK[k]], r = zRows.children;
+  const z = ZOO[ZK[k]], r = zRows.children, s = z.size, y = s < ZSMALL ? ZHAND : ZYOU, l = max(s, y);
   zH.textContent = z.name; zSub.textContent = z.sub; zText.textContent = z.text;
   for (let i = 0; i < 3; i++) { const f = z.facts[i]; r[i * 2].hidden = r[i * 2 + 1].hidden = !f; if (f) { r[i * 2].textContent = f[0]; r[i * 2 + 1].textContent = f[1]; } }
   zRows.hidden = !z.facts.length;
+  zPic.hidden = !(s > 0);
+  if (s > 0) {
+    zPicA.textContent = z.name + ' · ' + zooLen(s); zPicB.textContent = (y === ZHAND ? 'Your hand · ' : 'You · ') + zooLen(y);
+    zBarA.style.setProperty('--w', s / l); zBarB.style.setProperty('--w', y / l);
+  }
   zCard = k; ZF[0] = F[CX]; ZF[1] = F[CY]; ZF[2] = F[CZ]; zBox.className = 'on';
 };
 const zooClose = () => { zCard = -1; zBox.className = ''; };

@@ -7,21 +7,21 @@ const BOULDER = [1, 7, 13, 22].map((sd) => kind({ solid: 1, shadow: 1, mesh: roc
 const FLUKE = kind({ solid: 1, shadow: 1, mesh: meshFluke }), SHIP = kind({ solid: 1, shadow: 1, mesh: () => meshShip().build() });
 // rock chunks: three small ones, three large ones (with a simpler mesh from 40 m on), pebbles
 const CHUNK = [
-  ...[3, 11, 29].map((sd) => kind({ solid: 1, shadow: 2, cells: 1, far: 96, mesh: rock(sd) })),
-  ...[5, 17, 41].map((sd) => kind({ solid: 1, shadow: 2, cells: 1, far: 150, lodFrom: 40, mesh: rock(sd, 3), lod: rock(sd, 2, 1) })),
-  kind({ solid: 1, shadow: 2, cells: 1, far: 30, mesh: rock(9, 1) }),
+  ...[3, 11, 29].map((sd) => kind({ solid: 1, shadow: 1, cells: 1, far: 96, mesh: rock(sd) })),
+  ...[5, 17, 41].map((sd) => kind({ solid: 1, shadow: 1, cells: 1, far: 150, lodFrom: 40, mesh: rock(sd, 3), lod: rock(sd, 2, 1) })),
+  kind({ solid: 1, shadow: 1, cells: 1, far: 30, mesh: rock(9, 1) }),
 ];
 // sponges: a barrel, a vase and a bowl, each a profile (radius, height, shade) turned round its axis
 const SPONGE = [
   () => meshLathe([[0, 0, 0.5], [0.34, 0, 0.6], [0.5, 0.2, 0.85], [0.6, 0.6, 1], [0.55, 0.95, 1], [0.47, 1.08, 1], [0.38, 1.1, 0.9], [0.3, 1.0, 0.45], [0.26, 0.6, 0.15], [0, 0.35, 0.05]], 18, 0.3, 9).build(),
   () => meshLathe([[0, 0, 0.5], [0.2, 0, 0.6], [0.26, 0.5, 0.85], [0.4, 1.25, 1], [0.4, 1.42, 1], [0.33, 1.48, 0.9], [0.26, 1.38, 0.4], [0.18, 0.8, 0.12], [0, 0.5, 0.05]], 16, 0.35, 8).build(),
   () => meshLathe([[0, 0, 0.5], [0.5, 0, 0.7], [0.72, 0.18, 1], [0.74, 0.38, 1], [0.62, 0.5, 0.9], [0.48, 0.42, 0.45], [0.4, 0.2, 0.15], [0, 0.14, 0.06]], 18, 0.25, 10).build(),
-].map((mesh) => kind({ solid: 1, shadow: 2, cells: 1, far: 110, mesh }));
+].map((mesh) => kind({ solid: 1, shadow: 1, cells: 1, far: 110, mesh }));
 // corals: a bush and a fan (with a simpler mesh from 6 m on), and a cluster of tubes
 const CORAL = [
-  kind({ solid: 1, shadow: 2, cells: 1, far: 110, lodFrom: 6, mesh: () => meshCoral(0).build(), lod: () => meshCoral(0, 1).build() }),
-  kind({ solid: 1, shadow: 2, cells: 1, far: 110, lodFrom: 6, mesh: () => meshCoral(1).build(), lod: () => meshCoral(1, 1).build() }),
-  kind({ solid: 1, shadow: 2, cells: 1, far: 110, mesh: () => meshTubes().build() }),
+  kind({ solid: 1, shadow: 1, cells: 1, far: 110, lodFrom: 6, mesh: () => meshCoral(0).build(), lod: () => meshCoral(0, 1).build() }),
+  kind({ solid: 1, shadow: 1, cells: 1, far: 110, lodFrom: 6, mesh: () => meshCoral(1).build(), lod: () => meshCoral(1, 1).build() }),
+  kind({ solid: 1, shadow: 1, cells: 1, far: 110, mesh: () => meshTubes().build() }),
 ];
 const MANTA = kind({ mesh: () => meshManta().build(), wgsl: S_MANTA, vs: 'vsManta', fs: 'fsManta' });
 const PLESIO = kind({ mesh: () => meshPlesio().build(), wgsl: S_PLESIO, vs: 'vsPlesio', fs: 'fsPlesio' });
@@ -86,7 +86,7 @@ function makeWorld(W) {
     occ.add(key);
     column(x, y - 0.3, z, min(f[i + 1] - rr(0.8, 5), force ? rr(30, 42) : rr(15, 40)), kind, dens);
   };
-  // hand-placed columns framing the viewpoints: x, z, kind, density
+  // hand-placed columns framing the test poses: x, z, kind, density
   for (const p of [[...rel(0, 11, -8.5), 0], [...rel(0, 16, -10.5), 0], [...rel(0, 21, -9), 0], [...rel(0, 9, 7), 0], [...rel(0, 14, 9.5), 0], [...rel(0, 19, 8), 0], [...rel(0, 26, 6), 0],
     [...rel(5, 6.5, 5.2), 1], [...rel(5, 12, 7), 1], [...rel(5, 15, -8), 0], [...rel(5, 22, -5), 1], [...rel(3, 12, -5.5), 0], [...rel(3, 16, 5.5), 0], [...rel(3, 20, -4.5), 0], [...rel(3, 25, 6), 0], [...rel(3, 13, 8), 0], [...rel(3, 30, -7), 0], [24, 62, 1], [-6, 96, 1], [20, 96, 2], [-10, 70, 0], [16, 52, 1],
     [...rel(4, 15, -9), 0, 1.2], [...rel(4, 19, -13), 0, 1.2], [...rel(4, 23, -8.5), 0, 1.2], [...rel(4, 25, -15), 0, 1.2],
@@ -212,7 +212,7 @@ function makeWorld(W) {
     const k = pickV(), x = T.wp[k] + rr(-0.4, 0.4), z = T.wp[k + 2] + rr(-0.4, 0.4), y = T.wp[k + 1];
     if (T.wn[k + 1] < 0.8 || hypot(x, z) > 170 || nearFly(x, y, z, 1.3)) continue;
     const sc = 0.05 + 0.3 * pow(rnd(), 2), q = qRand();
-    W.keep() && chunks[6][cellOf(x, z)].push(x, y - sc * 0.25, z, sc, q[0], q[1], q[2], q[3], 1, rnd(), 44, 0);
+    chunks[6][cellOf(x, z)].push(x, y - sc * 0.25, z, sc, q[0], q[1], q[2], q[3], 1, rnd(), 44, 0);
   }
   // --- set pieces
   const pF = [-5, gy(-5, -4) - 0.6, -4], qF = qMul(qAxis(0, 1, 0, 1.2), qMul(qAxis(0, 0, 1, 0.16), qAxis(1, 0, 0, -0.3)));
@@ -226,7 +226,7 @@ function makeWorld(W) {
   piece('ship', pS, qS, [-17, -2, 0], [17, -2, 0], 12, 5);
   piece('ship', pS, qS, [7, -2, 0], [7.8, 15, 0.8], 12, 1.5);
   piece('ship', pS, qS, [-3, -2, 0], [-5.2, 9.5, 2.6], 12, 1.5);
-  // barrel sponges in front of viewpoint 4, small sponges around the fluke base
+  // barrel sponges in front of test pose 4, small sponges around the fluke base
   rseed(12);
   for (const b of [[7, 3.2, 1.3, 4], [8.4, 4.6, 1.0, 6], [9.6, 2.6, 1.5, 4], [11, 5, 1.1, 5], [8, -3.6, 1.2, 4], [12.5, 2, 1.2, 6], [9, 3.9, 0.8, 4]]) { const p = rel(3, b[0], b[1]), c = POSES[3]; let ux = (c[0] - p[0]) * 0.07, uz = (c[2] - p[1]) * 0.07; const l = hypot(ux, 1, uz); solid(b[3], p[0], gy(p[0], p[1]) - 0.1, p[1], b[2], qFromY(ux / l, 1 / l, uz / l), 4, rnd(), 1, 0); }
   for (let i = 0; i < 9; i++) { const a = rnd() * TAU; const x = -5 + cos(a) * rr(1.2, 2.6), z = -4 + sin(a) * rr(1.5, 4); solid(6, x, gy(x, z) + 0.05, z, rr(0.4, 0.9), qAxis(0, 1, 0, rnd() * 6), 4, rnd(), 1, 0); }
@@ -263,7 +263,7 @@ function makeWorld(W) {
   const mantas = [];
   for (const m of [[1, -28, 3.5, 14, 3.012, 0.085, 3.6, 0.1], [49, -31, 24.5, 5, 0.029, -0.08, 3.7, 0.4], [0, -14, -80, 34, 0.3, 0.06, 5.2, 0.7], [-50, -18, 20, 26, 5, -0.075, 3.8, 0.55], [10, -16, 86, 26, 2.2, 0.07, 4.4, 0.85], [20, -11, -20, 46, 4.2, -0.045, 5.6, 0.25]]) mantas.push(...m);
   // plesiosaurs: centre of the path x y z, its radius (an oval along z, 0.72 as wide), phase, speed in rad/s (the sign
-  // is the direction), size (half the body length), seed. This one circles above the whale fluke at viewpoint 1, where
+  // is the direction), size (half the body length), seed. This one circles above the whale fluke at test pose 1, where
   // the canyon leaves it 5 m of water on every side
   const plesios = [];
   for (const m of [[-1, -23, 2, 16, 1.5, 0.11, 4.3, 0.3]]) plesios.push(...m);

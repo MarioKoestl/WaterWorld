@@ -160,7 +160,6 @@ const S_G = /*wgsl*/`
 struct G { vp: mat4x4f, sm: mat4x4f, cam: vec4f, right: vec4f, up: vec4f, fwd: vec4f, sun: vec4f, res: vec4f, mis: vec4f };
 ${AIR}
 const TAU = 6.2831853;
-const LOW = ${LV > 1};
 fn sat(x: f32) -> f32 { return clamp(x, 0., 1.); }
 fn ss(a: f32, b: f32, x: f32) -> f32 { let t = clamp((x - a) / (b - a), 0., 1.); return t * t * (3. - 2. * t); }
 fn ign(p: vec2f) -> f32 { return fract(52.9829189 * fract(dot(p, vec2f(.06711056, .00583715)))); }
@@ -178,6 +177,9 @@ fn fogIn(ro: vec3f, rd: vec3f, d: f32, z: f32, sun: vec3f) -> vec3f {
 }
 `;
 
+// An era may say how much of the sun a drifting particle gets at a place (snowLit in its LIGHT: so that the particles
+// light up inside the shafts). One that does not say it gets all of it everywhere
+const SNOWLIT = LIGHT.includes('fn snowLit(') ? '' : /*wgsl*/`fn snowLit(p: vec3f) -> f32 { return 1.; }`;
 const S_B = S_G + /*wgsl*/`
 @group(0) @binding(0) var<uniform> g: G;
 @group(0) @binding(1) var sR: sampler;
@@ -196,13 +198,13 @@ fn shadow4(p: vec3f) -> f32 {
         + textureSampleCompareLevel(tSh, sS, s.xy + vec2f(-e, e), s.z) + textureSampleCompareLevel(tSh, sS, s.xy + vec2f(e, e), s.z)) * .25;
 }
 fn shadow9(p: vec3f) -> f32 {
-  if (LOW) { return shadow1(p); }
   let s = shUV(p); let e = 2.1 / ${SHADOW}.; var a = 0.;
   for (var x = -1; x <= 1; x++) { for (var y = -1; y <= 1; y++) { a += textureSampleCompareLevel(tSh, sS, s.xy + vec2f(f32(x), f32(y)) * e, s.z); } }
   return a / 9.;
 }
 fn cuv(p: vec3f) -> vec2f { return p.xz - g.sun.xz * (p.y / g.sun.y); }
 ${LIGHT}
+${SNOWLIT}
 fn sunE(y: f32, z: f32) -> vec3f { return SUNC * exp(kd(z) * (min(y, 0.) / g.sun.y)) * (.5 + .5 * sat(-y / 30.)); }
 fn vol(p: vec3f) -> vec4f { return textureSampleLevel(tV, sC, (p - vec3f(-192., -56., -192.)) / vec3f(384., 60., 384.), 0.); }
 fn amb(p: vec3f, n: vec3f, sky: f32, z: f32) -> vec3f {
@@ -477,12 +479,12 @@ fn quad(i: u32) -> vec2f { return vec2f(f32(i & 1u), f32(i >> 1u)) * 2. - 1.; }
   var p = a.xyz * B + t * DRIFT + .5 * vec3f(sin(t * .3 + a.x * 60.), sin(t * .23 + a.y * 50.), cos(t * .27 + a.z * 70.));
   p = g.cam.xyz + (fract((p - g.cam.xyz) / B + .5) - .5) * B;
   let d = length(p - g.cam.xyz);
-  let sz = (.012 + .045 * a.w * a.w * a.w);
+  let sz = SNOWZ.x + SNOWZ.y * a.w * a.w * a.w;
   let w = p + (g.right.xyz * q.x + g.up.xyz * q.y) * max(sz, d * .0011);
   o.cp = g.vp * vec4f(w, 1.); o.uv = q; o.wp = p;
   let fade = ss(B * .5, B * .32, d) * ss(.6, 2.5, d) * min(1., sz / (d * .0011)) * ss(-.3, -1.5, p.y);
   let tw = .6 + .4 * sin(t * (1. + a.w * 2.) + a.x * 100.);
-  o.pr = vec4f(fade * tw, shadow1(p), a.w, d);
+  o.pr = vec4f(fade * tw, shadow1(p) * snowLit(p), a.w, d);
   return o;
 }
 @fragment fn fsSnow(i: VO) -> @location(0) vec4f {
@@ -501,7 +503,7 @@ const W_RAYS = S_G + W_FS + /*wgsl*/`
 @group(0) @binding(2) var sS: sampler_comparison;
 @group(0) @binding(3) var tSh: texture_depth_2d;
 @group(0) @binding(4) var tW: texture_2d<f32>;
-@group(0) @binding(5) var tDp: texture_depth${AA > 1 ? '_multisampled' : ''}_2d;
+@group(0) @binding(5) var tDp: texture_depth_multisampled_2d;
 @group(0) @binding(6) var tV: texture_3d<f32>;
 @group(0) @binding(7) var sC: sampler;
 @fragment fn fs(@builtin(position) fc: vec4f) -> @location(0) vec4f {
@@ -557,7 +559,7 @@ const W_POST = S_G + W_FS + /*wgsl*/`
 @group(0) @binding(2) var tS: texture_2d<f32>;
 @group(0) @binding(3) var tR: texture_2d<f32>;
 @group(0) @binding(4) var tB: texture_2d<f32>;
-@group(0) @binding(5) var tDp: texture_depth${AA > 1 ? '_multisampled' : ''}_2d;
+@group(0) @binding(5) var tDp: texture_depth_multisampled_2d;
 fn tmap(x: vec3f) -> vec3f { return sat3((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14)); }
 fn sat3(x: vec3f) -> vec3f { return clamp(x, vec3f(0.), vec3f(1.)); }
 @fragment fn fs(@builtin(position) fc: vec4f) -> @location(0) vec4f {

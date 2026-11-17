@@ -11,7 +11,7 @@
 //   solid    1
 //   cells    1: its instances are sorted by culling cell and drawn up to `far` metres. Without it all are drawn
 //   far      how far it is drawn. lodFrom, lod: from that distance on with the simpler mesh that lod() returns
-//   shadow   1: always in the shadow map, 2: only on High, 0 or nothing: never
+//   shadow   1: it is in the shadow map, 0 or nothing: it casts no shadow
 //   makeWorld adds its instances to k.at (a list, or with cells one list per culling cell): twelve floats each,
 //   x y z, scale, the four of its turn (a quaternion), material, seed, texture scale (for loose rock, material 1: the
 //   distance at which it has shrunk away, 0 for never), bobbing (above 0: up and down by that much, below 0: it sways)
@@ -63,12 +63,8 @@ function makeTools(D, T, flyPts, views) {
   const nCells = CELLS * CELLS;
   const cellOf = (x, z) => clamp(floor((x - OX) / CELLW), 0, CELLS - 1) + CELLS * clamp(floor((z - OZ) / CELLW), 0, CELLS - 1);
   const big = Array.from({ length: nCells }, () => []), small = Array.from({ length: nCells }, () => []);
-  // Medium and Low keep every 2nd / 4th leaf (but every leaf of type 1, the stems), made wider; the random stream is
-  // the same. keep() thins out anything else that an era scatters in masses in the same way
-  let nth = 0;
-  const leaf = (L, x, y, z, len, yaw, tilt, wid, hA, type, s1, s2, bend) => { if (type === 1 || !(nth++ % THIN)) L[cellOf(x, z)].push(x, y, z, len, yaw, tilt, type === 1 ? wid : wid * (1 + LV / 2), hA, type, s1, s2, bend); };
-  const glint = (...a) => { nth++ % THIN || glints.push(...a); };
-  const keep = () => !(nth++ % THIN);
+  const leaf = (L, x, y, z, len, yaw, tilt, wid, hA, type, s1, s2, bend) => { L[cellOf(x, z)].push(x, y, z, len, yaw, tilt, wid, hA, type, s1, s2, bend); };
+  const glint = (...a) => { glints.push(...a); };
   // every solid kind of the era gets its store: one list, or one list per culling cell
   for (const k of KINDS) if (k.solid) k.at = k.cells ? Array.from({ length: nCells }, () => []) : [];
   // Zoo places (zoo.js): where the exhibits are that stay where they are. place() takes the id of the ZOO entry, the
@@ -125,13 +121,49 @@ function makeTools(D, T, flyPts, views) {
   const nearFly = (x, y, z, r) => { for (const p of flyPts) if (hypot(x - p[0], z - p[2]) < r && y < p[1] + 3 && y > p[1] - 13) return true; return false; };
   const nearPose = (x, z, r = 3) => { for (const p of views) if (hypot(x - p[0], z - p[2]) < r) return true; return false; };
   const gy = (x, z) => { const f = floorsAt(x, z); return f.length ? f[f.length - 2] : -45; };
+  // the same, exact: gy gives the top floor of the grid column nearest to x, z (on a slope a few centimetres off, in
+  // steps), this one finds the surface at x, z itself, in the density field. For small things that must stand on the
+  // ground or keep just above it. Where there is no surface within a metre of gy's, it gives gy's
+  const gyExact = (x, z) => {
+    const y0 = gy(x, z); let lo = y0 - 1, hi = y0 + 1;
+    if (!(Dw(x, lo, z) > 0 && Dw(x, hi, z) <= 0)) return y0;
+    for (let i = 0; i < 16; i++) { const m = (lo + hi) / 2; if (Dw(x, m, z) > 0) lo = m; else hi = m; }
+    return (lo + hi) / 2;
+  };
+  // How far a ray from x, y, z along the unit vector d goes before it meets the terrain as it is drawn (its
+  // triangles), up to len; -1 if it meets none. On rough rock the drawn surface and the one in the density field (Dw,
+  // snap, gyExact) can be centimetres apart: for something small that has to sit on the rock the player sees
+  const hitDrawn = (x, y, z, dx, dy, dz, len) => {
+    // (a triangle is kept in the culling cell of its quad's first corner: the cells a metre round the ray as well)
+    const { wp, ib, start } = T, ex = x + dx * len, ez = z + dz * len;
+    const cx0 = clamp(floor((min(x, ex) - 1 - OX) / CELLW), 0, CELLS - 1), cx1 = clamp(floor((max(x, ex) + 1 - OX) / CELLW), 0, CELLS - 1);
+    const cz0 = clamp(floor((min(z, ez) - 1 - OZ) / CELLW), 0, CELLS - 1), cz1 = clamp(floor((max(z, ez) + 1 - OZ) / CELLW), 0, CELLS - 1);
+    let best = len + 1;
+    for (let cz = cz0; cz <= cz1; cz++) for (let cx = cx0; cx <= cx1; cx++) {
+      const c = cx + CELLS * cz;
+      for (let q = start[c] * 6; q < start[c + 1] * 6; q += 3) {
+        // (Moeller-Trumbore)
+        const a = ib[q] * 3, b = ib[q + 1] * 3, e = ib[q + 2] * 3;
+        const e1x = wp[b] - wp[a], e1y = wp[b + 1] - wp[a + 1], e1z = wp[b + 2] - wp[a + 2], e2x = wp[e] - wp[a], e2y = wp[e + 1] - wp[a + 1], e2z = wp[e + 2] - wp[a + 2];
+        const px = dy * e2z - dz * e2y, py = dz * e2x - dx * e2z, pz = dx * e2y - dy * e2x, det = e1x * px + e1y * py + e1z * pz;
+        if (det > -1e-12 && det < 1e-12) continue;
+        const inv = 1 / det, tx = x - wp[a], ty = y - wp[a + 1], tz = z - wp[a + 2], u = (tx * px + ty * py + tz * pz) * inv;
+        if (u < 0 || u > 1) continue;
+        const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x, v = (dx * qx + dy * qy + dz * qz) * inv;
+        if (v < 0 || u + v > 1) continue;
+        const t = (e2x * qx + e2y * qy + e2z * qz) * inv;
+        if (t >= 0 && t < best) best = t;
+      }
+    }
+    return best <= len ? best : -1;
+  };
   // drifting particles: four random numbers each, drawn around the camera wherever it is
   let snowData = new Float32Array(0);
   const snow = (n) => { snowData = new Float32Array(n * 4); for (let i = 0; i < snowData.length; i++) snowData[i] = rnd(); };
   // gm, the ground map: 512 x 512 times four bytes over the 384 m of the world. Its third byte is the share of the
   // era's second water (see zone() in shaders.js), the other three are for the era's materials. Empty unless the era
   // fills one and puts it here
-  const W = { D, T, flyPts, views, Dw, cellOf, big, small, leaf, glint, keep, place, backdrop, piece, rel, bubbles, shade, floorsAt, grad, snap, pickV, tangent, nearFly, nearPose, gy, snow, gm: new Uint8Array(512 * 512 * 4) };
+  const W = { D, T, flyPts, views, Dw, cellOf, big, small, leaf, glint, place, backdrop, piece, rel, bubbles, shade, floorsAt, grad, snap, pickV, tangent, nearFly, nearPose, gy, gyExact, hitDrawn, snow, gm: new Uint8Array(512 * 512 * 4) };
   // after makeWorld: everything packed the way the graphics card gets it
   W.finish = () => {
     // --- pack leaves (36 bytes: 8 floats + 4 unorm8), sorted by culling cell
@@ -195,7 +227,6 @@ const fract = (x) => x - floor(x);
 
 // ---------------------------------------------------------------- meshes any era can use: a rock, a turned shape
 function meshChunk(sd, sub = 2, det = sub > 2) {
-  if (LV > 1 && sub > 1) sub--; // Low: a quarter of the triangles
   rseed(100 + sd);
   const pl = []; for (let i = 0; i < 4; i++) { const q = qRand(); pl.push([q[0], q[1], q[2], rr(0.8, 0.98)]); const l = hypot(q[0], q[1], q[2]) || 1; pl[i][0] /= l; pl[i][1] /= l; pl[i][2] /= l; }
   return icosphere(sub, (x, y, z) => {

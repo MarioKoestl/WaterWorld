@@ -99,10 +99,10 @@ export async function connect(port = PORT) {
     before: (source) => send('Page.addScriptToEvaluateOnNewDocument', { source }),
     // the stand-in for WebGPU: the page then needs no graphics card and draws nothing (see mockgpu.js)
     mock: () => c.before(readFileSync(path.join(here, 'mockgpu.js'), 'utf8')),
-    // Opens a page of the game as on a first visit: remembered settings cleared (the detail level, the resolution the
-    // page had settled on). storage: a value for localStorage.abyssal, "2" is Low detail
-    open: async (file, storage = '') => {
-      await c.before(`try { localStorage.clear(); ${storage ? `localStorage.abyssal = ${JSON.stringify(storage)};` : ''} } catch {}`);
+    // Opens a page of the game as on a first visit: remembered settings cleared (the resolution and the draw distance
+    // the page had settled on)
+    open: async (file) => {
+      await c.before('try { localStorage.clear(); } catch {}');
       await send('Page.navigate', { url: fileUrl(file) });
     },
     nav: (url) => send('Page.navigate', { url }),

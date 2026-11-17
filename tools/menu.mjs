@@ -1,7 +1,7 @@
-// Pictures of the title menu of one era's page at nine window sizes, without its 3D scene: the page as build.mjs wrote
+// Pictures of the title menu of one era's page in the windows of a computer, without its 3D scene: the page as build.mjs wrote
 // it (timeline, era text), but in place of the bundle only the few lines of main.js that touch the menu (emblem, tab
 // icon, scrolling the timeline). No graphics card needed. It also says for each size whether everything fits.
-//   node tools/menu.mjs [era] [--still <png>] [--sizes 2560,phone]
+//   node tools/menu.mjs [era] [--still <png>] [--sizes 2560,low]
 // era: default today. Needs `npm run build:dev` and a running test Chrome. Pictures go to tools/out/menu/.
 // --still: a render to stand in for the live scene behind the menu (the page's own CSS blurs it). Without it the
 // background is the page's plain gradient.
@@ -21,7 +21,6 @@ const state = new URLSearchParams(location.search).get('s') || 'm';
 document.body.className = state;
 ${main.slice(a, b)}${tail}
 ${still ? "const im = new Image(); im.onload = () => { const c = $('c'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); document.title += ' ready'; }; im.src = 'still.png';" : "document.title += ' ready';"}
-document.querySelectorAll('#q button')[2].className = 'on';
 if (state === 'l') { $('b').style.transform = 'scaleX(.62)'; $('s').textContent = 'Building the world…'; } else $('d').focus();
 `;
 const file = outFile('menu', era + '.html');
@@ -29,8 +28,8 @@ writeFileSync(file, html.slice(0, html.indexOf('<script>') + 8) + js + html.slic
 
 const c = await connect();
 let bad = 0;
-const shot = async (label, w, h, state, phone) => {
-  if (phone) await c.phone(w, h); else { await c.desktop(); await c.size(w, h); }
+const shot = async (label, w, h, state) => {
+  await c.desktop(); await c.size(w, h);
   await c.nav(fileUrl(file) + '?s=' + state);
   for (let i = 0; i < 100 && !(await c.ev('document.title')).endsWith('ready'); i++) await sleep(50);
   await sleep(state === 'l' ? 500 : 900);
@@ -43,8 +42,9 @@ const shot = async (label, w, h, state, phone) => {
   if (!fits || !r.lit) bad++;
   console.log(`${label}: content ${r.top}..${r.bottom} of ${r.win} px high, ${r.left}..${r.right} of ${r.winW} px wide${fits ? '' : '  <-- DOES NOT FIT'}; timeline ${r.navW} px${r.navW > r.navShown ? ' (scrolls in ' + r.navShown + ')' : ''}, open era ${r.lit ? 'in view' : 'NOT IN VIEW'}${r.stacked ? ', era text above the buttons' : ''}`);
 };
-// label, width, height, state (m menu, l loading), phone. A phone held upright gets its page turned on its side
-const SIZES = [['2560', 2560, 1440, 'm'], ['loading', 2560, 1440, 'l'], ['1920', 1920, 1080, 'm'], ['1366', 1366, 768, 'm'], ['low', 900, 460, 'm'], ['tall', 700, 1000, 'm'], ['phone', 844, 390, 'm', true], ['phone-small', 667, 375, 'm', true], ['phone-upright', 390, 844, 'm', true]];
+// label, width, height, state (m menu, l loading). The game is for a computer (docs/briefs/scope.md): a full window,
+// with the menu and while loading, and a low one
+const SIZES = [['2560', 2560, 1440, 'm'], ['loading', 2560, 1440, 'l'], ['low', 900, 460, 'm']];
 for (const s of SIZES) if (!only || only.split(',').includes(s[0])) await shot(...s);
 const logs = c.news(); if (logs.length) { console.log('console: ' + logs.join(' | ')); bad++; }
 console.log(bad ? `\n${bad} PROBLEMS` : '\neverything fits');

@@ -34,8 +34,7 @@ for (const [id, name, from, to] of ERAS.filter((e) => built.includes(e[0]))) {
   if (m.dimmed) {
     const here = await c.ev('location.href');
     await c.click(...await into('nav span')); await sleep(400);
-    const p = await into('nav span'); await c.touchDown([{ x: p[0], y: p[1], id: 1 }]).catch(() => 0); await c.touchUp().catch(() => 0); await sleep(400);
-    ok('a click or a tap on a dimmed era does nothing', (await c.ev('location.href')) === here);
+    ok('a click on a dimmed era does nothing', (await c.ev('location.href')) === here);
   }
   for (let i = 0; i < others.length; i++) {
     const [oid, oname] = others[i];

@@ -12,6 +12,9 @@ kinds of living things that exist nowhere else in the game, and a zoo card for e
 - **Changed on 2026-11-16:** this world goes to true scale, one unit for one metre (Mario). Sizes, reach and menu
   text below are the new ones. What is built so far was built with a player 20 times smaller: `scale.md`, stage 3,
   says how to change it.
+- **Look, 2026-11-16:** beside `today` this world looks empty and flat (Mario). `cambrian-look.md` says what to do
+  about it. Where it disagrees with the atmosphere targets below (even light, no flecks, faint shafts, quiet
+  colours), `cambrian-look.md` wins.
 
 Read `CLAUDE.md` and `eras.md` first.
 
@@ -210,7 +213,7 @@ The sentences for the title menu:
 > **Cambrian · 539 to 487 million years ago.** Most of the main groups of animals alive today first appear in rocks
 > of this age: an explosion of new bodies, with eyes, legs, shells and spines. All of it happens in the sea. The
 > land is bare. You dive 508 million years back, to the foot of a reef wall. Nothing alive here is longer than your
-> arm. Shapes follow the fossils. Colours and behaviour are guesses.
+> arm. Shapes follow the fossils. Light, colours and behaviour are guesses.
 
 Sources, checked on 2026-11-15:
 

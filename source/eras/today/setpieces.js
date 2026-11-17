@@ -1,7 +1,7 @@
 // ============================================================================
 // today: corals, the stone whale fluke and the ship (meshes)
 // ============================================================================
-function meshCoral(fan, lo = LV > 1) {
+function meshCoral(fan, lo) {
   rseed(200 + fan);
   const m = new Mesh();
   const nrm = (v) => { const l = hypot(...v) || 1; return v.map((c) => c / l); };

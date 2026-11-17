@@ -50,9 +50,9 @@ met. Where a brief bends that rule, it says so.
   animal"). Something as large as a wall, the water or the sky is a `backdrop(...)`.
 - `name`, `sub`, `size`, up to three `facts` as `[label, value]`, one `text` of 40 to 60 words.
 - The sentences for the menu go into `about.txt`, 70 words at most.
-- Shapes follow the fossils as far as the sources describe them. Colours are free: keep them natural and quiet, and
-  give every kind a look of its own. Movement that the fossils do not show (how fast, whether in groups) is free as
-  well, and the cards do not claim it.
+- Shapes follow the fossils as far as the sources describe them. Colours are free: keep them natural, and give
+  every kind a colour family of its own that stands out from the water. Movement that the fossils do not show (how
+  fast, whether in groups) is free as well, and the cards do not claim it.
 - Several eras have something above the water: a pterosaur, a bird, the Moon. The player stays under water. What is
   above is seen through the surface (the function `above` of the era's `AIR`) or as an animal that dips in.
 
@@ -87,6 +87,29 @@ world". They are targets for the eye, not numbers: find the numbers in the brows
 the six test poses, the picture has to be another world than `today` and than the eras next to it in time, as far
 as they are built. How it really looked is rarely known from rock. Where the brief says "not known", the menu text
 says so too.
+
+## A world must not look empty
+
+The first version of the Cambrian had even light, quiet colours and four small gardens in a world of 200 m. Beside
+`today` it looked empty and flat (Mario, 2026-11-16; `cambrian-look.md` has the diagnosis and the cures). Every
+world is held to this list, and stage 1 of every world is judged by it:
+
+- **Light with a direction.** Everything has a lit side and a shadow side, and there are shafts or flecks of light,
+  unless the brief of the era says why this world has none. Where a brief asks for soft or dim light, that is a
+  mood, not leave for a flat picture.
+- **Depth.** Clear near the camera, then layers behind each other. No veil over everything.
+- **No bare picture.** In no test pose is more than half of the picture bare, even ground.
+- **Something everywhere.** Dense places, and a thin cover between them: something alive within 10 m of every place
+  the player can reach. In a world without life: something to look at.
+- **Colour.** Every kind its own colour family, set against the colour of the water.
+- **The water is not empty.** Something drifts or swims at every height.
+- **Bodies, not cut-outs.** Fossils are often pressed flat, and a body modelled on such a fossil comes out as a
+  sheet (Mario on the first trilobites, 2026-11-16: flat, like 2D). Every animal gets its thickness back: a
+  cross-section, an underside, edges with a thickness, a skin with relief, pattern and sheen, and animals that are
+  not all the same. `cambrian-look.md`, K1 to K9, has the list.
+- **Places.** Two or three places worth swimming to, each a picture.
+- **Spend the budget.** A world may cost as much GPU time as `today` on the same machine. One that costs half is
+  probably too empty.
 
 ## Stages
 
@@ -139,9 +162,10 @@ The brief of the era names the order inside the stages where it matters.
 Both gates of `CLAUDE.md`, for this era's own six poses and flight path.
 
 - **Visual critic.** After stage 1 and again at the end. Give it one render of `today` next to each pose and ask:
-  do the two look like different worlds? At the end add one close render of each kind and one of an open card. For
-  the largest and the smallest kind add a render with something of known size in the picture, and ask whether the
-  size can be read from it. For a world of small things add renders as a fish and as a shrimp.
+  do the two look like different worlds? At the end add the turntable of each kind (`cambrian-look.md`, K9: one
+  animal from eight sides, with the question whether it is a solid body or a flat cut-out) and one render of an
+  open card. For the largest and the smallest kind add a render with something of known size in the picture, and
+  ask whether the size can be read from it. For a world of small things add renders as a fish and as a shrimp.
 - **Performance.** The benchmark of this era's flight, and once more the one of `today`, which must not have
   changed.
 

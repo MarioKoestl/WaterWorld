@@ -25,8 +25,10 @@ const canvas = $('c'), info = $('i'), body = document.body;
 }
 // the timeline of the title menu scrolls sideways where it does not fit: bring the era of this page into view
 document.querySelector('nav b').scrollIntoView({ inline: 'center', block: 'nearest' });
-// a phone held upright gets the page turned on its side (see template.html)
-const rot = matchMedia('(orientation:portrait) and (pointer:coarse)');
+// The game is for a computer (docs/briefs/scope.md). What is left of the touch controls and of the phone layout stays
+// as it is, but is not checked: mob says whether the pointer is a finger, and a phone held upright gets the page
+// turned on its side (see template.html)
+const mob = matchMedia('(pointer:coarse)').matches, rot = matchMedia('(orientation:portrait) and (pointer:coarse)');
 // loading bar: each stage glides it to `to` (the share done) over ~`ms` on the compositor, so it moves while this
 // thread is busy
 let loaded = 0, dead; // dead: the graphics device was lost
@@ -45,10 +47,9 @@ $('w').hidden = !!navigator.userAgentData; // only Chromium-based browsers have 
 const hasTS = adapter.features.has('timestamp-query');
 const device = await adapter.requestDevice({ requiredFeatures: hasTS ? ['timestamp-query'] : [] });
 device.addEventListener('uncapturederror', (e) => console.error('GPU: ' + e.error.message));
-// out of memory or a GPU timeout: reload a level lower, or on Low say what happened
+// out of memory or a GPU timeout: say what happened
 device.lost.then((l) => {
   if (l.reason === 'destroyed') return; // the page is closing
-  if (LV < 2) { keep('abyssal', LV + 1); location.reload(); }
   dead = body.className = 'l e'; $('s').textContent = 'The graphics device was lost. Reload the page to try again.';
 });
 const ctx = canvas.getContext('webgpu'), FMT = navigator.gpu.getPreferredCanvasFormat();
@@ -60,7 +61,7 @@ const buf = (data, usage) => { const b = device.createBuffer({ size: (data.byteL
 const tex = (w, h, format, usage, o = {}) => device.createTexture({ size: [w, h, o.d || 1], format, usage, mipLevelCount: o.mips || 1, sampleCount: o.samples || 1, dimension: o.d ? '3d' : '2d' });
 
 // ---------------------------------------------------------------- static resources
-const sRep = device.createSampler({ addressModeU: 'repeat', addressModeV: 'repeat', magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear', maxAnisotropy: LV > 1 ? 1 : 8 });
+const sRep = device.createSampler({ addressModeU: 'repeat', addressModeV: 'repeat', magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear', maxAnisotropy: 8 });
 const sClamp = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
 const sCmp = device.createSampler({ compare: 'less-equal', magFilter: 'linear', minFilter: 'linear' });
 const tShadow = tex(SHADOW, SHADOW, DEPTH, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING);
@@ -167,9 +168,6 @@ const SUN = (() => { const v = ERA.sun, l = hypot(...v); return v.map((c) => c /
 
 // ---------------------------------------------------------------- world generation
 await say(ERA.load[0], 0.25, 1200);
-// marks a load in progress (quality.js); leaving the page before it ends is not a crash
-keep('abyssalLoad', 1);
-addEventListener('pagehide', () => keep('abyssalLoad', ''));
 let D;
 {
   const prims = FLOOR.prims;
@@ -225,7 +223,8 @@ const FLYN = FLY.length / 6, FLYT = 60, LUTN = 1024, flyLUT = new Float32Array(L
 const flyPts = [];
 // per-frame float state lives in one preallocated array, so the frame loop allocates no heap numbers
 const F = new Float64Array(32), P6 = new Float64Array(6);
-const CX = 0, CY = 1, CZ = 2, YAW = 3, PIT = 4, FX = 5, FY = 6, FZ = 7, RX = 8, RZ = 9, UX = 10, UY = 11, UZ = 12, VX = 13, VY = 14, VZ = 15, TIME = 16, FLT = 17, LAST = 18, GPU = 19, HUDT = 20, SPL = 21, MX = 22, MY = 23, MZ = 24;
+const CX = 0, CY = 1, CZ = 2, YAW = 3, PIT = 4, FX = 5, FY = 6, FZ = 7, RX = 8, RZ = 9, UX = 10, UY = 11, UZ = 12, VX = 13, VY = 14, VZ = 15, TIME = 16, FLT = 17, LAST = 18, GPU = 19, HUDT = 20, SPL = 21, MX = 22, MY = 23, MZ = 24, PS = 25, PV = 26;
+F[PS] = 1; F[PV] = 1; // the size of the player as a factor, and its speed as one (see "the size of the player" below)
 // aim the camera from P6 = position + look-at point
 function aim() {
   const dx = P6[3] - P6[0], dy = P6[4] - P6[1], dz = P6[5] - P6[2];
@@ -306,9 +305,8 @@ Q.writeTexture({ texture: tMap }, Wd.gm, { bytesPerRow: 2048 }, [512, 512]);
   r.setVertexBuffer(0, vbTerrain); r.setVertexBuffer(1, ibOne); r.setIndexBuffer(ibTerrain, 'uint32');
   r.drawIndexed(T.ib.length, 1, 0, 0, 0);
   r.setPipeline(pSolidSh); r.setVertexBuffer(0, vbMesh); r.setIndexBuffer(ibMesh, 'uint32');
-  // solid kinds: shadow 1 always, shadow 2 (the many small things, tens of millions of triangles) only on High: too
-  // much for a phone's driver
-  for (const k of KINDS) if (k.solid && k.n && (k.shadow === 1 || (k.shadow === 2 && !LV))) { r.setVertexBuffer(1, k.buf); r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0); }
+  // the solid kinds that cast a shadow (see kind() in tools.js)
+  for (const k of KINDS) if (k.solid && k.n && k.shadow) { r.setVertexBuffer(1, k.buf); r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0); }
   if (Wd.big.n) { r.setPipeline(pLeafSh); r.setVertexBuffer(0, ibBig); r.draw(6, Wd.big.n); }
   r.end();
   Q.submit([e.finish()]);
@@ -320,9 +318,9 @@ Wd.glints = Wd.volD = Wd.gm = T.vb = T.ib = T.wp = T.wn = 0;
 
 // ---------------------------------------------------------------- render targets (rebuilt on resize)
 // The scene is drawn at `pix` pixels and scaled up to the window. frame() tunes it and the draw distance scale `det`
-// for 60 fps; both start where the last visit left them.
+// for 60 fps; both start where the last visit left them (quality.js), kept in their range.
 const PIXMAX = 2560 * 1440, PIXMIN = mob ? 25e4 : 5e5, DETMIN = 0.4;
-let W = 0, H = 0, DW = 0, DH = 0, pix = +SV[1] || (LV > 1 ? 41e4 : mob ? 1280 * 720 : PIXMAX), det = +SV[2] || 1, dynN = 0, dynT = 0, dynG = 0, dynGN = 0, dynBad = 0, dynOk = 0, dynWait = 3;
+let W = 0, H = 0, DW = 0, DH = 0, pix = clamp(+SV[0] || (mob ? 1280 * 720 : PIXMAX), PIXMIN, PIXMAX), det = clamp(+SV[1] || 1, DETMIN, 1), dynN = 0, dynT = 0, dynG = 0, dynGN = 0, dynBad = 0, dynOk = 0, dynWait = 3;
 let passScene, passRays, passBlur, bgBlur, passPost, bgRays, bgPost, bloomPass = [], bloomBG = [], targets = [];
 const NB = 6;
 function resize() {
@@ -334,14 +332,13 @@ function resize() {
   W = w; H = h; canvas.width = W; canvas.height = H;
   ctx.configure({ device, format: FMT, alphaMode: 'opaque' });
   for (const t of targets) t.destroy();
-  const tMS = tex(AA > 1 ? W : 1, H, HDR, TU.RENDER_ATTACHMENT, { samples: AA }), tDp = tex(W, H, DEPTH, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING, { samples: AA });
+  const tMS = tex(W, H, HDR, TU.RENDER_ATTACHMENT, { samples: AA }), tDp = tex(W, H, DEPTH, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING, { samples: AA });
   const tRes = tex(W, H, HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING), tRay = tex(W / 2, H / 2, HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING), tRay2 = tex(W / 2, H / 2, HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING);
   targets = [tMS, tDp, tRes, tRay, tRay2];
   const bl = [];
   for (let i = 0; i < NB; i++) { const t = tex(max(1, W >> (i + 1)), max(1, H >> (i + 1)), HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING); bl.push(t); targets.push(t); }
   const vDp = tDp.createView(), vRes = tRes.createView(), vRay = tRay.createView(), vRay2 = tRay2.createView(), vBl = bl.map((t) => t.createView());
-  // without anti-aliasing (Low) the scene goes straight into the resolve target, and tMS is one unused column
-  passScene = { colorAttachments: [{ view: AA > 1 ? tMS.createView() : vRes, resolveTarget: AA > 1 ? vRes : undefined, loadOp: 'clear', storeOp: AA > 1 ? 'discard' : 'store', clearValue: [0, 0, 0, 1] }],
+  passScene = { colorAttachments: [{ view: tMS.createView(), resolveTarget: vRes, loadOp: 'clear', storeOp: 'discard', clearValue: [0, 0, 0, 1] }],
     depthStencilAttachment: { view: vDp, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' } };
   passRays = { colorAttachments: [colorAtt(vRay, true)] };
   passBlur = { colorAttachments: [colorAtt(vRay2, true)] };
@@ -422,12 +419,12 @@ function render() {
   const asp = W / H, sx = 1 / (TANH * asp), sy = 1 / TANH, m = UB;
   m[0] = rx * sx; m[4] = 0; m[8] = rz * sx; m[12] = -(rx * cx + rz * cz) * sx;
   m[1] = ux * sy; m[5] = uy * sy; m[9] = uz * sy; m[13] = -(ux * cx + uy * cy + uz * cz) * sy;
-  m[2] = 0; m[6] = 0; m[10] = 0; m[14] = NEAR;
+  m[2] = 0; m[6] = 0; m[10] = 0; m[14] = NEAR * F[PS];
   m[3] = fx; m[7] = fy; m[11] = fz; m[15] = -(fx * cx + fy * cy + fz * cz);
   m[32] = cx; m[33] = cy; m[34] = cz; m[35] = F[TIME];
   m[36] = rx; m[37] = 0; m[38] = rz; m[39] = TANH * asp;
   m[40] = ux; m[41] = uy; m[42] = uz; m[43] = TANH;
-  m[44] = fx; m[45] = fy; m[46] = fz; m[47] = NEAR;
+  m[44] = fx; m[45] = fy; m[46] = fz; m[47] = NEAR * F[PS];
   ERA.tick(); // the era's own numbers: the share of its second water at the camera, the exposure
   m[57] = RAYS; m[58] = det;
   Q.writeBuffer(ubo, 0, UB);
@@ -509,15 +506,17 @@ function sd(j) {
   const p = a + (cv(ix + 1, iy, iz) - a) * u, q = b + (cv(ix + 1, iy + 1, iz) - b) * u, r = c + (cv(ix + 1, iy, iz + 1) - c) * u, s = d + (cv(ix + 1, iy + 1, iz + 1) - d) * u;
   const e = p + (q - p) * v; CS[j] = (e + (r + (s - r) * v - e) * (z - iz)) / 127;
 }
-// Moves the camera by F[MX..MZ] in steps shorter than its radius CR (so it can't pass through thin rock), pushing it
-// back out after each step and dropping velocity into the rock, so it slides along.
+// Moves the camera by F[MX..MZ] in steps shorter than its radius (CR for a diver, times the size of the player F[PS]:
+// so it can't pass through thin rock), pushing it back out after each step and dropping velocity into the rock, so it
+// slides along. A small player swims faster than its size says (SIZES below), so a frame takes more steps for it: about
+// 4 for a fish and 13 for a shrimp at full speed, each a few reads of the collision field.
 const CR = 0.5;
 function collide() {
-  const n = floor(sqrt(F[MX] * F[MX] + F[MY] * F[MY] + F[MZ] * F[MZ]) / 0.4) + 1;
+  const cr = CR * F[PS], n = floor(sqrt(F[MX] * F[MX] + F[MY] * F[MY] + F[MZ] * F[MZ]) / (0.8 * cr)) + 1;
   for (let i = 0; i < n; i++) {
     F[CX] += F[MX] / n; F[CY] += F[MY] / n; F[CZ] += F[MZ] / n;
     for (let k = 0; k < 2; k++) {
-      sd(0); const s = CS[0] + CR; if (s <= 0) break;
+      sd(0); const s = CS[0] + cr; if (s <= 0) break;
       for (let j = 1; j < 7; j++) sd(j);
       let gx = CS[1] - CS[2], gy = CS[3] - CS[4], gz = CS[5] - CS[6]; const l = sqrt(gx * gx + gy * gy + gz * gz);
       if (l < 0.075) break; // flat: deep in rock
@@ -547,7 +546,7 @@ function frame(now) {
       const end = k < 1 ? (det > DETMIN ? mid : PIXMIN) : det < 1 ? mid : top;
       pix *= k; if (k < 1 ? pix < end : pix > end) pix = end;
     } else { det *= sqrt(k); det = det < DETMIN ? DETMIN : det > 1 ? 1 : det; }
-    if (was !== pix + det) keep('abyssal', [LV, pix < top ? pix | 0 : '', det]); // nothing kept at full resolution
+    if (was !== pix + det) keep('abyssal', [pix < top ? pix | 0 : '', det]); // nothing kept at full resolution
     dynN = dynT = dynG = dynGN = 0; resize();
   }
   F[TIME] += dt;
@@ -563,7 +562,7 @@ function frame(now) {
     const ax = lkx * kq, ay = lky * kq; lkx -= ax; lky -= ay; l2x += ax; l2y += ay;
     const dyw = l2x * kq, dpt = l2y * kq; l2x -= dyw; l2y -= dpt;
     const yaw = F[YAW] + dyw; let pitch = F[PIT] - dpt; pitch = pitch < -1.55 ? -1.55 : pitch > 1.55 ? 1.55 : pitch;
-    const sp = ks || tN > 1 ? 26 : 7, k = 1 - exp(-dt * 4.5), mf = tId >= 0 ? 0.7 : kf - kb, mr = kr - kl, mu = ku - kd, cp = cos(pitch), sy = sin(yaw), cw = cos(yaw);
+    const sp = (ks || tN > 1 ? 26 : 7) * F[PV], k = 1 - exp(-dt * 4.5), mf = tId >= 0 ? 0.7 : kf - kb, mr = kr - kl, mu = ku - kd, cp = cos(pitch), sy = sin(yaw), cw = cos(yaw);
     const vx = F[VX] + ((sy * cp * mf + cw * mr) * sp - F[VX]) * k, vy = F[VY] + ((sin(pitch) * mf + mu) * sp - F[VY]) * k, vz = F[VZ] + ((-cw * cp * mf + sy * mr) * sp - F[VZ]) * k;
     let x = F[CX] + vx * dt, y = F[CY] + vy * dt, z = F[CZ] + vz * dt;
     const rad = sqrt(x * x + z * z); if (rad > EDGE) { x *= EDGE / rad; z *= EDGE / rad; }
@@ -580,6 +579,48 @@ function frame(now) {
   }
 }
 
+// ---------------------------------------------------------------- the size of the player (docs/briefs/scale.md)
+// Diver, fish or shrimp: one factor for how far the camera keeps from rock (collide) and for what is cut off in front
+// of it (the near plane in render). Nothing else changes: the world, the haze, the light, the swim limits and the
+// reach of the zoo are the same at every size. The key C goes round the three, a label names the new size for two
+// seconds, and the browser remembers it (quality.js).
+// The speed (frame) has a factor of its own, the third number of a size: a fish and a shrimp swim much faster than a
+// tenth and a hundredth of a diver (2.45 and 0.84 m a second, 9.1 and 3.1 with Shift). That is not how fast such a
+// swimmer would be: at its true speed the way from one garden to the next takes minutes (Mario, 2026-11-17).
+// A camera without a body sees the same from the same spot at every size: so on shrinking the player moves towards
+// what it looks at, until that is as many times nearer as the player is smaller. What it looked at is then that many
+// times larger on the screen, as it would be for a small swimmer. On growing it moves back the same way, as far as the
+// water behind it lets it (at most 8 m)
+const SIZES = [[1, 'Diver · 1.8 m', 1], [0.1, 'Fish · 18 cm', 0.35], [0.01, 'Shrimp · 1.8 cm', 0.12]], sizeTag = $('u');
+let psz = PSZ, sizeT = 0;
+F[PS] = SIZES[psz][0]; F[PV] = SIZES[psz][2];
+// the distance to rock at a point (metres, below 0 in water), from the field of the collision
+const rockAt = (x, y, z) => { const a = F[CX], b = F[CY], c = F[CZ]; F[CX] = x; F[CY] = y; F[CZ] = z; sd(0); F[CX] = a; F[CY] = b; F[CZ] = c; return CS[0]; };
+// how far ahead the player looks at something: the exhibit the hint names (zoo.js), else the first rock along the
+// view, up to 40 m. 0: nothing in sight
+const ahead = () => {
+  if (zKind >= 0) return ZF[4];
+  for (let t = 0.02; t < 40;) { const d = rockAt(F[CX] + F[FX] * t, F[CY] + F[FY] * t, F[CZ] + F[FZ] * t); if (d > -0.01) return t; t += d < -0.06 ? -d * 0.8 : 0.04; }
+  return 0;
+};
+// moves the camera up to `want` metres along the view (back where `want` is below 0), stopping where the rock would
+// come nearer than `room`
+const glide = (want, room) => {
+  const dir = want < 0 ? -1 : 1, n = abs(want);
+  let s = 0; while (s < n && rockAt(F[CX] + F[FX] * dir * (s + 0.01), F[CY] + F[FY] * dir * (s + 0.01), F[CZ] + F[FZ] * dir * (s + 0.01)) < -room) s += 0.01;
+  F[CX] += F[FX] * dir * s; F[CY] += F[FY] * dir * s; F[CZ] += F[FZ] * dir * s;
+};
+const grow = () => {
+  const t = ahead(), was = F[PS];
+  psz = (psz + 1) % 3; F[PS] = SIZES[psz][0]; F[PV] = SIZES[psz][2]; keep('abyssalSize', psz);
+  sizeTag.textContent = SIZES[psz][1]; sizeTag.className = 'on'; clearTimeout(sizeT); sizeT = setTimeout(() => { sizeTag.className = ''; }, 2000);
+  const k = F[PS] / was; F[VX] = F[VY] = F[VZ] = 0;
+  if (t > 0) glide(k < 1 ? t * (1 - k) : -min(t * (k - 1), 8), CR * F[PS]);
+  // Grown next to rock, the camera is pushed out until it has its room again (a jump is fine), and never left inside
+  for (let i = 0; i < 40; i++) { F[MX] = F[MY] = F[MZ] = 0; collide(); sd(0); if (CS[0] + CR * F[PS] < 1e-3) break; }
+  for (let i = 0; i < 300; i++) { sd(0); if (CS[0] < -0.01) break; F[CY] += 0.1; }
+};
+
 // ---------------------------------------------------------------- input
 const key = (e, v) => {
   switch (e.code) {
@@ -590,7 +631,7 @@ const key = (e, v) => {
       else if (e.code === 'KeyM') mute();
       else if (e.code === 'Escape') ui(true);
       else if (e.code === 'Space') zooKey();
-      else if (e.code >= 'Digit1' && e.code <= 'Digit6') lookAt(...VIEWS[e.code.charCodeAt(5) - 49]);
+      else if (e.code === 'KeyC') grow();
     }
   }
 };
@@ -634,14 +675,11 @@ const go = () => {
   if (!mob) capture();
 };
 bDive.onclick = go; $('o').onclick = () => ui(true);
-// detail buttons: the current level is lit, the others reload the page with theirs
-$('q').querySelectorAll('button').forEach((b, i) => { if (i === 2 - LV) b.className = 'on'; else b.onclick = () => { keep('abyssal', 2 - i); location.reload(); }; });
 document.addEventListener('pointerlockchange', () => ui(!document.pointerLockElement));
 
 // draw the first frame and wait for the GPU to finish it (pipelines get compiled on first use) before the reveal
 lookAt(...VIEWS[0]);
 await say(ERA.load[4], 1, 400);
 render(); await Q.onSubmittedWorkDone();
-setTimeout(keep, 15e3, 'abyssalLoad', ''); // the load counts as survived after 15 s of frames
 ui(true);
 requestAnimationFrame((t) => { F[LAST] = t; requestAnimationFrame(frame); });

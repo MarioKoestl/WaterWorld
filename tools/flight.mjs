@@ -22,10 +22,11 @@ await c.open(harness(era)); await sleep(500); await c.loaded();
 await c.w("ui(false); body.className = 'g p'; frame = () => {}; 0");
 await sleep(2600);
 await c.w('pix = PIXMAX; det = 1; dynT = -Infinity; resize(); 0');
-console.log('canvas', await c.w("W + 'x' + H + ', detail level ' + LV"));
-// the camera where the flight has it after t seconds, the scene time running along with it
+console.log('canvas', await c.w("W + 'x' + H"));
+// the camera where the flight has it after t seconds, the scene time running along with it (the frame loop is
+// stopped, so the zoo is asked here: the hint names what this frame looks at)
 const at = async (t, file) => {
-  await c.w(`F[FLT] = ${t}; F[TIME] = ${20 + t}; flyAt(); render(); Q.onSubmittedWorkDone().then(() => 0)`);
+  await c.w(`F[FLT] = ${t}; F[TIME] = ${20 + t}; flyAt(); render(); if (typeof zoo === 'function') zoo(); Q.onSubmittedWorkDone().then(() => 0)`);
   await c.w('render(); Q.onSubmittedWorkDone().then(() => 0)');
   await sleep(300);
   await c.shot(outFile('flight', file));

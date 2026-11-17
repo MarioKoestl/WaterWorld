@@ -3,8 +3,9 @@
 // ============================================================================
 // ERA is what the engine asks an era for besides its world (see CLAUDE.md, "adding an era").
 
-// the six viewpoints (position, look-at), keys 1-6. makeWorld dresses the scene around them, and the engine puts each
-// on the sea floor: the second number is the height above it
+// the six test poses (position, look-at), the fixed poses of every check and the start; keys 1-6 in the dev pages
+// only. makeWorld dresses the scene around them, and the engine puts each on the sea floor: the second number is the
+// height above it
 const POSES = [
   [10, 1.3, 7, -9, -31, -10],
   [50, 1.3, 34, 58, -23, 8],

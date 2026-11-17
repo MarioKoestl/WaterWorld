@@ -3,6 +3,7 @@
 // ============================================================================
 //   F    fly the camera along the scripted path (FLY in main.js), one minute through the whole world
 //   B    the same flight as a benchmark: the resolution stays fixed, every frame is timed, the result is shown at the end
+//   1-6  jump to the six test poses of the era (ERA.views): only here, the published pages have no such keys
 //   F, B or 1-6 during a flight stop it
 //   a zoo card that is open when a flight starts stays open until it ends, so B can time a flight with a card open
 {
@@ -36,6 +37,6 @@
         // a benchmark hides the stats line and holds the resolution: dynT at -Infinity keeps frame() from tuning it
         if (bench) { hud = false; info.textContent = ''; dynT = -Infinity; }
       }
-    } else if (/Digit[1-6]/.test(e.code)) stop();
+    } else if (e.code >= 'Digit1' && e.code <= 'Digit6') { stop(); lookAt(...VIEWS[e.code.charCodeAt(5) - 49]); }
   });
 }

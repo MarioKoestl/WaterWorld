@@ -6,13 +6,14 @@
 // light reaches, dark crusts of algae. On everything flat enough lies mud: pale grey-green, smooth, paler where a
 // tongue of it has slid down not long ago (the red channel of the ground map gm) and darker in the hollows of the
 // plain (its alpha channel says where the ground is the mud of the basin, its green channel where a fallen block
-// lies). 2 the tulip animal: a pale stalk and a dusky rose cup in six parts (i.ao, the aux of its mesh, says how far
-// up the animal a place is). 3 the sponge: ochre tubes with dark throats (i.ao is how light a place is).
-// Colours are free: no fossil shows them. They are kept quiet.
+// lies), and dark under a garden (its blue channel: how dense the garden stands). 2 the tulip animal: a pale stalk
+// with a dark foot and a rose cup in six parts (i.ao, the aux of its mesh, says how far up the animal a place is).
+// 3 the sponge: pale ochre tubes with darker throats (i.ao is how light a place is). The cup and the tubes are
+// thin: seen against the sun, the light comes through them.
+// Colours are free: no fossil shows them.
 // Leaves: the threads of the algae, a dull olive-brown, a few of them red-brown, hair-fine and as wide at the tip as
 // at the root. Type 0: the short threads that lie on a mat. Type 1: the long limp threads of the tufts (the engine's
-// type for what casts no shadow and is not thinned out by the engine: a thread is far too fine for the shadow a
-// leaf would cast).
+// type for what casts no shadow: a thread is far too fine for the shadow a leaf would cast).
 const LOOK = {
   mats: /*wgsl*/`
   let big = textureSample(tD, sR, i.op.xz * .013 + i.op.y * .021).a;
@@ -26,7 +27,10 @@ const LOOK = {
   let ca = caus(i.wp, dist);
   var hgt = A.h * .4 + B.h * .4 + C.h * .2;
   var bump = .85; var gloss = .08; var alb = vec3f(0.); var sgro = 0.; var flu = 0.; var vao = 1.;
-  let emi = vec3f(0.); let rip = 0.;
+  var emi = vec3f(0.); let rip = 0.;
+  // the sun as it comes towards the eye through something thin and alive: from its side away from the sun, and most
+  // when it stands against the sun (TRANS in AIR: how strong)
+  let Lt = g.sun.xyz; let Vt = normalize(g.cam.xyz - i.wp);
   if (mat <= 1) {
     // the beds of the rock lie nearly level: little of the flowing pattern of the textures in them
     let st = i.op.y * .5 + A.h * .4 + big * 2.5 + big2 * 1.2;
@@ -54,12 +58,17 @@ const LOOK = {
     let rag = ((big2 - .5) * .5 + (nz - .5) * .7 + (F.c - .5) * .25 * fk) * (1. - ss(.9, .99, n0.y));
     let basin = basinA * (1. - gm.g) * ss(-36., -39., i.wp.y) * ss(.2, .5, n0.y + rag * .6) * f32(mat == 0);
     let flt = max(ss(.82, .98, n0.y + rag) * select(.6, 1., mat == 0) * (1. - .6 * gm.g), basin);
-    var mud = mix(vec3f(.28, .31, .245), vec3f(.405, .43, .34), sat(big * 1.3 - .15 + (B.c - .5) * .5));
-    mud = mix(mud, vec3f(.46, .48, .39), gm.r * .7) * (.93 + .12 * C.c) * mix(1., .88 + .24 * F.c, fk);
+    var mud = mix(MUD0, MUD1, sat(big * 1.3 - .15 + (B.c - .5) * .5));
+    mud = mix(mud, MUD1 * 1.12, gm.r * .7) * (.93 + .12 * C.c) * mix(1., .88 + .24 * F.c, fk);
     mud *= mix(.8, 1.08, ss(-49., -42., i.wp.y)) * mix(1., .7, ss(-40., -32., i.wp.y)) * (1. - .3 * gm.g);
+    // under dense life the mud is dark, which gives the small things there a foot (the shadow map is too coarse for
+    // them): the blue channel of gm says how dense a garden stands (world.js; the engine's second water, which this
+    // world does not have)
+    mud *= 1. - .6 * gm.b * (.75 + .25 * nz);
     // where an algae mat lies the mud is stained dark, a slimy olive-brown, with pale mud showing through at its
     // ragged rim and in small holes: the threads grow out of that
-    let slime = ss(.2, .55, matA + (nz - .5) * .7) * ss(.36, .46, nz + matA * .12) * basin;
+    // (the holes are few and their rims soft: many small sharp ones read as scraps of paper lying on the mat)
+    let slime = ss(.2, .55, matA + (nz - .5) * .7) * ss(.18, .42, nz + matA * .12) * basin;
     mud = mix(mud, vec3f(.070, .072, .045) * (.75 + .5 * B.c) * mix(1., .85 + .3 * F.c, fk), slime * .92);
     alb = mix(alb, mud, flt);
     hgt = mix(hgt, .7, flt); bump = mix(bump, .12, flt); gloss = mix(mix(gloss, .03, flt), .22, slime); sgro *= 1. - flt;
@@ -68,12 +77,19 @@ const LOOK = {
     let lp = i.op - sd * 37.;
     let cup = ss(.72, .78, i.ao);
     let part = .5 + .5 * cos(6. * atan2(lp.z, lp.x));
-    let rose = mix(vec3f(.60, .30, .30), vec3f(.68, .45, .36), fract(sd * 7.3)) * (.62 + .38 * part) * mix(1., .5, ss(.965, 1., i.ao));
+    let rose = mix(CUP0, CUP1, fract(sd * 7.3)) * (.62 + .38 * part) * mix(1., .5, ss(.965, 1., i.ao));
     alb = mix(vec3f(.36, .36, .28), rose * mix(.72, 1., ss(.76, .86, i.ao)), cup) * (.88 + .18 * B.c);
+    // the foot of the stalk is dark, as the mud is under the garden
+    alb *= mix(.4, 1., ss(.0, .3, i.ao));
     hgt = .7; bump = mix(.3, .12, cup); gloss = .1 + .25 * cup; flu = .45 * cup;
+    // the wall of the cup is thin: the sun comes through it
+    emi = rose * vec3f(1.2, .8, .6) * sunE(i.wp.y, 0.) * shadow1(i.wp + Lt * .05) * (.3 * sat(-dot(n0, Lt)) + 1.4 * pow(sat(-dot(Vt, Lt)), 3.)) * mix(.15, 1., cup) * TRANS;
   } else {
-    alb = mix(vec3f(.46, .33, .13), vec3f(.50, .25, .12), fract(sd * 5.7)) * (.88 + .16 * B.c) * (.9 + .14 * C.h) * (.12 + .88 * i.ao);
-    hgt = .7; vao = .4 + .6 * i.ao; bump = .7; gloss = .12; flu = .3;
+    // (a bush of 8 cm on dark rock: its throats stay dark, but not so dark that the whole bush reads as a black blot)
+    alb = mix(vec3f(.56, .42, .19), vec3f(.60, .34, .17), fract(sd * 5.7)) * (.88 + .16 * B.c) * (.9 + .14 * C.h) * (.35 + .65 * i.ao);
+    hgt = .7; vao = .65 + .35 * i.ao; bump = .7; gloss = .12; flu = .3;
+    // its thin tubes let a little of the sun through
+    emi = alb * vec3f(1.1, .9, .6) * sunE(i.wp.y, 0.) * shadow1(i.wp + Lt * .05) * (.2 * sat(-dot(n0, Lt)) + .8 * pow(sat(-dot(Vt, Lt)), 4.)) * TRANS;
   }
 `,
   // nothing sparkles here

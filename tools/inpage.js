@@ -12,11 +12,15 @@
   const rock = (x, y, z) => { const sx = F[CX], sy = F[CY], sz = F[CZ]; F[CX] = x; F[CY] = y; F[CZ] = z; sd(0); const d = CS[0]; F[CX] = sx; F[CY] = sy; F[CZ] = sz; return d; };
   // is kind k what the player looks at from where the camera is now? One search, without waiting for a frame
   const looksAt = (k) => { zAim = -1; render(); zoo(); return zKind === k; };
-  // camera spots `dist` away from a point, in open water with a clear line to it: all round, a little above and below
+  // camera spots `dist` away from a point, in open water with a clear line to it: all round, a little above and below,
+  // and high above (for an animal a few centimetres over the mud). The camera keeps 0.6 m from the rock, less for a
+  // near spot, but never less than its collision radius (main.js), which would push it away; the line to the point
+  // stays out of the rock
   const spots = function* (t, dist) {
-    for (const up of [0.2, -0.25, 0.5]) for (let j = 0; j < 16; j++) {
+    const room = Math.max(Math.min(0.6, 0.3 * dist), CR * F[PS] + 0.05), line = Math.min(0.1, 0.02 + 0.05 * dist);
+    for (const up of [0.2, -0.25, 0.5, 0.9]) for (let j = 0; j < 16; j++) {
       const a = j / 16 * 2 * PI, x = t[0] + Math.cos(a) * dist, y = Math.min(t[1] + up * dist, TOP - 0.5), z = t[2] + Math.sin(a) * dist;
-      let ok = rock(x, y, z) < -0.6; for (let s = 0.2; ok && s < 1; s += 0.2) ok = rock(x + (t[0] - x) * s, y + (t[1] - y) * s, z + (t[2] - z) * s) < -0.1;
+      let ok = rock(x, y, z) < -room; for (let s = 0.2; ok && s < 0.9; s += 0.2) ok = rock(x + (t[0] - x) * s, y + (t[1] - y) * s, z + (t[2] - z) * s) < -line;
       if (ok) yield [x, y, z];
     }
   };
@@ -41,12 +45,23 @@
   const away = (id) => { const k = ZK.indexOf(id), y0 = F[YAW], p0 = F[PIT]; for (const [dy, p] of [[PI, p0], [PI / 2, p0], [-PI / 2, p0], [0, -1.5], [0, 1.5], [PI, -0.9], [PI, 0.9]]) { F[YAW] = y0 + dy; F[PIT] = p; if (!looksAt(k)) return true; } F[YAW] = y0; F[PIT] = p0; return false; };
   // move 60 m back and up: true if the exhibit is then no longer what the player looks at
   const leave = (id) => { render(); F[CX] -= 60 * F[FX]; F[CZ] -= 60 * F[FZ]; F[CY] = Math.min(F[CY] + 12, TOP - 1); return !looksAt(ZK.indexOf(id)); };
-  // a level direction with 17 m of open water from the camera, as [dx, dz]
-  const open = () => { const x = F[CX], y = F[CY], z = F[CZ]; for (let j = 0; j < 48; j++) { const a = j / 48 * 2 * PI, dx = Math.cos(a), dz = Math.sin(a); let free = true; for (let d = 1; d <= 17 && free; d++) free = rock(x + dx * d, y, z + dz * d) < -0.6; if (free) return [dx, dz]; } return null; };
+  // a level direction with 17 m of open water from the camera, as [dx, dz]. Where there is none at its height (it
+  // looked at something close to the mud), the camera goes up by up to 3 m to find one
+  const open = () => {
+    const x = F[CX], z = F[CZ];
+    for (let lift = 0; lift <= 3; lift += 0.5) {
+      const y = Math.min(F[CY] + lift, TOP - 0.5);
+      for (let j = 0; j < 48; j++) { const a = j / 48 * 2 * PI, dx = Math.cos(a), dz = Math.sin(a); let free = true; for (let d = 1; d <= 17 && free; d++) free = rock(x + dx * d, y, z + dz * d) < -0.6; if (free) { F[CY] = y; return [dx, dz]; } }
+    }
+    return null;
+  };
   // the exhibits that are somewhere in this world, and whether each moves
   const kinds = () => { const has = new Set(); for (let i = 0; i < Z.n; i++) has.add(Z.data[i * ZN + 8]); for (const o of ZA) has.add(o.k); return ZK.filter((id, k) => has.has(k)).map((id) => ({ id, name: ZOO[id].name, moves: ZA.some((o) => o.k === ZK.indexOf(id)) })); };
   // what the card shows, in the form of a ZOO entry
-  const cardText = () => { const [h, sub, dl, text] = zBox.children, facts = []; for (let i = 0; i < 6; i += 2) if (!dl.children[i].hidden) facts.push([dl.children[i].textContent, dl.children[i + 1].textContent]); return { name: h.textContent, sub: sub.textContent, facts, text: text.textContent }; };
-  window.__z = { tick, state, rock, looksAt, aim, away, leave, open, kinds, cardText };
+  const cardText = () => { const [h, sub, dl, , text] = zBox.children, facts = []; for (let i = 0; i < 6; i += 2) if (!dl.children[i].hidden) facts.push([dl.children[i].textContent, dl.children[i + 1].textContent]); return { name: h.textContent, sub: sub.textContent, facts, text: text.textContent }; };
+  // the size picture of the card (after the fact rows): null where it is not shown, else its two labels, the lengths of
+  // its two bars and the width they have, in pixels
+  const cardPic = () => { const f = zBox.children[3], w = (e) => e.getBoundingClientRect().width; if (!f.getClientRects().length) return null; const [a, A, b, B] = f.children; return { labels: [a.textContent, b.textContent], bars: [w(A), w(B)], width: w(f) }; };
+  window.__z = { tick, state, rock, looksAt, aim, away, leave, open, kinds, cardText, cardPic };
   return 'ready';
 })()

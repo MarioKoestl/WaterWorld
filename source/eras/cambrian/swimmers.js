@@ -61,7 +61,7 @@ const lobe = (w) => (s) => w * pow(max(1 - pow(s, 2.2), 0), 0.6), paddle = (w) =
 // aux: 0 on shield, body and spines, up to 1 towards the tips of the legs and the feelers and up to 0.5 out along
 // the gills, all of which the shader moves
 function meshMarrella() {
-  const m = new Mesh(), NC = LV > 1 ? 4 : 7;
+  const m = new Mesh(), NC = 7;
   loft(m, [[0.2, 0.05, 0.03, 0.004], [0.26, 0.12, 0.05, 0.012], [0.36, 0.095, 0.05, 0.012], [0.45, 0.05, 0.03, 0.006], [0.5, 0.008, 0.008, 0]], 2, 8);
   loft(m, [[-0.38, 0.005, 0.005, 0], [-0.22, 0.022, 0.018, 0], [0, 0.04, 0.03, 0], [0.22, 0.05, 0.036, 0]], 1, 6);
   for (const sx of [-1, 1]) {
@@ -96,7 +96,7 @@ function meshMetaspriggina() {
 // aux: 0 on the bell, -1 on what is inside it, above 0 down a tentacle (1 at its tip).
 // What is inside comes first, the bell last: it is see-through and is laid over them in this order
 function meshMedusa() {
-  const m = new Mesh(), N = LV > 1 ? 24 : 56, R = LV > 1 ? 10 : 18, TQ = LV > 1 ? [0, 0.4, 0.75, 1] : [0, 0.18, 0.36, 0.54, 0.72, 0.88, 1];
+  const m = new Mesh(), N = 56, R = 18, TQ = [0, 0.18, 0.36, 0.54, 0.72, 0.88, 1];
   // the outline of the bell from above, and how wide the bell is at a height
   const sq = (a) => { const c = cos(a), s = sin(a), k = pow(pow(abs(c), 4.2) + pow(abs(s), 4.2), -1 / 4.2); return [c * k, s * k]; };
   const wide = (y) => 0.2 * pow(max(1 - pow(y, 3.4), 0), 0.5);
@@ -107,7 +107,7 @@ function meshMedusa() {
   for (let j = 0; j < 96; j++) {
     // (each as long as it likes, up to 15 % of the bell's height and a little over, and curving out from the rim)
     const [x, z] = sq((j + 0.5) / 96 * TAU), h = 0.09 + 0.09 * ihash(j, 3, 7), o = 0.05 + 0.25 * ihash(j, 5, 1);
-    m.tube(TQ.map((q, k) => { const r = 0.194 * (1 + o * q * q); return [x * r, k ? -h * q : 0.01, z * r]; }), (k) => 0.0075 - 0.004 * TQ[k], LV > 1 ? 3 : 5, true, (k) => max(TQ[k], 0.03));
+    m.tube(TQ.map((q, k) => { const r = 0.194 * (1 + o * q * q); return [x * r, k ? -h * q : 0.01, z * r]; }), (k) => 0.0075 - 0.004 * TQ[k], 5, true, (k) => max(TQ[k], 0.03));
   }
   const rings = [[]];
   // the rim is turned in a little; above it the rings stand closer together towards the top, where the bell rounds off
@@ -199,11 +199,15 @@ function meshAnomalocaris() {
 // it sees the back of a triangle: flaps and blades are a single sheet.
 // Every animal gives way to the viewer (dodge), so that none swims through the camera: where its middle c would come
 // closer than r, it is moved away, by less the further off it is and by nothing at r. lv = 1: it keeps its height and
-// goes sideways (for those that keep to the ground). h: how far the animal reaches up and down from its middle.
-// zooDodge below is the same for the zoo: change one, change the other
+// goes sideways (for those that keep to the ground). h: how far the animal reaches up and down from its middle. Each
+// gives r as a little more than its own size plus twice the near plane of the camera (g.fwd.w, which shrinks with the
+// player: a shrimp may come close). zooDodge below is the same for the zoo: change one, change the other.
+// TSC: every distance below that is not the size of an animal was chosen when this world was 20 times larger (TS in
+// era.js), and is that much smaller now
 const TGS_W = Array.from({ length: TONGUES.length * 2 }, (_, i) => 'vec4f(' + Array.from(FLOOR.prims.subarray(i * 4, i * 4 + 4)).join(', ') + ')').join(', ');
 const S_SEA = /*wgsl*/`
 const TGS = array<vec4f, ${TONGUES.length * 2}>(${TGS_W});
+const TSC = ${TS};
 ` + groundWgsl(TONGUES.length + 'u', (i) => 'TGS[' + i + ']') + /*wgsl*/`
 fn dodge(c: vec3f, r: f32, lv: f32, h: f32) -> vec3f {
   let v = c - g.cam.xyz; let d = length(vec3f(v.x, max(abs(v.y) - h, 0.), v.z));
@@ -230,11 +234,11 @@ fn mrP(ta: f32, a: vec4f, ph: f32) -> vec2f { return a.xz + a.w * vec2f(cos(ta) 
   let t = g.cam.w; let s = i.b.x; let h = vec3f(hs(s), hs(s + .37), hs(s + .71)); let R = i.a.w; let ph = i.b.w * 17.; let au = i.n.w;
   // each animal has its place in the swarm (so far along the round, so far to the side, so high over the mud) and
   // wanders about that place
-  let ta = t * i.b.y + i.b.w * 6.3 + ((h.x - .5) * 14. + 1.5 * sin(t * .23 + s * 40.)) / R;
-  let p0 = mrP(ta, i.a, ph); let T2 = normalize(mrP(ta + .4 / R, i.a, ph) - p0) * sign(i.b.y); let S2 = vec2f(T2.y, -T2.x);
-  let q = p0 + S2 * ((h.y - .5) * 8. + sin(t * .31 + s * 31.));
+  let ta = t * i.b.y + i.b.w * 6.3 + ((h.x - .5) * 14. + 1.5 * sin(t * .23 + s * 40.)) * TSC / R;
+  let p0 = mrP(ta, i.a, ph); let T2 = normalize(mrP(ta + .4 * TSC / R, i.a, ph) - p0) * sign(i.b.y); let S2 = vec2f(T2.y, -T2.x);
+  let q = p0 + S2 * ((h.y - .5) * 8. + sin(t * .31 + s * 31.)) * TSC;
   let bob = t * .5 + s * 50.;
-  let y = ground(q) + .4 + 2.2 * h.z * sqrt(h.z) + .3 * sin(bob);
+  let y = ground(q) + (.4 + 2.2 * h.z * sqrt(h.z) + .3 * sin(bob)) * TSC;
   // it heads along the round, turning a little this way and that, nose up while it rises and down while it sinks
   let yaw = .5 * sin(t * .7 + s * 23.);
   var T = vec3f(T2.x, 0., T2.y) * cos(yaw) + vec3f(S2.x, 0., S2.y) * sin(yaw); let S = vec3f(T.z, 0., -T.x);
@@ -242,7 +246,7 @@ fn mrP(ta: f32, a: vec4f, ph: f32) -> vec2f { return a.xz + a.w * vec2f(cos(ta) 
   // legs, gills and feelers beat (aux: how far out along one a vertex is)
   var l = i.p; let bt = t * 11. + l.z * 16. + s * 60.;
   l.y += au * .05 * sin(bt); l.z += au * .03 * cos(bt);
-  let w = dodge(vec3f(q.x, y, q.y), 2.2, 1., 0.) + (S * l.x + Up * l.y + T * l.z) * i.b.z;
+  let w = dodge(vec3f(q.x, y, q.y), .75 * i.b.z + 2. * g.fwd.w, 1., 0.) + (S * l.x + Up * l.y + T * l.z) * i.b.z;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * i.n.x + Up * i.n.y + T * i.n.z; o.op = i.p; o.sd = s; o.lt = au;
   return o;
 }
@@ -263,22 +267,22 @@ const S_METASPRIGGINA = /*wgsl*/`
 // one, change the other
 fn msP(ta: f32, a: vec4f, ph: f32) -> vec3f {
   let z = a.z + a.w * sin(ta);
-  return vec3f(wallx(z) - a.x + 4. * cos(ta), a.y + 2.2 * sin(2. * ta + ph), z);
+  return vec3f(wallx(z) - a.x + 4. * TSC * cos(ta), a.y + 2.2 * TSC * sin(2. * ta + ph), z);
 }
 @vertex fn vsMetaspriggina(i: VI) -> VO {
   var o: VO;
-  let t = g.cam.w; let s = i.b.x; let h = vec3f(hs(s), hs(s + .37), hs(s + .71)); let ph = i.b.w * 17.; let e = .5 / i.a.w;
-  let ta = t * i.b.y + i.b.w * 6.3 + ((h.x - .5) * 11. + sin(t * .27 + s * 40.)) / i.a.w;
+  let t = g.cam.w; let s = i.b.x; let h = vec3f(hs(s), hs(s + .37), hs(s + .71)); let ph = i.b.w * 17.; let e = .5 * TSC / i.a.w;
+  let ta = t * i.b.y + i.b.w * 6.3 + ((h.x - .5) * 11. + sin(t * .27 + s * 40.)) * TSC / i.a.w;
   let T = normalize(msP(ta + e, i.a, ph) - msP(ta - e, i.a, ph)) * sign(i.b.y);
   let S = normalize(cross(vec3f(0., 1., 0.), T)); let Up = cross(T, S);
-  let off = S * ((h.y - .5) * 3.4 + .5 * sin(t * .6 + s * 31.)) + Up * ((h.z - .5) * 2.6 + .4 * cos(t * .5 + s * 23.));
+  let off = (S * ((h.y - .5) * 3.4 + .5 * sin(t * .6 + s * 31.)) + Up * ((h.z - .5) * 2.6 + .4 * cos(t * .5 + s * 23.))) * TSC;
   // a wave runs down the whole body, wider towards the tail: it swims like an eel
   var l = i.p; var n = i.n.xyz;
   let u = .5 - l.z; let A = .012 + .085 * u * u; let wv = t * 8. + s * 50. - u * 5.5;
   l.x += A * sin(wv);
   let sl = 5.5 * A * cos(wv) - .17 * u * sin(wv);
   n = vec3f(n.x + sl * n.z, n.y, n.z - sl * n.x);
-  let w = dodge(msP(ta, i.a, ph) + off, 2., 0., 0.) + (S * l.x + Up * l.y + T * l.z) * i.b.z;
+  let w = dodge(msP(ta, i.a, ph) + off, .75 * i.b.z + 2. * g.fwd.w, 0., 0.) + (S * l.x + Up * l.y + T * l.z) * i.b.z;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = s; o.lt = i.n.w;
   return o;
 }
@@ -306,7 +310,7 @@ const S_MEDUSA = /*wgsl*/`
 // zooMedusa below: change one, change the other
 fn mdP(t: f32, a: vec4f, b: vec4f) -> vec3f {
   let d = t * .033 + b.w * 40.;
-  return a.xyz + vec3f(a.w * cos(d), 1.6 * sin(t * .045 + b.w * 17.) + .03 * b.z * sin(t * b.y + b.x - 1.6), a.w * sin(d * 1.3 + 1.));
+  return a.xyz + vec3f(a.w * cos(d), 1.6 * TSC * sin(t * .045 + b.w * 17.) + .03 * b.z * sin(t * b.y + b.x - 1.6), a.w * sin(d * 1.3 + 1.));
 }
 @vertex fn vsMedusa(i: VI) -> VO {
   var o: VO;
@@ -328,7 +332,7 @@ fn mdP(t: f32, a: vec4f, b: vec4f) -> vec3f {
   // each leans its own way, and a little this way and that
   let tl = .16 * vec2f(sin(sd * 71.), cos(sd * 53.)) + .18 * vec2f(sin(t * .21 + sd * 9.), cos(t * .17 + sd * 5.));
   l = vec3f(l.x + (l.y - .5) * tl.x, l.y, l.z + (l.y - .5) * tl.y);
-  let w = dodge(mdP(t, i.a, i.b), 2.4, 1., .55 * i.b.z) + (l - vec3f(0., .5, 0.)) * i.b.z;
+  let w = dodge(mdP(t, i.a, i.b), .4 * i.b.z + 2. * g.fwd.w, 1., .55 * i.b.z) + (l - vec3f(0., .5, 0.)) * i.b.z;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = n; o.op = i.p; o.sd = sd; o.lt = au;
   return o;
 }
@@ -350,11 +354,13 @@ fn mdP(t: f32, a: vec4f, b: vec4f) -> vec3f {
   alb = mix(alb, vec3f(.80, .70, .60), tent);
   // From afar it is a soft pale shape and not a drawn outline: the skin counts for more there and its edge for less.
   // And it goes with the haze: beyond what the water lets one see, nothing of it is left
-  let far = ss(6., 26., dist);
+  let far = ss(6. * TSC, 26. * TSC, dist);
   var al = .06 + .13 * far + (.5 - .24 * far) * edge + .14 * cn + .12 * ss(.7, 1., i.op.y) + .035 * (.5 + .5 * cos(an * 16.)) * ss(.95, .6, i.op.y);
-  al = mix(mix(al, .16 + .34 * ndv, organ), .42, tent) * ss(95., 45., dist);
+  al = mix(mix(al, .16 + .34 * ndv, organ), .42, tent) * ss(60., 30., dist);
   let c = alb * (E * (.35 + .4 * sat(dot(n, g.sun.xyz))) + am * 1.2) + (E + am) * edge * .3 * (1. - organ);
-  return vec4f(min(max(fog(c, i.wp, z), vec3f(0.)), vec3f(40.)) * al, al);
+  // where the sun comes through it, it glows: most when it stands against the sun, and only where the sun reaches
+  let gl = mix(vec3f(.75, .95, .85), vec3f(1., .7, .55), max(organ, tent)) * E * shadow1(i.wp) * (pow(sat(-dot(V, g.sun.xyz)), 3.) * 1.4 + .12 * sat(-dot(n, g.sun.xyz)) + .06) * TRANS;
+  return vec4f(min(max(fog(c, i.wp, z), vec3f(0.)), vec3f(40.)) * al + gl * (.35 + .65 * edge + organ) * al * 2. * exp(-sg(z) * dist), al);
 }
 `;
 const S_OPABINIA = /*wgsl*/`
@@ -382,10 +388,10 @@ fn opP(ta: f32, a: vec4f, ph: f32) -> vec2f { return a.xz + a.w * vec2f(cos(ta),
   n = mix(n, vec3f(n.x, n.y * cos(an) - n.z * sin(an), n.y * sin(an) + n.z * cos(an)), tr);
   // onto its round, level with the mud under it
   let ta = t * i.b.y + i.b.x;
-  let p0 = opP(ta, i.a, ph); let p1 = opP(ta + sign(i.b.y) * .3 / i.a.w, i.a, ph); let g0 = ground(p0);
+  let p0 = opP(ta, i.a, ph); let p1 = opP(ta + sign(i.b.y) * .3 * TSC / i.a.w, i.a, ph); let g0 = ground(p0);
   let T = normalize(vec3f(p1.x - p0.x, ground(p1) - g0, p1.y - p0.y));
   let S = normalize(cross(vec3f(0., 1., 0.), T)); let Up = cross(T, S);
-  let w = dodge(vec3f(p0.x, g0 + i.a.y + .1 * sin(t * .43 + sd * 11.), p0.y), 2., 1., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
+  let w = dodge(vec3f(p0.x, g0 + i.a.y + .1 * TSC * sin(t * .43 + sd * 11.), p0.y), .9 * sz + 2. * g.fwd.w, 1., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = sd; o.lt = au;
   return o;
 }
@@ -418,8 +424,8 @@ const S_ANOMALOCARIS = /*wgsl*/`
 // and point where the neck points, and so does the tail fan behind the last segment. anK, anP and anT are repeated
 // in zooAnomalocaris below: change one, change the other
 fn anK(sd: f32) -> f32 { return .7 + .3 * fract(sd * 7.); }
-fn anP(ta: f32, a: vec4f, sd: f32) -> vec3f { return a.xyz + vec3f(a.w * anK(sd) * sin(ta), 1.6 * sin(2. * ta + sd * 6.3), a.w * cos(ta)); }
-fn anT(ta: f32, a: vec4f, sd: f32) -> vec3f { return vec3f(a.w * anK(sd) * cos(ta), 3.2 * cos(2. * ta + sd * 6.3), -a.w * sin(ta)); }
+fn anP(ta: f32, a: vec4f, sd: f32) -> vec3f { return a.xyz + vec3f(a.w * anK(sd) * sin(ta), 1.6 * TSC * sin(2. * ta + sd * 6.3), a.w * cos(ta)); }
+fn anT(ta: f32, a: vec4f, sd: f32) -> vec3f { return vec3f(a.w * anK(sd) * cos(ta), 3.2 * TSC * cos(2. * ta + sd * 6.3), -a.w * sin(ta)); }
 @vertex fn vsAnomalocaris(i: VI) -> VO {
   var o: VO;
   let t = g.cam.w; let sz = i.b.z; let sd = i.b.w; let dir = sign(i.b.y); let au = i.n.w;
@@ -437,12 +443,12 @@ fn anT(ta: f32, a: vec4f, sd: f32) -> vec3f { return vec3f(a.w * anK(sd) * cos(t
   let bent = vec3f(l.x + sgn * d * .1, oy * cos(an) - ${ANY} - (1. - cos(an)) / ka, ${ANZ} + sin(an) / ka + oy * sin(an));
   l = mix(l, bent, ar);
   n = mix(n, vec3f(n.x, n.y * cos(an) - n.z * sin(an), n.y * sin(an) + n.z * cos(an)), ar);
-  // It gives way to the viewer: where its middle line would pass the camera closer than 3.4 units, all of it moves
-  // aside, or down if the camera is right in its way, and it begins to 5 units before it is there. (zooAnomalocaris
-  // has the same)
-  let ta0 = t * i.b.y + i.b.x; let zr = clamp(l.z, -.45, .3);
+  // It gives way to the viewer: where its middle line would pass the camera closer than gr (a little more than half
+  // its length, and twice the near plane), all of it moves aside, or down if the camera is right in its way, and it
+  // begins to before it is there. (zooAnomalocaris has the same)
+  let ta0 = t * i.b.y + i.b.x; let zr = clamp(l.z, -.45, .3); let gr = .45 * sz + 2. * g.fwd.w;
   let cv = g.cam.xyz - anP(ta0, i.a, sd); let T0 = normalize(anT(ta0, i.a, sd)); let al = dot(cv, T0); let lat = cv - T0 * al;
-  let give = normalize(lat + vec3f(0., .4, 0.)) * (-2.4 * (1. - ss(0., 3.4, length(lat))) * (1. - ss(.7 * sz, .7 * sz + 5., abs(al))));
+  let give = normalize(lat + vec3f(0., .12 * gr, 0.)) * (-.7 * gr * (1. - ss(0., gr, length(lat))) * (1. - ss(.7 * sz, 1.4 * sz + 2. * gr, abs(al))));
   // onto the path, banked into the turn
   let ta = ta0 + dir * zr * sz / length(anT(ta0, i.a, sd));
   let T = normalize(anT(ta, i.a, sd)) * dir;
@@ -489,55 +495,57 @@ fn anT(ta: f32, a: vec4f, sd: f32) -> vec3f { return vec3f(a.w * anK(sd) * cos(t
 // animal at i in its list into ZP (see zooMove in engine/zoo.js), for the scene time F[TIME]. They run in every frame
 // and allocate nothing: no float is handed to a function. Where an animal gives way to the viewer by more than its
 // place is wide, its place does the same (the swarm and the shoal are wide enough without).
-// The height of the mud, for the animals that keep close to it: on a grid of 3 units over the middle of the world,
-// which makeWorld fills. zooGround adds the height at ZP[0], ZP[2] to ZP[1]
-const GRN = 97, GRH = 144, GRD = new Float32Array(GRN * GRN);
+// The height of the mud, for the animals that keep close to it: on a grid of 0.5 m over the middle of the world,
+// which makeWorld fills (finer would cost load time; between its points it is a centimetre or so off, and these
+// animals swim 2 to 6 cm over the mud). zooGround adds the height at ZP[0], ZP[2] to ZP[1]
+const GRN = 577, GRH = 144, GRD = new Float32Array(GRN * GRN);
 const zooGround = () => {
-  let x = (ZP[0] + GRH) / 3, z = (ZP[2] + GRH) / 3; x = x < 0 ? 0 : x > GRN - 1.01 ? GRN - 1.01 : x; z = z < 0 ? 0 : z > GRN - 1.01 ? GRN - 1.01 : z;
+  let x = (ZP[0] + GRH) * 2, z = (ZP[2] + GRH) * 2; x = x < 0 ? 0 : x > GRN - 1.01 ? GRN - 1.01 : x; z = z < 0 ? 0 : z > GRN - 1.01 ? GRN - 1.01 : z;
   const i = x | 0, j = z | 0, u = x - i, v = z - j, o = i + GRN * j;
   ZP[1] += (GRD[o] * (1 - u) + GRD[o + 1] * u) * (1 - v) + (GRD[o + GRN] * (1 - u) + GRD[o + GRN + 1] * u) * v;
 };
-// dodge of the shaders, for the place in ZP[0], ZP[1], ZP[2]: an animal gives way to the viewer. (How far the
-// animal reaches up and down from its middle is in ZH[0] and not an argument: a float worked out by the caller and
-// handed over can cost an allocation)
-const ZH = new Float64Array(1);
-const zooDodge = (r, lv) => {
+// dodge of the shaders, for the place in ZP[0], ZP[1], ZP[2]: an animal gives way to the viewer. How far the animal
+// reaches up and down from its middle is in ZH[0], its own part of r in ZH[1] (not arguments: a float worked out by
+// the caller and handed over can cost an allocation); r adds twice the near plane, as in the shaders
+const ZH = new Float64Array(2);
+const zooDodge = (lv) => {
+  const r = ZH[1] + 2 * NEAR * F[PS];
   const vx = ZP[0] - F[CX], vy = ZP[1] - F[CY], vz = ZP[2] - F[CZ], ay = (vy < 0 ? -vy : vy) - ZH[0], by = ay > 0 ? ay : 0, d = sqrt(vx * vx + by * by + vz * vz);
   if (d >= r) return;
   const wy = vy * (1 - lv), q = d / r, k = 0.6 * r * (1 - q * q * (3 - 2 * q)) / (sqrt(vx * vx + wy * wy + vz * vz) + 1e-4);
   ZP[0] += vx * k; ZP[1] += wy * k; ZP[2] += vz * k;
 };
-// A swarm of Marrella: mrP of vsMarrella. The swarm spreads 8 units along its round to both sides of its middle: a
-// line through the middle, 4.5 units each way, each end 1.2 units over the mud that is under it
+// A swarm of Marrella: mrP of vsMarrella. The swarm spreads 0.4 m along its round to both sides of its middle: a
+// line through the middle, 0.23 m each way, each end 6 cm over the mud that is under it
 const zooMarrella = (a, i) => {
-  const R = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3, t0 = ta - 4.5 / R, t1 = ta + 4.5 / R;
+  const R = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3, t0 = ta - 4.5 * TS / R, t1 = ta + 4.5 * TS / R;
   const x = a[i] + R * cos(t0) * (1 + 0.22 * sin(2 * t0 + ph)), z = a[i + 2] + R * 0.7 * sin(t0) * (1 + 0.22 * cos(3 * t0 + ph));
   const x1 = a[i] + R * cos(t1) * (1 + 0.22 * sin(2 * t1 + ph)), z1 = a[i + 2] + R * 0.7 * sin(t1) * (1 + 0.22 * cos(3 * t1 + ph));
-  ZP[0] = x1; ZP[1] = 1.2; ZP[2] = z1; zooGround(); const y1 = ZP[1];
-  ZP[0] = x; ZP[1] = 1.2; ZP[2] = z; zooGround();
-  ZP[3] = x1 - x; ZP[4] = y1 - ZP[1]; ZP[5] = z1 - z; ZP[7] = 2.5;
+  ZP[0] = x1; ZP[1] = 1.2 * TS; ZP[2] = z1; zooGround(); const y1 = ZP[1];
+  ZP[0] = x; ZP[1] = 1.2 * TS; ZP[2] = z; zooGround();
+  ZP[3] = x1 - x; ZP[4] = y1 - ZP[1]; ZP[5] = z1 - z; ZP[7] = 2.5 * TS;
 };
 // A shoal of Metaspriggina: msP of vsMetaspriggina (with the line of the wall's foot, wallX of floor.js, written out).
-// The shoal spreads 6 units along its round to both sides of its middle: two lines from the middle, each 4.5 units
-// along the round, one back and one ahead
+// The shoal spreads 0.3 m along its round to both sides of its middle: two lines from the middle, each 0.23 m along
+// the round, one back and one ahead
 const zooMetaspriggina = (a, i, part) => {
-  const L = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3, tb = ta + (part * 2 - 1) * 4.5 / L;
+  const L = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3, tb = ta + (part * 2 - 1) * 4.5 * TS / L;
   const z0 = a[i + 2] + L * sin(ta), z1 = a[i + 2] + L * sin(tb);
-  const x0 = 60 + 10 * sin(z0 * 0.019 + 0.6) + 4.5 * sin(z0 * 0.051 + 2.1) - a[i] + 4 * cos(ta), y0 = a[i + 1] + 2.2 * sin(2 * ta + ph);
+  const x0 = 60 + 10 * sin(z0 * 0.019 + 0.6) + 4.5 * sin(z0 * 0.051 + 2.1) - a[i] + 4 * TS * cos(ta), y0 = a[i + 1] + 2.2 * TS * sin(2 * ta + ph);
   ZP[0] = x0; ZP[1] = y0; ZP[2] = z0;
-  ZP[3] = 60 + 10 * sin(z1 * 0.019 + 0.6) + 4.5 * sin(z1 * 0.051 + 2.1) - a[i] + 4 * cos(tb) - x0; ZP[4] = a[i + 1] + 2.2 * sin(2 * tb + ph) - y0; ZP[5] = z1 - z0; ZP[7] = 1.6;
+  ZP[3] = 60 + 10 * sin(z1 * 0.019 + 0.6) + 4.5 * sin(z1 * 0.051 + 2.1) - a[i] + 4 * TS * cos(tb) - x0; ZP[4] = a[i + 1] + 2.2 * TS * sin(2 * tb + ph) - y0; ZP[5] = z1 - z0; ZP[7] = 1.6 * TS;
 };
 // A jellyfish: mdP of vsMedusa. A line up its bell, from near the rim to near the top
 const zooMedusa = (a, i) => {
   const t = F[TIME], sz = a[i + 6], sd = a[i + 7], d = t * 0.033 + sd * 40;
-  ZP[0] = a[i] + a[i + 3] * cos(d); ZP[1] = a[i + 1] + 1.6 * sin(t * 0.045 + sd * 17) + 0.03 * sz * sin(t * a[i + 5] + a[i + 4] - 1.6) - sz * 0.4; ZP[2] = a[i + 2] + a[i + 3] * sin(d * 1.3 + 1);
-  ZP[1] += sz * 0.4; ZH[0] = 0.55 * sz; zooDodge(2.4, 1); ZP[1] -= sz * 0.4;
+  ZP[0] = a[i] + a[i + 3] * cos(d); ZP[1] = a[i + 1] + 1.6 * TS * sin(t * 0.045 + sd * 17) + 0.03 * sz * sin(t * a[i + 5] + a[i + 4] - 1.6) - sz * 0.4; ZP[2] = a[i + 2] + a[i + 3] * sin(d * 1.3 + 1);
+  ZP[1] += sz * 0.4; ZH[0] = 0.55 * sz; ZH[1] = 0.4 * sz; zooDodge(1); ZP[1] -= sz * 0.4;
   ZP[3] = 0; ZP[4] = sz * 0.8; ZP[5] = 0; ZP[7] = sz * 0.22;
 };
 // Opabinia: opP of vsOpabinia. A point, as thick as the animal is wide with its flaps
 const zooOpabinia = (a, i) => {
   const ta = F[TIME] * a[i + 5] + a[i + 4], k = a[i + 3] * (1 + 0.18 * sin(3 * ta + a[i + 7] * 6.3));
-  ZP[0] = a[i] + k * cos(ta); ZP[1] = a[i + 1]; ZP[2] = a[i + 2] + 0.8 * k * sin(ta); zooGround(); ZH[0] = 0; zooDodge(2, 1);
+  ZP[0] = a[i] + k * cos(ta); ZP[1] = a[i + 1]; ZP[2] = a[i + 2] + 0.8 * k * sin(ta); zooGround(); ZH[0] = 0; ZH[1] = 0.9 * a[i + 6]; zooDodge(1);
   ZP[3] = ZP[4] = ZP[5] = 0; ZP[7] = a[i + 6] * 0.4;
 };
 // the same round at load time (see makeWorld, which keeps it clear): where on it an animal is at the angle ta
@@ -546,14 +554,15 @@ const opAt = (x, z, R, sd, ta) => { const k = R * (1 + 0.18 * sin(3 * ta + sd * 
 // are half its length along the path to either side of its middle. It gives way to the viewer as its shader does
 const zooAnomalocaris = (a, i) => {
   const R = a[i + 3], sz = a[i + 6], f = a[i + 7] * 7, k = R * (0.7 + 0.3 * (f - floor(f))), ph = a[i + 7] * 6.3, ta = F[TIME] * a[i + 5] + a[i + 4];
-  const tx = k * cos(ta), ty = 3.2 * cos(2 * ta + ph), tz = R * sin(ta), d = sz * 0.5 / sqrt(tx * tx + ty * ty + tz * tz), t0 = ta - d, t1 = ta + d;
-  const x = k * sin(t0), y = 1.6 * sin(2 * t0 + ph), z = R * cos(t0);
+  const tx = k * cos(ta), ty = 3.2 * TS * cos(2 * ta + ph), tz = R * sin(ta), d = sz * 0.5 / sqrt(tx * tx + ty * ty + tz * tz), t0 = ta - d, t1 = ta + d;
+  const x = k * sin(t0), y = 1.6 * TS * sin(2 * t0 + ph), z = R * cos(t0);
   ZP[0] = a[i] + x; ZP[1] = a[i + 1] + y; ZP[2] = a[i + 2] + z;
-  ZP[3] = k * sin(t1) - x; ZP[4] = 1.6 * sin(2 * t1 + ph) - y; ZP[5] = R * cos(t1) - z; ZP[7] = sz * 0.17;
-  const tl = 1 / sqrt(tx * tx + ty * ty + tz * tz), cx = F[CX] - a[i] - k * sin(ta), cy = F[CY] - a[i + 1] - 1.6 * sin(2 * ta + ph), cz = F[CZ] - a[i + 2] - R * cos(ta);
+  ZP[3] = k * sin(t1) - x; ZP[4] = 1.6 * TS * sin(2 * t1 + ph) - y; ZP[5] = R * cos(t1) - z; ZP[7] = sz * 0.17;
+  const tl = 1 / sqrt(tx * tx + ty * ty + tz * tz), cx = F[CX] - a[i] - k * sin(ta), cy = F[CY] - a[i + 1] - 1.6 * TS * sin(2 * ta + ph), cz = F[CZ] - a[i + 2] - R * cos(ta);
   const al = (cx * tx + cy * ty - cz * tz) * tl, ux = cx - tx * tl * al, uy = cy - ty * tl * al, uz = cz + tz * tl * al, ld = sqrt(ux * ux + uy * uy + uz * uz), aa = al < 0 ? -al : al;
-  if (ld < 3.4 && aa < 0.7 * sz + 5) {
-    const q = ld / 3.4, e0 = (aa - 0.7 * sz) / 5, e = e0 < 0 ? 0 : e0, m = -2.4 * (1 - q * q * (3 - 2 * q)) * (1 - e * e * (3 - 2 * e)) / sqrt(ux * ux + (uy + 0.4) * (uy + 0.4) + uz * uz);
-    ZP[0] += ux * m; ZP[1] += (uy + 0.4) * m; ZP[2] += uz * m;
+  const gr = 0.45 * sz + 2 * NEAR * F[PS], b = 0.12 * gr;
+  if (ld < gr && aa < 1.4 * sz + 2 * gr) {
+    const q = ld / gr, e0 = (aa - 0.7 * sz) / (0.7 * sz + 2 * gr), e = e0 < 0 ? 0 : e0, m = -0.7 * gr * (1 - q * q * (3 - 2 * q)) * (1 - e * e * (3 - 2 * e)) / sqrt(ux * ux + (uy + b) * (uy + b) + uz * uz);
+    ZP[0] += ux * m; ZP[1] += (uy + b) * m; ZP[2] += uz * m;
   }
 };

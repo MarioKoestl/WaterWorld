@@ -7,6 +7,9 @@
 // `status`: if the card is busy with something else (a game), the run disturbs that and its timings are worthless.
 // Tools that say "no graphics card needed" can run at any time.
 // The Chrome that is used: the environment variable CHROME, else the usual place on Windows.
+// A second test Chrome for a second run at the same time (each tool drives the one page of its Chrome, so two runs on
+// one Chrome get in each other's way): the environment variable PORT, for this command and for the tools. Each port
+// has its own profile. Two runs that render at the same time disturb each other's timings: render one at a time.
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { PORT, OUT, outFile, fileUrl, sleep, connect } from './cdp.mjs';
@@ -21,7 +24,7 @@ if (cmd === 'start') {
   mkdirSync(OUT, { recursive: true });
   const blank = outFile('blank.html'); writeFileSync(blank, '<!doctype html><title>test</title>');
   // the window size gives a page of 2560x1440 at device pixel ratio 1
-  spawn(exe, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${outFile('profile', 'x').slice(0, -2)}`, '--no-first-run', '--no-default-browser-check', '--mute-audio',
+  spawn(exe, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${outFile(PORT === 9334 ? 'profile' : 'profile-' + PORT, 'x').slice(0, -2)}`, '--no-first-run', '--no-default-browser-check', '--mute-audio',
     '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--window-size=2578,1536', fileUrl(blank)], { detached: true, stdio: 'ignore' }).unref();
   for (let i = 0; i < 40 && !(await up()); i++) await sleep(250);
   console.log((await up()) ? `started on port ${PORT}: ${await up()}` : 'did not start: is the path right? ' + exe);

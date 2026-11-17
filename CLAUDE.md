@@ -13,8 +13,7 @@ Decided by Mario on 2026-11-16, so that work is not spent on what nobody uses:
 - **A computer only.** Chrome or Edge, keyboard and mouse. No phone, no touch screen.
 - **One detail level**, the one that was called High. There is no Medium and no Low.
 
-Build and check nothing for phones, touch or lower detail levels, also where an older brief asks for it. Until item
-1 of `docs/briefs/TODO.md` is done the code still has them: leave them alone until then.
+Build and check nothing for phones, touch or lower detail levels, also where an older brief asks for it.
 
 ## Where things are
 
@@ -25,7 +24,7 @@ The game is one page per era. A page is the shared engine plus the folder of one
 | `source/eras.mjs` | The eras: id, name, dates. The only list of them, read by the build |
 | `source/build.mjs` | Writes one page for every folder under `source/eras/`, with the timeline of the title menu |
 | `source/template.html` | The page around the scene: title menu, zoo hint and card |
-| `source/engine/quality.js` | Detail level (Low, Medium, High), chosen before anything is built |
+| `source/engine/quality.js` | The fixed settings of the one detail level (shadow map, anti-aliasing, water texture, light shafts), and what the page remembers between visits |
 | `source/engine/math.js` | Random numbers, noise, surface nets, the `Mesh` builder |
 | `source/engine/tools.js` | `kind()`, the tools an era scatters its world with, packing for the graphics card, rock meshes |
 | `source/engine/shaders.js` | The engine's part of all WGSL shaders, with the era's pieces spliced in |
@@ -34,17 +33,18 @@ The game is one page per era. A page is the shared engine plus the folder of one
 | `source/engine/audio.js` | Synthesized soundscape, in the mood the era asks for |
 | `source/engine/dev.js` | Fly-through and benchmark, only in the dev pages |
 | `source/eras/<id>/` | One era: everything that makes its world. See "Recipe: adding an era" |
-| `tools/` | Checks for the pages: acceptance run, touch run, timeline, menu pictures, renders, benchmark. See `tools/README.md` |
+| `tools/` | Checks for the pages: acceptance run, timeline, menu pictures, renders, benchmark. See `tools/README.md` |
 | `docs/briefs/` | Task briefs: one feature each, with decisions, acceptance criteria and how to verify. `TODO.md` there is the order of work: read it before you start a task |
 
-Two eras have a folder: `today`, and `cambrian`, which is being built in stages (`docs/briefs/era-cambrian.md`):
-so far its place, its light, what stands still in it and what swims (the walkers are still to come). The files of
+Two eras have a folder: `today`, and `cambrian` (`docs/briefs/era-cambrian.md`): its place, its light, what stands
+still in it, what swims and what walks, all at true size and gathered in gardens. Its look is being reworked
+(`docs/briefs/cambrian-look.md`: light and water are made, the animals are next, the trilobite first). The files of
 `today`, in `source/eras/today/`:
 
 | File | What's inside |
 |---|---|
 | `about.txt` | The sentences about the era in the title menu (70 words at most) |
-| `era.js` | `ERA`: viewpoints, camera path, sun, exposure, swim limits, loading texts, sound, `tick()` |
+| `era.js` | `ERA`: the six test poses, camera path, sun, exposure, swim limits, loading texts, sound, `tick()` |
 | `air.js` | `AIR`, `LIGHT`: colours of water and light, the flecks of sunlight, what is above the world (WGSL) |
 | `floor.js` | `FLOOR`: the rock masses and the density function of the sea floor |
 | `look.js` | `LOOK`: what solid things and leaves look like (WGSL) |
@@ -65,13 +65,13 @@ npm run build:dev         # dev pages with F (fly-through) and B (benchmark)
 ```
 
 Each command writes one page per era into the repository root: `index.html` for `today` and `<id>.html` for every
-other era, as dev pages `dev.html` and `<id>-dev.html`. Then open `index.html` in Chrome or Edge. Keys: `1` to `6`
-jump to the viewpoints, `H` shows frame and GPU times, `Esc` opens the menu, where the timeline leads to the other
-eras.
+other era, as dev pages `dev.html` and `<id>-dev.html`. Then open `index.html` in Chrome or Edge. Keys: `H` shows
+frame and GPU times, `C` changes the size of the player, `Esc` opens the menu, where the timeline leads to the other
+eras. Only the dev pages have `1` to `6`: they jump to the six test poses (see "Poses" under Verification).
 
 ## Facts that save time
 
-- **The engine names no species, no place, no colour of water and no viewpoint.** All of that is the era's. If an
+- **The engine names no species, no place, no colour of water and no test pose.** All of that is the era's. If an
   era needs something the engine cannot do, extend the engine in general terms. Check by search: nothing from an
   era's folder (`manta`, `kelp`, `POSES`, ...) appears under `source/engine/`.
 - **One scope.** `build.mjs` joins the files of a page into a single async function, in this order: the engine's
@@ -94,6 +94,26 @@ eras.
   (`g.cam.w`). JavaScript only writes the time into the uniform buffer.
 - **Rock is a density field** (the era's `FLOOR.wgsl`), evaluated once by a compute shader. Animals do not collide
   with it, so a path has to be placed where there is water.
+- **The height of the ground at load time:** `W.gy(x, z)` is that of the nearest column of the density grid (0.75 m),
+  so on a slope it is a few centimetres off. For anything small that stands on the ground or keeps just above it
+  use `W.gyExact(x, z)`, which finds the surface in the density field between the grid points: on smooth mud that
+  is the drawn ground to a millimetre or two, on rough ground near rock up to a few centimetres off. There, ask the
+  drawn triangles: `W.hitDrawn(x, y, z, dx, dy, dz, len)` says how far a ray goes before it meets them (the
+  Cambrian's sponges sit on the rock that way, its walkers measure the ground on them too). `gy` stays as it is: the
+  world of `today` is built with it.
+- **One unit is one metre, in every era** (`docs/briefs/scale.md`). Everything alive has its real size: as large as
+  its fossils say, or as the living animal. The player is a diver, a camera at the eye of a person about 1.8 m tall
+  with no body drawn. The Cambrian was first built with a player 20 times smaller: its `TS` (`era.js`) makes what
+  lives there true size, and its life is gathered in four gardens a few metres across (`GARDENS` in its `world.js`),
+  one at test pose 1, where the player starts.
+- **Three player sizes.** `C` goes diver, fish (18 cm), shrimp (1.8 cm), for small things up close. The size is one
+  factor, `F[PS]` in `main.js` (1, 0.1, 0.01), on how far the camera keeps from rock (`CR`) and on the near plane
+  (`NEAR`, which a shader reads as `g.fwd.w`). The speed has a factor of its own, `F[PV]` (1, 0.35, 0.12): the small
+  sizes swim much faster than their size says (Mario, 2026-11-17), so the fish is not minutes away from the next
+  garden. Nothing else changes: world, haze, light, swim limits
+  and the reach of the zoo stay in metres. Shrinking moves the player towards what it looks at, so that it grows on
+  the screen as much as the player shrinks (growing moves back). The browser remembers the size (`localStorage.abyssalSize`). An animal
+  that gives way to the viewer keeps away by its own size plus twice the near plane, so a shrimp can come close.
 - Source files use CRLF line endings. Keep them.
 
 ## Recipe: adding an era
@@ -105,20 +125,20 @@ eras.
    | Name | What |
    |---|---|
    | `about.txt` | The sentences for the title menu, 70 words at most |
-   | `ERA` | `views` (six viewpoints: position and look-at, the height counted from the sea floor), `fly` (the 60 s camera path), `sun`, `expo`, `rays`, `top`, `bottom` and `edge` (how high, how deep and how far from the middle the player swims), `load` (five loading texts), `sound` (the mood), `tick()` (its numbers in the uniform buffer, every frame) |
-   | `AIR`, `LIGHT` | WGSL: the constants for the colours of water and light, the drift of the particles (`DRIFT`) and how far the haze looks ahead for its skylight (`SKYD`, `SKYO`), and four functions: the flecks of sunlight (`caus`, `caus2`), what the plane over the world shows (`above`), what lies over things before the haze (`veil`) |
+   | `ERA` | `views` (the six test poses: position and look-at, the height counted from the sea floor; the player starts at the first, see "Poses" under Verification), `fly` (the 60 s camera path), `sun`, `expo`, `rays`, `top`, `bottom` and `edge` (how high, how deep and how far from the middle the player swims), `load` (five loading texts), `sound` (the mood), `tick()` (its numbers in the uniform buffer, every frame) |
+   | `AIR`, `LIGHT` | WGSL: the constants for the colours of water and light, the drift and the size of the particles (`DRIFT`, `SNOWZ`: no flake larger than the smallest animal) and how far the haze looks ahead for its skylight (`SKYD`, `SKYO`), and four functions: the flecks of sunlight (`caus`, `caus2`), what the plane over the world shows (`above`), what lies over things before the haze (`veil`). A fifth is optional: `snowLit`, how much of the sun a drifting particle gets at a place (for particles that light up in the shafts; without it they get all of it) |
    | `FLOOR` | `prims` and `counts` (the rock masses), `wgsl` (the density function `dens`) |
    | `LOOK` | WGSL: `mats` (materials of solid things), `pal` and `types` (leaves) |
    | kinds | One `kind({...})` for everything that is drawn besides ground, leaves and sprites |
    | `makeWorld(W)` | Scatters the world with the engine's tools `W`, gives the animals their instances, registers the zoo places |
-   | `ZOO` | The zoo texts, with their sources as comments |
+   | `ZOO` | The zoo texts, with their sources as comments. Each entry has a `size`: the largest measure of the exhibit in metres, the same number as its first fact row. The card shows it as a bar next to a bar for the diver (`You · 1.8 m`), or for the diver's hand (`Your hand · 19 cm`) when it is below 0.3. An entry without `size` (a wall) shows no picture |
 
    The comments at the top of the files in `source/eras/today/` and in `source/engine/tools.js` say what each part
    has to contain.
-3. **Its own verification.** Every era has its own six viewpoints and its own flight path, and both gates under
+3. **Its own verification.** Every era has its own six test poses and its own flight path, and both gates under
    Verification run per era.
-4. **Nothing of another era in it**, and no change to the world of an era that exists: its six viewpoints must
-   still match the renders from before.
+4. **Nothing of another era in it**, and no change to the world of an era that exists: the renders of its six test
+   poses must still match those from before.
 
 ## Recipe: adding an animal
 
@@ -133,7 +153,7 @@ The plesiosaur of `today` is the worked example. Search for `lesio` in `source/e
    the drawing order.
 4. **Instances**: a list in `makeWorld` (`plesios`), eight floats each, handed to the kind at the end
    (`PLESIO.data`).
-5. **Zoo** (only if the player should be able to read about it): one entry in the era's `ZOO`, a function that
+5. **Zoo** (only if the player should be able to read about it): one entry in the era's `ZOO`, with its `size`, a function that
    repeats the path of the vertex shader in JavaScript (`zooPlesio`), and one `zooMove(...)` call at the end of
    `makeWorld`. Something that does not move needs only the `ZOO` entry and a `place(...)` call in `makeWorld`.
    Something as large as a wall is a `backdrop(...)`: it is named only where nothing else is looked at.
@@ -143,7 +163,7 @@ kind with a material in the era's `LOOK.mats`, and a last instance number below 
 
 To add another plesiosaur, add one more array to the `plesios` list. Nothing else changes.
 
-What else an animal can be (`source/eras/cambrian/swimmers.js` has an example of each):
+What else an animal can be (`source/eras/cambrian/swimmers.js` and `walkers.js` have an example of each):
 
 - **See-through** (the jellyfish): `glass: 1` in its kind. It is drawn after everything solid and laid over it, far
   ones first. For that the first three floats of its instances have to say about where each one is, and its fragment
@@ -151,13 +171,18 @@ What else an animal can be (`source/eras/cambrian/swimmers.js` has an example of
 - **Close to the ground** (Opabinia, the swarms of Marrella): the shader of an animal cannot ask the sea floor, so
   the era gives it its own formula for the height of the ground (`groundWgsl` in the Cambrian's `floor.js`, which the
   density function uses too). The engine's noise functions are there for that in every animal shader. For the zoo,
-  `makeWorld` keeps the heights it needs (`zooGround`).
+  `makeWorld` keeps the heights it needs (`zooGround`). That formula knows only the mud: near rock the real ground
+  differs by centimetres, so keep such paths a few metres from rock.
+- **On the ground** (Hallucigenia and the trilobite, in the Cambrian's `walkers.js`): each walks a small round where
+  the drawn ground is a plane to within a millimetre or two, measured at load time on the terrain triangles, and
+  the instance carries that plane: the shader needs no formula for the ground. Its feet step with the way walked, so
+  none slides.
 - **Shared code.** The shaders of all animals of an era are one module. What several of them share goes with the
   first kind (`S_SEA`).
 
 **Paths lie in open water.** Animals do not collide with anything. After a change to a path run
 `node tools/ways.mjs <era>`: it follows every animal the zoo knows for ten minutes and checks its place against the
-rock, the flight path and the viewpoints.
+rock, the flight path and the test poses.
 
 ## Verification
 
@@ -177,18 +202,20 @@ What the repository already has for this:
 
 - **Tools.** `tools/README.md` lists the checks in `tools/` and when to run which. Most of them need no graphics
   card (they run the page with a stand-in for WebGPU): run those after every change. `poses.mjs`, `kinds.mjs`,
-  `flight.mjs` and `bench.mjs` render the scene and make the renders and the numbers for the two gates. `ways.mjs`
-  needs the card too, for the real sea floor.
+  `flight.mjs` and `bench.mjs` render the scene and make the renders and the numbers for the two gates,
+  `turntable.mjs` one animal from nine sides (for a new or reworked animal: is it a solid body or a flat cut-out?).
+  `ways.mjs` needs the card too, for the real sea floor.
 - **Is the card free?** `node tools/chrome.mjs status` shows how busy the graphics card is. If something else is
   using it (Mario playing a game), run nothing that renders the scene: it disturbs him and the timings are
   worthless. Do what needs no card, say which gates are still open, and run them when the card is free. The tools
   that render refuse to start on a busy card, and `status` ends with exit code 3 then.
 - **Shader pieces of an era.** The stand-in for WebGPU does not compile shaders. `node tools/wgsl.mjs <era>` does,
   without drawing anything: run it after every change to a `/*wgsl*/` string.
-- **Poses.** The 6 poses of an era are `ERA.views` in its folder, the keys `1` to `6` in its page. They are the
-  fixed poses of the visual critic and the reference renders that show whether a world has changed. They stay when
-  they leave the game (`docs/briefs/viewpoints.md`): from then on only the dev pages have the keys `1` to `6`.
-  Where a brief says viewpoint or test pose, it means one of these six.
+- **Poses.** The six test poses of an era are `ERA.views` in its folder. They are the fixed poses of the visual
+  critic and the reference renders that show whether a world has changed. The player starts at the first one, and the
+  world is laid out around them. Only the dev pages reach them with keys: there `1` to `6` jump to them, in the
+  published pages these keys do nothing (`docs/briefs/viewpoints.md`). Where a brief says viewpoint, it means a test
+  pose: one of these six.
 - **Fly-through.** The 60 s path is `ERA.fly`. `npm run build:dev` writes the dev pages (`dev.html` for `today`,
   `<id>-dev.html` for the others): `F` flies the path, `B` flies it as a benchmark and then shows average, 99th
   percentile and max for the frame time and the GPU time. If it shows `timestamp-query unavailable`, say so in the
@@ -198,7 +225,8 @@ What the repository already has for this:
   remembers a lower resolution from earlier visits.
 - **Limits.** The limits for the performance gate are under TARGET in `prompt.txt`: GPU time at most 11 ms on
   average and no frame above 16.7 ms. They are stated for the hardware listed there. If this machine is a different
-  one, report the numbers and ask Mario which limits apply.
+  one, report the numbers and ask Mario which limits apply. On the test machine with the RTX 2060 no limit applies
+  (Mario, 2026-11-16): measure and report the numbers, and say if they got clearly worse.
 - **Bundle size.** `npm run build` prints it, per page.
 - **Real graphics card only.** Software WebGPU (SwiftShader) is no substitute: one frame of the full scene takes
   minutes there, and a headless Chrome without a graphics card cannot present to the canvas at all.

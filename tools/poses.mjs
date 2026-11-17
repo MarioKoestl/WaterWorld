@@ -25,11 +25,13 @@ writeFileSync(outFile('poses', name + '-sums.json'), JSON.stringify(await c.ev('
 await c.w("ui(false); body.className = 'g p'; frame = () => {}; 0");
 await sleep(2600); // the menu's blur fades out
 await c.w('pix = PIXMAX; det = 1; dynT = -Infinity; resize(); 0');
-console.log('canvas', await c.w("W + 'x' + H + ', detail level ' + LV"));
+console.log('canvas', await c.w("W + 'x' + H"));
 // the viewpoints are ERA.views (POSES in a page from before the eras)
 const n = await c.w("window.__views = typeof ERA === 'undefined' ? POSES : ERA.views; __views.length");
+// (the frame loop is stopped, so the zoo is asked after each jump: the hint names what this pose looks at, not what
+// the one before it did)
 for (let i = 0; i < n; i++) {
-  await c.w(`F[TIME] = ${time}; lookAt(...__views[${i}]); render(); Q.onSubmittedWorkDone().then(() => 0)`);
+  await c.w(`F[TIME] = ${time}; lookAt(...__views[${i}]); render(); if (typeof zoo === 'function') zoo(); Q.onSubmittedWorkDone().then(() => 0)`);
   await c.w('render(); Q.onSubmittedWorkDone().then(() => 0)');
   await sleep(350);
   await c.shot(outFile('poses', `${name}-pose${i + 1}.png`));

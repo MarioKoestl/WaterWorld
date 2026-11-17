@@ -80,7 +80,9 @@ The player is a camera without a body. Its size is three numbers in `source/engi
 | What is nearer than this is cut off | 0.1 m | `NEAR` |
 | Swimming speed | 7 m a second, 26 with Shift | `sp` in `frame()` |
 
-A size multiplies all three by one factor:
+A size multiplies all three by one factor. (Changed by Mario on 2026-11-17: the speed has its own factor, 0.35 for the
+fish and 0.12 for the shrimp. They swim much faster than their size says, 2.45 and 0.84 m a second, 9.1 and 3.1 with
+Shift. Realism does not matter here: getting from one garden to the next does.)
 
 | Size | Height | Factor | In the Cambrian, Anomalocaris is |
 |---|---|---|---|
