@@ -541,6 +541,14 @@ fn dunkRamp(x: f32) -> f32 { return select(select(x - .5, x * x * x - .5 * x * x
   n = vec3f(n.x * cos(rb) - n.y * sin(rb), n.x * sin(rb) + n.y * cos(rb), n.z);
   let w = dodge(P, sz + 4. * g.fwd.w, 0., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = s; o.lt = lt;
+  // ---- dead on the floor (devonian-remains.md): b.y = 0.0001 marks an animal that lies still on its left side on the
+  // mud, at a.xyz (world.js has raised a.y so that it is sunk in by a fifth of its width), turned by a.w
+  if (abs(i.b.y) < .001) {
+    let Td = vec3f(sin(i.a.w), 0., cos(i.a.w)); let Sd = vec3f(0., 1., 0.); let Ud = cross(Td, Sd);
+    let pd = i.p;
+    let wd = i.a.xyz + (Sd * pd.x + Ud * pd.y + Td * pd.z) * i.b.z;
+    o.cp = g.vp * vec4f(wd, 1.); o.wp = wd; o.n = Sd * i.n.x + Ud * i.n.y + Td * i.n.z; o.sd = i.b.x + 10.;
+  }
   return o;
 }
 
@@ -659,6 +667,9 @@ fn dunkRamp(x: f32) -> f32 { return select(select(x - .5, x * x * x - .5 * x * x
   eyeC = mix(eyeC, vec3f(.003), step(ed, .0046));
   alb = mix(alb, eyeC, eyeP);
   alb *= .92 + .16 * fract(sd * 13.7);
+  // ---- dead on the floor (devonian-remains.md): duller and darker, black mud settled on what faces up
+  let deadF = step(5., i.sd); let deadUp = ss(.15, .75, normalize(i.n).y);
+  alb = mix(alb, mix(alb * .55, vec3f(.030, .028, .024) * (.8 + .4 * vn(i.wp * 6.)), .85 * deadUp), deadF);
   // ---- light. The relief is in body lengths: times the size of the animal
   let n = skinRelief(ns, i.wp, hgt * 4.2);
   let ring = eyeP * step(.0098, ed); let pup = eyeP - ring;

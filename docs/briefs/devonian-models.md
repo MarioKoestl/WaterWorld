@@ -269,6 +269,9 @@ Mimipiscis and Moythomasia from Gogo in Australia: look for a reconstruction of 
 
 ## Concavicaris
 
+**How to build it: `concavicaris-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the sources in
+`docs/research/devonian/concavicaris.md`.
+
 **Source.** Jobbins, Haug and Klug 2020, "First African thylacocephalans from the Famennian of Morocco and their
 role in Late Devonian food webs", Scientific Reports 10:5129. Open access.
 https://epub.ub.uni-muenchen.de/90280/1/s41598-020-61770-0.pdf. Figure 2 is a 3D reconstruction from a scan, from
@@ -310,6 +313,10 @@ in general, and its card says no more than that.
 body is a guess, and the comment says so. Which shells of this age to copy is open: see "Not checked yet".
 
 ## Driftwood
+
+**How to build it: `driftwood-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the sources in
+`docs/research/devonian/driftwood.md`. The lamp shells of the paragraph below are left out: KGS finds brachiopods
+with plant debris, but not on Callixylon itself.
 
 The wood of Archaeopteris is called Callixylon, and Callixylon is recorded from the Cleveland Shale
 (https://www.mindat.org/paleo_strat.php?id=12446). Trunks reached more than 1.5 m across (Wikipedia, "Callixylon",

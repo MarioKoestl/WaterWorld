@@ -88,3 +88,13 @@ These change the engine. One Claude Code instance at a time, in this order.
   - [ ] **11q. Kentuckia by the build sheet.** `kentuckia-build.md`: tested mesh, shader with the motion and picture in
     `ref/`, sources in `docs/research/devonian/kentuckia.md`. An early ray-finned fish in general: rhombic shiny
     scales, a heterocercal tail, single fish darting out of the school. Mario, 2026-11-19.
+  - [ ] **11r. Concavicaris by the build sheet.** `concavicaris-build.md`: tested mesh, shader with the motion and
+    picture in `ref/`, sources in `docs/research/devonian/concavicaris.md`. The folded shell measured on the 3D
+    reconstruction of C. submarinus, eyes, arms, paddles beating in a wave. Mario, 2026-11-19.
+  - [ ] **11s. Driftwood by the build sheet.** `driftwood-build.md`: tested mesh and shader in `ref/`, sources in
+    `docs/research/devonian/driftwood.md`. Fissured bark, splintered ends, sea lilies hanging under the floating logs,
+    algae on top, mud on the sunk ones. Mario, 2026-11-19.
+  - [ ] **11t. What has sunk.** `devonian-remains.md`: dead animals and empty shells on the floor, as extra instances
+    of the kinds that exist, still, on their sides, half in the mud. Nothing living on the floor. Mario, 2026-11-19.
+  - [ ] **11u. Driftwood v3, not plastic.** `driftwood-matte.md`: furrows in the mesh, matte under water, shade in
+    the furrows, flaking plates, rough bare wood. Replaces meshDriftwood and S_WOOD whole. Mario, 2026-11-19.

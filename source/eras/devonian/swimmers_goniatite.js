@@ -64,6 +64,14 @@ const S_GONIATITE = /*wgsl*/`
   n = vec3f(n.x, n.y * cb - n.z * sb, n.y * sb + n.z * cb);
   let w = dodge(P + off, .5 * sz + 2. * g.fwd.w, 0., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = s; o.lt = i.n.w;
+  // ---- dead on the floor (devonian-remains.md): b.y = 0.0001 marks an animal that lies still on its left side on the
+  // mud, at a.xyz (world.js has raised a.y so that it is sunk in by a fifth of its width), turned by a.w
+  if (abs(i.b.y) < .001) {
+    let Td = vec3f(sin(i.a.w), 0., cos(i.a.w)); let Sd = vec3f(0., 1., 0.); let Ud = cross(Td, Sd);
+    let pd = select(i.p, vec3f(0., 0., .44), i.n.w > .8);
+    let wd = i.a.xyz + (Sd * pd.x + Ud * pd.y + Td * pd.z) * i.b.z;
+    o.cp = g.vp * vec4f(wd, 1.); o.wp = wd; o.n = Sd * i.n.x + Ud * i.n.y + Td * i.n.z; o.sd = i.b.x + 10.;
+  }
   return o;
 }
 @fragment fn fsGoniatite(i: VO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
@@ -98,6 +106,9 @@ const S_GONIATITE = /*wgsl*/`
   // tentacles: pinkish-brown with darker tips
   let tv = sat((lt - .9) / .1);
   alb = mix(alb, mix(vec3f(.52, .36, .28), vec3f(.35, .22, .18), tv), tent);
+  // ---- dead on the floor (devonian-remains.md): duller and darker, black mud settled on what faces up
+  let deadF = step(5., i.sd); let deadUp = ss(.15, .75, normalize(i.n).y);
+  alb = mix(alb, mix(alb * .55, vec3f(.030, .028, .024) * (.8 + .4 * vn(i.wp * 6.)), .85 * deadUp), deadF);
   // light
   let dist = length(i.wp - g.cam.xyz);
   let ca = caus(i.wp, dist);

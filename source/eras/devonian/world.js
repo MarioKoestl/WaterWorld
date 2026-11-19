@@ -14,6 +14,16 @@ const TITANICHTHYS = kind({ mesh: () => meshTitanichthys().build(), wgsl: S_TITA
 
 function makeWorld(W) {
   const { backdrop, gyExact } = W;
+  // dead animals on the floor (devonian-remains.md): pushed after the living ones and never into the zoo lists. Each
+  // call has its own random numbers, so nothing else in the world moves. lift: half the body width (in body lengths)
+  // times 0.6, so that the body is sunk into the mud by a fifth of its width
+  const deadOnFloor = (arr, n, s0, s1, lift, seed, sd = -1) => {
+    rseed(seed);
+    for (let k = 0; k < n; k++) {
+      const a = rr(0, TAU), r0 = rr(5, 65), x = cos(a) * r0, z = sin(a) * r0, size = rr(s0, s1);
+      arr.push(x, gyExact(x, z) + lift * size, z, rr(0, TAU), sd < 0 ? rnd() : sd, 0.0001, size, rnd());
+    }
+  };
   // --- driftwood: 15 floating near the surface, 25 sunk on the floor
   // instance: a.xyz centre/position, a.w radius/yaw, b.x phase/tilt, b.y speed (0=sunk), b.z size, b.w seed
   rseed(310);
@@ -51,6 +61,7 @@ function makeWorld(W) {
     kentuckiaZoo.push(cx, cy, cz, R, 0, spd, 0.10, sd);
     for (let j = 0; j < 150; j++) kentuckias.push(cx, cy, cz, R, rnd(), spd, rr(0.08, 0.12), sd);
   }
+  deadOnFloor(kentuckias, 30, 0.08, 0.12, 0.033, 521);
   KENTUCKIA.data = new Float32Array(kentuckias);
 
   // --- Concavicaris: eight swarms of small arthropods throughout the water
@@ -67,6 +78,7 @@ function makeWorld(W) {
     concavicarisZoo.push(cx, cy, cz, R, 0, spd, 0.06, sd);
     for (let j = 0; j < 300; j++) concavicaris.push(cx, cy, cz, R, rnd(), spd, rr(0.04, 0.07), sd);
   }
+  deadOnFloor(concavicaris, 40, 0.04, 0.07, 0.075, 522);
   CONCAVICARIS.data = new Float32Array(concavicaris);
 
   // --- Goniatite: four groups of early ammonoids in the upper water
@@ -81,6 +93,7 @@ function makeWorld(W) {
     goniatiteZoo.push(cx, cy, cz, R, 0, spd, rr(0.04, 0.08), sd);
     for (let j = 0; j < 40; j++) goniatites.push(cx, cy, cz, R, rnd(), spd, rr(0.03, 0.08), sd);
   }
+  deadOnFloor(goniatites, 25, 0.03, 0.08, 0.046, 523);
   GONIATITE.data = new Float32Array(goniatites);
 
   // --- Cladoselache: three groups of about 6 early sharks in the mid-water
@@ -95,6 +108,7 @@ function makeWorld(W) {
     cladoselacheZoo.push(cx, cy, cz, R, 0, spd, 1.8, sd);
     for (let j = 0; j < 6; j++) cladoselaches.push(cx, cy, cz, R, rnd(), spd, rr(1.4, 1.8), sd);
   }
+  deadOnFloor(cladoselaches, 2, 1.4, 1.8, 0.042, 524);
   CLADOSELACHE.data = new Float32Array(cladoselaches);
 
   // --- Stethacanthus: eight anvil sharks, each on its own path
@@ -109,6 +123,7 @@ function makeWorld(W) {
     stethacanthusArr.push(cx, cy, cz, R, sd, spd, rr(0.8, 1.1), sd);
     stethacanthusZoo.push(cx, cy, cz, R, sd, spd, 1.0, sd);
   }
+  deadOnFloor(stethacanthusArr, 1, 0.8, 1.1, 0.042, 525, 0.074);
   STETHACANTHUS.data = new Float32Array(stethacanthusArr);
 
   // --- Ctenacanthus: six spine sharks, each on its own path
@@ -123,6 +138,7 @@ function makeWorld(W) {
     ctenacanthusArr.push(cx, cy, cz, R, sd, spd, rr(1.4, 1.8), sd);
     ctenacanthusZoo.push(cx, cy, cz, R, sd, spd, 1.8, sd);
   }
+  deadOnFloor(ctenacanthusArr, 1, 1.4, 1.8, 0.041, 526);
   CTENACANTHUS.data = new Float32Array(ctenacanthusArr);
 
   // --- Dunkleosteus: three armoured giants, each on its own wandering path (devonian-giants-motion.md)
@@ -137,6 +153,7 @@ function makeWorld(W) {
     dunkleArr.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
     dunkleZoo.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
   }
+  deadOnFloor(dunkleArr, 1, 4.1, 4.1, 0.070, 527);
   DUNKLEOSTEUS.data = new Float32Array(dunkleArr);
 
   // --- Titanichthys: two filter-feeding giants, each on its own wandering path
@@ -151,6 +168,7 @@ function makeWorld(W) {
     titanArr.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
     titanZoo.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
   }
+  deadOnFloor(titanArr, 1, 4.1, 4.1, 0.085, 528);
   TITANICHTHYS.data = new Float32Array(titanArr);
 
   // --- drifting particles: many, the water is thick with dead plankton
