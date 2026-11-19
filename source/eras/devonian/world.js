@@ -90,7 +90,7 @@ function makeWorld(W) {
     [10, -10, 6, 20], [-12, -12, -6, 22], [24, -8, 10, 18],
   ];
   for (const [cx, cy, cz, R] of clGroups) {
-    const spd = rr(0.012, 0.018) * (rnd() < 0.5 ? 1 : -1);
+    const spd = rr(0.7, 1.1) * (rnd() < 0.5 ? 1 : -1);          // cruising speed of the group in m/s
     const sd = rnd();
     cladoselacheZoo.push(cx, cy, cz, R, 0, spd, 1.8, sd);
     for (let j = 0; j < 6; j++) cladoselaches.push(cx, cy, cz, R, rnd(), spd, rr(1.4, 1.8), sd);
@@ -104,7 +104,7 @@ function makeWorld(W) {
     const a = rr(0, TAU), r0 = rr(8, 35);
     const cx = cos(a) * r0, cz = sin(a) * r0;
     const cy = rr(-10, -16), R = rr(12, 20);
-    const spd = rr(0.008, 0.014) * (rnd() < 0.5 ? 1 : -1);
+    const spd = rr(0.25, 0.45) * (rnd() < 0.5 ? 1 : -1);        // cruising speed in m/s, the sign is the direction
     const sd = rnd();
     stethacanthusArr.push(cx, cy, cz, R, sd, spd, rr(0.8, 1.1), sd);
     stethacanthusZoo.push(cx, cy, cz, R, sd, spd, 1.0, sd);
@@ -118,38 +118,38 @@ function makeWorld(W) {
     const a = rr(0, TAU), r0 = rr(8, 35);
     const cx = cos(a) * r0, cz = sin(a) * r0;
     const cy = rr(-8, -14), R = rr(15, 22);
-    const spd = rr(0.010, 0.016) * (rnd() < 0.5 ? 1 : -1);
+    const spd = rr(0.5, 0.8) * (rnd() < 0.5 ? 1 : -1);          // cruising speed in m/s, the sign is the direction
     const sd = rnd();
     ctenacanthusArr.push(cx, cy, cz, R, sd, spd, rr(1.4, 1.8), sd);
     ctenacanthusZoo.push(cx, cy, cz, R, sd, spd, 1.8, sd);
   }
   CTENACANTHUS.data = new Float32Array(ctenacanthusArr);
 
-  // --- Dunkleosteus: three armoured giants, each on its own wide orbit
+  // --- Dunkleosteus: three armoured giants, each on its own wandering path (devonian-giants-motion.md)
   rseed(380);
   const dunkleArr = [], dunkleZoo = [];
   for (let i = 0; i < 3; i++) {
     const a = rr(0, TAU), r0 = rr(12, 40);
     const cx = cos(a) * r0, cz = sin(a) * r0;
     const cy = rr(-8, -16), R = rr(20, 30);
-    const spd = rr(0.020, 0.028) * (rnd() < 0.5 ? 1 : -1);
+    const spd = rr(0.35, 0.55) * (rnd() < 0.5 ? 1 : -1);         // cruising speed in m/s, the sign is the direction
     const sd = rnd(), sd2 = rnd();
-    dunkleArr.push(cx, cy, cz, R, sd, spd, rr(3.4, 4.1), sd2);
+    dunkleArr.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
     dunkleZoo.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
   }
   DUNKLEOSTEUS.data = new Float32Array(dunkleArr);
 
-  // --- Titanichthys: two filter-feeding giants, wide slow orbits
+  // --- Titanichthys: two filter-feeding giants, each on its own wandering path
   rseed(390);
   const titanArr = [], titanZoo = [];
   for (let i = 0; i < 2; i++) {
     const a = rr(0, TAU), r0 = rr(15, 45);
     const cx = cos(a) * r0, cz = sin(a) * r0;
     const cy = rr(-6, -14), R = rr(22, 32);
-    const spd = rr(0.005, 0.010) * (rnd() < 0.5 ? 1 : -1);
+    const spd = rr(0.40, 0.60) * (rnd() < 0.5 ? 1 : -1);        // cruising speed in m/s, the sign is the direction
     const sd = rnd(), sd2 = rnd();
-    titanArr.push(cx, cy, cz, R, sd, spd, rr(3.6, 4.0), sd2);
-    titanZoo.push(cx, cy, cz, R, sd, spd, 4.0, sd2);
+    titanArr.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
+    titanZoo.push(cx, cy, cz, R, sd, spd, 4.1, sd2);
   }
   TITANICHTHYS.data = new Float32Array(titanArr);
 

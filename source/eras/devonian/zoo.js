@@ -48,7 +48,7 @@ const ZOO = {
   },
   // Not checked yet: Dunkleosteus 3.4-4.1 m (Engelman 2023), blades not teeth, stout body
   titanichthys: {
-    name: 'Titanichthys', sub: 'Titanichthys \xb7 a giant without a bite', size: 4,
+    name: 'Titanichthys', sub: 'Titanichthys \xb7 a giant without a bite', size: 4.1,
     facts: [['Length', 'about 4 m, not certain'], ['Jaws', 'long and thin, without blades'], ['Food', 'probably plankton']],
     text: 'As large as Dunkleosteus, and harmless. Its long, thin jaws have no cutting edge. It probably swam with its mouth wide open and strained small animals out of the water, as basking sharks do today. It may be the earliest giant with a backbone that lived this way.',
   },

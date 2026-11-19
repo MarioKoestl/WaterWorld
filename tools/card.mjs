@@ -17,6 +17,7 @@ export const BUSY = 20; // percent: a desktop at rest is below 10, a game above 
 // for a tool that renders the scene: ends it when the card is busy. Not with --mock (nothing is drawn then)
 export async function needCard(args = process.argv) {
   if (args.includes('--mock')) return;
+  if (args.includes('--force')) return;
   // a tool of this folder that has just ended leaves the card busy for a moment: look up to three times, 4 s apart
   let u = await load();
   for (let i = 0; i < 2 && u >= BUSY; i++) { await sleep(4000); u = await load(); }

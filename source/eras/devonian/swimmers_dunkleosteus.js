@@ -214,17 +214,25 @@ function meshDunkleosteus() {
   };
   // how far a plate stands out of the lip at s (its depth below the upper lip, or its height above the lower one)
   const hook = (s, s0, apex, s1, h, base) => s < s0 || s > s1 ? 0 : s < apex ? base + (h - base) * pow((s - s0) / (apex - s0), 1.6) : h * pow(1 - (s - apex) / (s1 - apex), 0.75);
+  // the lip and the way out of it at s. For s < 0 the edge goes on round the blunt front of the snout to the middle, so
+  // that the plates of both sides meet there and the front of the jaw is closed (fix of 2026-11-19). Each one reaches
+  // 0.002 past the middle and keeps its full thickness to its end, so the two overlap and no seam shows
+  const SF = 0.008, edge = (s, up) => {
+    if (s >= 0) return [lipAt(s, up), outAt(s, angY(s, mouthY(s)))];
+    const E0 = lipAt(0, up), o0 = outAt(0, angY(0, mouthY(0))), u = -s / SF, w = 1 - u;
+    return [[-0.002 + (E0[0] + 0.002) * w, E0[1], E0[2]], nrm([o0[0] * w, 0, o0[2] * w + u])];
+  };
   const PLATES = [
     // up, from, to, depth of the edge at s, thickness at the gum
-    [true, 0.003, 0.024, (s) => hook(s, 0.003, 0.010, 0.024, 0.030, 0.010), 0.009],                                  // ASG
+    [true, -SF, 0.024, (s) => s < 0.003 ? 0.010 : hook(s, 0.003, 0.010, 0.024, 0.030, 0.010), 0.009],             // ASG
     [true, 0.025, 0.070, (s) => 0.004 + 0.012 * sm(0.025, 0.032, s) * (1 - sm(0.040, 0.066, s)) + 0.004 * (1 - sm(0.058, 0.070, s)), 0.007],   // PSG
-    [false, 0.006, 0.088, (s) => hook(s, 0.006, 0.012, 0.026, 0.024, 0.008) + 0.004 + 0.009 * sm(0.030, 0.036, s) * (1 - sm(0.070, 0.086, s)), 0.009],   // IG
+    [false, -SF, 0.088, (s) => (s < 0.006 ? 0.008 : hook(s, 0.006, 0.012, 0.026, 0.024, 0.008)) + 0.004 + 0.009 * sm(0.030, 0.036, s) * (1 - sm(0.070, 0.086, s)), 0.009],   // IG
   ];
   for (const sx of [1, -1]) for (const [up, s0, s1, depth, th] of PLATES) {
     const V = [], mid = [], aux = up ? -0.55 : -0.70, dn = up ? -1 : 1, N = round((s1 - s0) / 0.0008);
     for (let k = 0; k <= N; k++) {
-      const s = s0 + (s1 - s0) * k / N, E = lipAt(s, up), a = angY(s, mouthY(s)), o = outAt(s, a);
-      const f = 0.25 + 0.75 * sm(s0, s0 + 0.004, s) * (1 - sm(s1 - 0.004, s1, s)), e = max(depth(s), 0.002), t = th * f;
+      const s = s0 + (s1 - s0) * k / N, [E, o] = edge(s, up);
+      const f = 0.25 + 0.75 * (s0 < 0 ? 1 : sm(s0, s0 + 0.004, s)) * (1 - sm(s1 - 0.004, s1, s)), e = max(depth(s), 0.002), t = th * f;
       // the section, from the gum on the outside, down to the edge, up the inside: (out, along dn)
       const S = up ? [[0.0030 * f, -0.010], [0.0042 * f, 0.25 * e], [0.0020 * f, 0.75 * e], [0.0004, e], [0.0030 * f - t * 0.55, 0.70 * e], [0.0030 * f - t, 0.15 * e], [0.0030 * f - t, -0.010]]
                    : [[-0.0010 * f, -0.010], [0.0012 * f, 0.25 * e], [-0.0004 * f, 0.75 * e], [-0.0022, e], [-0.0010 * f - t * 0.55, 0.70 * e], [-0.0010 * f - t, 0.15 * e], [-0.0010 * f - t, -0.010]];
@@ -342,9 +350,17 @@ const S_DUNKLEOSTEUS = /*wgsl*/`
 // compiled: run node tools/wgsl.mjs devonian first.
 // s is the distance from the snout in body lengths (s = .5 - z of the rest position), y its height.
 
-// Instance: a.xyz = orbit centre, a.w = orbit radius R. b.x = seed, b.y = speed (rad/s, sign is direction),
-// b.z = size in metres (3.4 to 4.1), b.w = seed2. The orbit path is repeated in zooDunkleosteus: change one,
-// change the other.
+// Instance: a.xyz = centre of its path, a.w = radius R of its path. b.x = seed, b.y = cruising speed in m/s (the sign
+// is the direction), b.z = length in metres (4.1), b.w = seed2. Path and distance along it are repeated in
+// zooDunkleosteus: change one, change the other (brief: docs/briefs/devonian-giants-motion.md).
+
+// where it swims: a wide circle with a slower one on top, so the path wanders and the turns differ; it rises and sinks
+// a little. Every frequency is a multiple of 0.5, so the path repeats after 4 pi and the angle can be wrapped (a float
+// keeps its precision). a: the angle along it, ph: the phase of this animal
+fn dunkPath(c: vec3f, R: f32, a: f32, ph: f32) -> vec3f {
+  return c + vec3f(R * cos(a) + .1 * R * cos(1.5 * a + ph), 1.5 * sin(2. * a + ph) + .5 * sin(3.5 * a + 2. * ph),
+                   R * sin(a) + .1 * R * sin(1.5 * a + 1.7 * ph));
+}
 
 // where head and trunk armour meet, at height y: the gill opening (E2024, Fig. 3 and 4: it runs forwards below the cheek)
 fn dunkCleft(y: f32) -> f32 { return .192 - .55 * max(0. - .01 - y, 0.); }
@@ -421,29 +437,67 @@ fn dunkRotY(p: vec3f, pivot: vec3f, angle: f32) -> vec3f {
 }
 fn dunkRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin(angle); return vec3f(nn.x, nn.y * ca - nn.z * sa, nn.y * sa + nn.z * ca); }
 
+// where in its cycle hunt number k of the animal with seed s begins, as a part of the cycle: 0.05 to 0.55, scattered
+// (the golden ratio spreads the places; the sine shakes them). Small numbers only, so it gives the same in f32 as in
+// the f64 of zooDunkleosteus
+fn dunkHunt(k: f32, s: f32) -> f32 { return .05 + .5 * fract(.618034 * k + .37 * sin(2.3 * k + 9. * s) + 3.1 * s); }
+// the distance covered under a speed that rises as a smoothstep from 0 to 1 over x = 0 to 1 (the integral of it)
+fn dunkRamp(x: f32) -> f32 { return select(select(x - .5, x * x * x - .5 * x * x * x * x, x < 1.), 0., x <= 0.); }
+
 @vertex fn vsDunkleosteus(i: VI) -> VO {
   var o: VO;
   let t = g.cam.w; let s = i.b.x;
-  let h = vec3f(hs(s), hs(s + .37), hs(s + .71));
-  let R = i.a.w;
-  let ta = t * i.b.y + i.b.w * 6.3 + s * 2.1;
-  let ph = i.b.w * 17.;
-  let P = i.a.xyz + vec3f(R * cos(ta), 1.5 * sin(2. * ta + ph), R * .5 * sin(ta));
-  let T = normalize(vec3f(0. - R * sin(ta), 3. * cos(2. * ta + ph), R * .5 * cos(ta))) * sign(i.b.y);
+  let R = i.a.w; let ph = i.b.w * 17.; let sz = i.b.z;
+  let v0 = abs(i.b.y); let L = .9 * R;               // L: metres of path per radian, about
+  // ---- how far it has swum. It cruises slowly (b.y, 0.35 to 0.55 m/s); the speed swells and ebbs a little (two
+  // waves, 25 and 15 %, its own for each one)
+  let f1 = .031 + .02 * fract(s * 7.31); let f2 = .083 + .03 * fract(s * 3.17);
+  let q1 = f1 * t + 6.3 * fract(s * 5.13); let q2 = f2 * t + 6.3 * fract(s * 9.71);
+  var dist = v0 * (t + .25 / f1 * sin(q1) + .15 / f2 * sin(q2));
+  var vr = 1. + .25 * cos(q1) + .15 * cos(q2);       // speed in cruising speeds
+  // ---- the hunt. Its time is cut into cycles of 35 to 55 s, one hunt in each, at a place in the cycle that changes
+  // from cycle to cycle (dunkHunt): so the hunts come 15 s to more than a minute apart, never on a beat. A hunt: in
+  // 1 s it speeds up by vb (2 to 2.6 m/s, so it races at 2.4 to 3.2 m/s), chases for 3 to 5 s with its mouth open,
+  // snaps at the end and slows down again in 2.5 s. tau: seconds since this hunt began (below 0: not yet in this
+  // cycle). Every hunt adds the same distance, so the distance needs no sum over the hunts before
+  let hPer = 35. + 20. * fract(s * 13.7);
+  let hc = t / hPer + fract(s * 2.9); let hk = floor(hc);
+  let tau = fract(hc) * hPer - hPer * dunkHunt(hk, s);
+  let tb = 3. + 2. * fract(s * 5.9); let vb = 2. + .6 * fract(s * 8.3);
+  let te = 1. + tb;                                   // the chase ends, the snap
+  dist += vb * (hk * (te + .75) + dunkRamp(tau) - 2.5 * dunkRamp((tau - te) / 2.5));
+  let vx = vb * (ss(0., 1., tau) - ss(te, te + 2.5, tau));
+  vr += vx / v0;
+  let chase = ss(0., .8, tau) * (1. - ss(te, te + .4, tau));
+  let push = ss(0., .3, tau) * (1. - ss(1., 1.8, tau));      // the tail drives hard as it speeds up
+  let glide = ss(te + .2, te + .8, tau) * (1. - ss(te + 3., te + 7., tau));   // little tail while it slows down
+  // ---- the mouth. While it chases, the mouth stands open about half way and works a little. At the end the snap:
+  // wide open in 0.06 s (Anderson and Westneat 2007: in a fiftieth of a second, which is one frame), open 0.2 s,
+  // shut in 0.12 s. Then it swallows: three smaller openings, each less wide. Between the hunts it only breathes: the
+  // mouth opens a little every 4.5 to 6 s, more for half a minute after a hunt
+  let sT = tau - te + .1;
+  let snap = sat(sT / .06) * (1. - sat((sT - .21) / .12));
+  let gape = (.42 + .06 * sin(TAU * 1.3 * t + 20. * s)) * ss(.2, 1.2, tau) * (1. - ss(te - .1, te - .04, tau));
+  let cq = (tau - te - 1.5) / 1.1;
+  let cw = sin(3.14159 * sat(fract(cq) / .55));
+  let chew = (.30 - .07 * floor(cq)) * cw * cw * step(0., cq) * step(cq, 2.999);
+  let bc = .5 - .5 * cos(TAU * t / (4.5 + 1.5 * fract(s * 4.3)) + 6.3 * fract(s * 8.9));
+  let tA = select(tau, fract(hc) * hPer + hPer * (1. - dunkHunt(hk - 1., s)), tau < te);   // since the last snap began
+  let aft = 1. - ss(4., 30., tA - te);
+  let br = (.05 + .07 * aft) * bc * bc;
+  let mo = max(max(snap, gape), max(chew, br));
+  // ---- where on its path, and which way it faces. kl: how sharply the path turns, per body length (+ toward S)
+  var a = sign(i.b.y) * dist / L + i.b.w * 6.3 + s * 2.1;
+  a -= 12.566371 * floor(a / 12.566371);
+  let e = .6 / L;
+  let P = dunkPath(i.a.xyz, R, a, ph);
+  let Pa = dunkPath(i.a.xyz, R, a + e, ph); let Pb = dunkPath(i.a.xyz, R, a - e, ph);
+  let dd = .5 * length(Pa - Pb);
+  let T = (Pa - Pb) / (2. * dd) * sign(i.b.y);
   let S = normalize(cross(vec3f(0., 1., 0.), T)); let Up = cross(T, S);
+  let kl = clamp(dot(Pa + Pb - 2. * P, S) / (dd * dd) * sz, -.6, .6);
   var l = i.p; var n = i.n.xyz;
-  let sz = i.b.z * (.95 + .1 * h.z);
   let lt = i.n.w;
-  // the mouth. At rest nearly shut (8 degrees), so the fangs cross over the lips.
-  // The snap: every 12 to 25 s, at a time of its own for each animal. It opens in 0.06 s (Anderson and Westneat 2007: in a
-  // fiftieth of a second, which is one frame), stays open 0.25 s and shuts in 0.12 s
-  let snPer = 12. + 13. * hs(s + .13);
-  let snT = fract(t / snPer + hs(s + .27)) * snPer;
-  let snap = sat(snT / .06) * (1. - sat((snT - .31) / .12));
-  // the threat: while the viewer is in front of it and closer than 9 m, it holds the mouth wide open
-  let toC = g.cam.xyz - P; let dC = max(length(toC), .001);
-  let threat = ss(9., 4., dC) * ss(.2, .6, dot(toC / dC, T));
-  let mo = max(snap, .95 * threat);
   let sR = .5 - i.p.z; let cl = dunkCleft(i.p.y);
   let isFin = step(.4, lt);
   let isJaw = sat(step(abs(lt - .25), .04) + step(abs(lt + .40), .04) + step(abs(lt + .70), .04));
@@ -454,14 +508,37 @@ fn dunkRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin(
   l = dunkRotY(l, vec3f(0., -.105, .365), jawA);
   l = dunkRotY(l, vec3f(0., .055, .305), headA);
   n = dunkRotN(dunkRotN(n, jawA), headA);
-  // the body wave: stiff under the armour (E2024), the rear bends. The beat follows the speed
+  // ---- the tail beat: one beat per 0.65 body lengths swum, so it beats faster when it swims faster (once in 6 s while
+  // it cruises, about once a second in the chase). Wider in the push and in the chase, small while it slows down
+  let amp = (.85 + .15 * min(vr, 2.)) * (1. + .6 * push + .3 * chase) * (1. - .7 * glide);
+  let bp = TAU * dist / (.65 * sz) + s * 30.;
+  // ---- the pectoral fins turn about a hinge at their root (+ up and out, - down along the flank): while it cruises
+  // they scull and steer (the fin on the inside of the turn goes down); in the chase they lie down along the flanks,
+  // out of the water's way; after the snap they spread out to brake
+  let sx = select(-1., 1., i.p.x >= 0.);
+  let pw = isFin * (1. - ss(.31, .35, sR)) * ss(.09, .14, abs(i.p.x));
+  let up = .10 * (1. - .7 * chase) * sin(.5 * bp + 6.3 * s) * (1. - glide)
+    - clamp(1.5 * kl, -.25, .25) * sx * (1. - .6 * chase) - .40 * chase + .30 * glide;
+  let fa = sx * up * pw;
+  let hg = vec2f(sx * .09, -.14); let dq = l.xy - hg;
+  l = vec3f(hg + vec2f(dq.x * cos(fa) - dq.y * sin(fa), dq.x * sin(fa) + dq.y * cos(fa)), l.z);
+  n = vec3f(n.x * cos(fa) - n.y * sin(fa), n.x * sin(fa) + n.y * cos(fa), n.z);
+  // ---- the body. The stiff front swings a little against the tail (recoil). The wave runs back from the middle, stiff
+  // under the armour (E2024), its wavelength about one body length, so the tail lags behind the stalk. In a turn the
+  // body lies along the curve of its path, the armoured front less
+  let yr = .03 * amp * sin(bp - .9);
   let u = max(0., 0. - l.z);
-  let A = .26 * u * u;
-  let beat = R * abs(i.b.y) / (.65 * sz);
-  let wv = t * beat * TAU + s * 30. + l.z * 4.5;
-  l.x += A * sin(wv);
-  let sl = 4.5 * A * cos(wv);
+  let wv = bp + 6. * l.z;
+  let Aw = .26 * amp;
+  let bw = .3 + .7 * ss(-.05, .25, 0. - l.z);
+  let zc = l.z;
+  l.x += yr * (zc - .1) + Aw * u * u * sin(wv) + .5 * kl * zc * zc * bw;
+  let sl = yr + Aw * (6. * u * u * cos(wv) - 2. * u * sin(wv)) + kl * zc * bw;
   n = vec3f(n.x + sl * n.z, n.y, n.z - sl * n.x);
+  // ---- it banks into the turn, more when fast
+  let rb = 0. - clamp(.6 * kl * min(vr, 1.5), -.2, .2);
+  l = vec3f(l.x * cos(rb) - l.y * sin(rb), l.x * sin(rb) + l.y * cos(rb), l.z);
+  n = vec3f(n.x * cos(rb) - n.y * sin(rb), n.x * sin(rb) + n.y * cos(rb), n.z);
   let w = dodge(P, sz + 4. * g.fwd.w, 0., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = s; o.lt = lt;
   return o;
@@ -595,11 +672,32 @@ fn dunkRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin(
 `;
 
 // ---------------------------------------------------------------- zoo
-// A Dunkleosteus on its orbit. Two parts spread along the orbit
+// Where a Dunkleosteus is: the same path and the same distance along it as vsDunkleosteus (change one, change the
+// other). Two parts, 5 m ahead and 5 m behind. Nothing here allocates: it runs in every frame
+const dunkFr = (x) => x - floor(x);
+// dunkHunt and dunkRamp of the shader
+const dunkHunt = (k, s) => 0.05 + 0.5 * dunkFr(0.618034 * k + 0.37 * sin(2.3 * k + 9 * s) + 3.1 * s);
+const dunkRamp = (x) => (x <= 0 ? 0 : x < 1 ? x * x * x - 0.5 * x * x * x * x : x - 0.5);
+// metres swum along its path by time t: cruising speed v0 with its two slow swells, and the hunts
+const dunkZooDist = (s, v0, t) => {
+  const f1 = 0.031 + 0.02 * dunkFr(s * 7.31), f2 = 0.083 + 0.03 * dunkFr(s * 3.17);
+  const q1 = f1 * t + 6.3 * dunkFr(s * 5.13), q2 = f2 * t + 6.3 * dunkFr(s * 9.71);
+  const hPer = 35 + 20 * dunkFr(s * 13.7), hc = t / hPer + dunkFr(s * 2.9), hk = floor(hc);
+  const tau = dunkFr(hc) * hPer - hPer * dunkHunt(hk, s);
+  const te = 1 + 3 + 2 * dunkFr(s * 5.9), vb = 2 + 0.6 * dunkFr(s * 8.3);
+  return v0 * (t + 0.25 / f1 * sin(q1) + 0.15 / f2 * sin(q2))
+    + vb * (hk * (te + 0.75) + dunkRamp(tau) - 2.5 * dunkRamp((tau - te) / 2.5));
+};
+// the point of its path at angle g, written to ZP at k (dunkPath in the shader)
+const dunkZooPath = (a, i, g, k) => {
+  const R = a[i + 3], ph = a[i + 7] * 17;
+  ZP[k] = a[i] + R * cos(g) + 0.1 * R * cos(1.5 * g + ph);
+  ZP[k + 1] = a[i + 1] + 1.5 * sin(2 * g + ph) + 0.5 * sin(3.5 * g + 2 * ph);
+  ZP[k + 2] = a[i + 2] + R * sin(g) + 0.1 * R * sin(1.5 * g + 1.7 * ph);
+};
 const zooDunkleosteus = (a, i, part) => {
-  const R = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3 + a[i + 4] * 2.1;
-  const tb = ta + (part * 2 - 1) * 5 / R;
-  const x = R * cos(ta), y = 1.5 * sin(2 * ta + ph), z = R * 0.5 * sin(ta);
-  ZP[0] = a[i] + x; ZP[1] = a[i + 1] + y; ZP[2] = a[i + 2] + z;
-  ZP[3] = R * cos(tb) - x; ZP[4] = 1.5 * sin(2 * tb + ph) - y; ZP[5] = R * 0.5 * sin(tb) - z; ZP[7] = 5.0;
+  const L = 0.9 * a[i + 3], v = a[i + 5];
+  const g = (v < 0 ? -1 : 1) * dunkZooDist(a[i + 4], abs(v), F[TIME]) / L + a[i + 7] * 6.3 + a[i + 4] * 2.1;
+  dunkZooPath(a, i, g, 0); dunkZooPath(a, i, g + (part * 2 - 1) * 5 / L, 3);
+  ZP[3] -= ZP[0]; ZP[4] -= ZP[1]; ZP[5] -= ZP[2]; ZP[7] = 5.0;
 };

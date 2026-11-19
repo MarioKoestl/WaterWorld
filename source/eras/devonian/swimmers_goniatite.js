@@ -42,9 +42,14 @@ const S_GONIATITE = /*wgsl*/`
   let t = g.cam.w; let s = i.b.x;
   let h = vec3f(hs(s), hs(s + .37), hs(s + .71));
   let R = i.a.w;
-  // group orbit with jerky jet-propulsion pulses
-  let pulse = pow(max(sin(t * 2.5 + s * 20.), 0.), 4.) * .3;
-  let ta = t * i.b.y + i.b.w * 6.3 + (h.x - .5) * (6. / R) + pulse;
+  // jet propulsion: every 2 to 3 s (a beat of its own for each animal) it jets, then coasts and slows down. tj is
+  // the time it has swum at the speed of its group: it only ever grows, fast just after a jet, slowly before the
+  // next one, so the animal never slides back. Peak speed about 2.7 times the mean
+  let Pj = 2. + fract(s * 7.31);
+  let jc = t / Pj + fract(s * 3.7);
+  let jx = fract(jc);
+  let tj = Pj * (floor(jc) + (1. - exp(0. - 2.5 * jx)) / .917915);
+  let ta = tj * i.b.y + i.b.w * 6.3 + (h.x - .5) * (6. / R);
   let ph = i.b.w * 17.;
   let P = i.a.xyz + vec3f(R * cos(ta), .8 * sin(2. * ta + ph), R * .5 * sin(ta));
   let T = normalize(vec3f(0. - R * sin(ta), 1.6 * cos(2. * ta + ph), R * .5 * cos(ta))) * sign(i.b.y);
@@ -52,8 +57,8 @@ const S_GONIATITE = /*wgsl*/`
   let off = S * ((h.y - .5) * .6 + sin(t * .3 + s * 30.) * .1) + Up * ((h.z - .5) * .4 + cos(t * .3 + s * 20.) * .08);
   var l = i.p; var n = i.n.xyz;
   let sz = i.b.z * (.85 + .3 * h.z);
-  // gentle bob as the animal jets: the shell tilts forward on each pulse
-  let bob = sin(t * 2.5 + s * 20.) * .1;
+  // the shell rocks with each jet: it tips as the jet pushes and settles while it coasts (0 at the jet and before it)
+  let bob = .12 * sin(TAU * jx) * exp(0. - 2. * jx);
   let cb = cos(bob); let sb = sin(bob);
   l = vec3f(l.x, l.y * cb - l.z * sb, l.y * sb + l.z * cb);
   n = vec3f(n.x, n.y * cb - n.z * sb, n.y * sb + n.z * cb);
@@ -107,9 +112,12 @@ const S_GONIATITE = /*wgsl*/`
 `;
 
 // ---------------------------------------------------------------- zoo
-// A group of goniatites: the path of vsGoniatite without the per-individual offset. Two lines from the middle
+// A group of goniatites: the path of vsGoniatite without the per-individual offset, with the same jets (the group
+// has seed 0 here). Two lines from the middle
 const zooGoniatite = (a, i, part) => {
-  const R = a[i + 3], ph = a[i + 7] * 17, ta = F[TIME] * a[i + 5] + a[i + 7] * 6.3, tb = ta + (part * 2 - 1) * 2 / R;
+  const s = a[i + 4], Pj = 2 + (s * 7.31 - floor(s * 7.31)), jc = F[TIME] / Pj + (s * 3.7 - floor(s * 3.7));
+  const tj = Pj * (floor(jc) + (1 - exp(-2.5 * (jc - floor(jc)))) / 0.917915);
+  const R = a[i + 3], ph = a[i + 7] * 17, ta = tj * a[i + 5] + a[i + 7] * 6.3, tb = ta + (part * 2 - 1) * 2 / R;
   const x = R * cos(ta), y = 0.8 * sin(2 * ta + ph), z = R * 0.5 * sin(ta);
   ZP[0] = a[i] + x; ZP[1] = a[i + 1] + y; ZP[2] = a[i + 2] + z;
   ZP[3] = R * cos(tb) - x; ZP[4] = 0.8 * sin(2 * tb + ph) - y; ZP[5] = R * 0.5 * sin(tb) - z; ZP[7] = 0.6;

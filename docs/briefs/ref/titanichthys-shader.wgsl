@@ -8,8 +8,16 @@
 // This text has not been compiled: run `node tools/wgsl.mjs devonian` first.
 // s is the distance from the snout in body lengths (s = .5 - z of the rest position), y its height.
 
-// Instance: a.xyz = orbit centre, a.w = orbit radius R. b.x = seed, b.y = speed (rad/s, sign is direction),
-// b.z = size in metres, b.w = seed2. The orbit path is repeated in zooTitanichthys: change one, change the other.
+// Instance: a.xyz = centre of its path, a.w = radius R of its path. b.x = seed, b.y = cruising speed in m/s (the sign
+// is the direction), b.z = length in metres (4.1), b.w = seed2. Path and distance along it are repeated in
+// zooTitanichthys: change one, change the other (brief: docs/briefs/devonian-giants-motion.md).
+
+// where it swims: a wide circle with a slower one on top, so the path wanders; it rises and sinks a little. Every
+// frequency is a multiple of 0.5, so the path repeats after 4 pi and the angle can be wrapped. a: the angle along it
+fn titanPath(c: vec3f, R: f32, a: f32, ph: f32) -> vec3f {
+  return c + vec3f(R * cos(a) + .1 * R * cos(1.5 * a + ph), 1.2 * sin(2. * a + ph) + .5 * sin(3.5 * a + 2. * ph),
+                   R * sin(a) + .1 * R * sin(1.5 * a + 1.7 * ph));
+}
 
 // where head and trunk armour meet, at height y: the gill opening, running forwards below the cheek
 fn titanCleft(y: f32) -> f32 { return .152 - .45 * max(0. - .01 - y, 0.); }
@@ -17,8 +25,8 @@ fn titanCleft(y: f32) -> f32 { return .152 - .45 * max(0. - .01 - y, 0.); }
 fn titanMouthY(s: f32) -> f32 { return 0. - .012 - .040 * pow(sat(s / .125), 1.1) - .9 * max(s - .125, 0.); }
 // back (x) and belly (y) of the body at s, every 0.05 from the snout: read off the mesh
 fn titanTB(s: f32) -> vec2f {
-  var T = array<f32, 18>(.014, .043, .056, .060, .090, .107, .117, .117, .112, .102, .092, .082, .072, .063, .055, .049, .046, .047);
-  var B = array<f32, 18>(-.044, -.067, -.086, -.105, -.125, -.133, -.134, -.128, -.117, -.103, -.090, -.075, -.060, -.046, -.033, -.022, -.012, -.004);
+  var T = array<f32, 18>(.014, .043, .056, .060, .090, .107, .117, .117, .112, .102, .092, .082, .072, .063, .055, .049, .045, .042);
+  var B = array<f32, 18>(-.044, -.067, -.086, -.105, -.125, -.133, -.134, -.128, -.117, -.103, -.090, -.075, -.060, -.046, -.033, -.022, -.011, .016);
   let f = clamp(s * 20., 0., 16.999); let k = i32(f); let u = f - f32(k);
   return vec2f(mix(T[k], T[k + 1], u), mix(B[k], B[k + 1], u));
 }
@@ -50,7 +58,7 @@ fn titanEdge(p2: vec2f, pt: vec2f, gc: f32, rimS: f32, my: f32, roof: f32, vent:
   var d = min(dSide + .04 * roof, dR + .04 * (1. - roof));
   d = min(d, min(abs(s - .250), ax + .04 * (1. - vent)) + .04 * (1. - vent));   // the plates of the belly
   d = min(d, min(abs(s - gc), abs(s - rimS) + .04 * vent));                     // the cleft and the rear rim
-  return min(d, abs(y - my) + .03 * step(.16, s));                              // the lip
+  return d;                                                                     // (no joint along the lip: the edge of the shield is a clean rim)
 }
 // the nearest and the second nearest point of a field of cells, in cell units. F2 - F1 is 0 on the border of two cells:
 // cracks that cut a skin into fields of many corners
@@ -82,44 +90,108 @@ fn titanRotY(p: vec3f, pivot: vec3f, angle: f32) -> vec3f {
 }
 fn titanRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin(angle); return vec3f(nn.x, nn.y * ca - nn.z * sa, nn.y * sa + nn.z * ca); }
 
+// where in its cycle feeding run number k of the animal with seed s begins, as a part of the cycle: 0.05 to 0.35,
+// scattered (the golden ratio spreads the places; the sine shakes them). Small numbers only, so it gives the same in
+// f32 as in the f64 of zooTitanichthys
+fn titanRun(k: f32, s: f32) -> f32 { return .05 + .3 * fract(.618034 * k + .37 * sin(2.3 * k + 9. * s) + 3.1 * s); }
+// the distance covered under a speed that rises as a smoothstep from 0 to 1 over x = 0 to 1 (the integral of it)
+fn titanRamp(x: f32) -> f32 { return select(select(x - .5, x * x * x - .5 * x * x * x * x, x < 1.), 0., x <= 0.); }
+
 @vertex fn vsTitanichthys(i: VI) -> VO {
   var o: VO;
   let t = g.cam.w; let s = i.b.x;
-  let h = vec3f(hs(s), hs(s + .37), hs(s + .71));
-  let R = i.a.w;
-  // wide, very slow orbit (as before)
-  let ta = t * i.b.y + i.b.w * 6.3 + s * 1.9;
-  let ph = i.b.w * 17.;
-  let P = i.a.xyz + vec3f(R * cos(ta), 1.2 * sin(2. * ta + ph), R * .5 * sin(ta));
-  let T = normalize(vec3f(0. - R * sin(ta), 2.4 * cos(2. * ta + ph), R * .5 * cos(ta))) * sign(i.b.y);
+  let R = i.a.w; let ph = i.b.w * 17.; let sz = i.b.z;
+  let v0 = abs(i.b.y); let L = .9 * R;               // L: metres of path per radian, about
+  // ---- how far it has swum. Between its feeding runs it cruises slowly with the mouth nearly shut (b.y, 0.40 to
+  // 0.60 m/s); the speed swells and ebbs a little (two slow waves, 15 and 10 %, its own for each animal)
+  let f1 = .031 + .02 * fract(s * 7.31); let f2 = .083 + .03 * fract(s * 3.17);
+  let q1 = f1 * t + 6.3 * fract(s * 5.13); let q2 = f2 * t + 6.3 * fract(s * 9.71);
+  var dist = v0 * (t + .15 / f1 * sin(q1) + .10 / f2 * sin(q2));
+  var vr = 1. + .15 * cos(q1) + .10 * cos(q2);       // speed in cruising speeds
+  // ---- the feeding run. Its time is cut into cycles of 50 to 70 s, one run in each, at a place in the cycle that
+  // changes from cycle to cycle (titanRun): the runs start 35 s to 90 s apart, never on a beat. A run: over 3 s it
+  // speeds up by vb (0.5 to 0.8 m/s, so 0.9 to 1.4 m/s) and opens its mouth wide, sieves for 12 to 25 s, shuts its
+  // mouth and slows down again over 3.5 s. Mario wanted it faster while it feeds; a basking shark feeds slower than it
+  // cruises (Sims 2000), so this is a choice, not a finding. tau: seconds since this run began (below 0: not yet in
+  // this cycle). Every run adds the same distance, so the distance needs no sum over the runs before
+  let hPer = 50. + 20. * fract(s * 13.7);
+  let hc = t / hPer + fract(s * 2.9); let hk = floor(hc);
+  let tau = fract(hc) * hPer - hPer * titanRun(hk, s);
+  let tf = 12. + 13. * fract(s * 5.9); let vb = .5 + .3 * fract(s * 8.3);
+  let te = 3. + tf;                                   // the run ends: the mouth shuts, it slows down
+  dist += vb * (hk * (te + .25) + 3. * titanRamp(tau / 3.) - 3.5 * titanRamp((tau - te) / 3.5));
+  vr += vb * (ss(0., 3., tau) - ss(te, te + 3.5, tau)) / v0;
+  let feed = ss(.5, 2.5, tau) * (1. - ss(te, te + 1., tau));
+  let push = ss(0., 1., tau) * (1. - ss(2.5, 4., tau));      // the tail drives harder as it speeds up
+  // ---- where on its path, and which way it faces. The sign of b.y says which way round it goes: the angle runs
+  // backwards for a negative speed, and T turns with it, so it always swims head first. kl: how sharply the path
+  // turns, per body length (+ toward S)
+  var a = sign(i.b.y) * dist / L + i.b.w * 6.3 + s * 1.9;
+  a -= 12.566371 * floor(a / 12.566371);
+  let e = .6 / L;
+  let P = titanPath(i.a.xyz, R, a, ph);
+  let Pa = titanPath(i.a.xyz, R, a + e, ph); let Pb = titanPath(i.a.xyz, R, a - e, ph);
+  let dd = .5 * length(Pa - Pb);
+  let T = (Pa - Pb) / (2. * dd) * sign(i.b.y);
   let S = normalize(cross(vec3f(0., 1., 0.), T)); let Up = cross(T, S);
+  let kl = clamp(dot(Pa + Pb - 2. * P, S) / (dd * dd) * sz, -.6, .6);
   var l = i.p; var n = i.n.xyz;
-  let sz = i.b.z * (.95 + .1 * h.z);
   let lt = i.n.w;
-  // the mouth of a filter feeder: wide open while it swims (C2020: gaping ram feeding, as a basking shark; it could not
-  // shut its mouth completely). Every 18 to 30 s it closes most of the way for a moment, as if to swallow, and opens again
-  let swPer = 18. + 12. * hs(s + .13);
-  let swT = fract(t / swPer + hs(s + .27)) * swPer;
+  // the mouth of a filter feeder (C2020: gaping ram feeding, as a basking shark; it could not shut its mouth
+  // completely). In a run it stands wide open; every 8 to 12 s it closes most of the way for a moment, as if to
+  // swallow, and opens again. After the run it swallows twice. Between the runs it is nearly shut and only breathes:
+  // a little wider every 5 to 7 s, more for half a minute after a run
+  let swPer = 8. + 4. * hs(s + .13);
+  let swT = fract((tau - 2.) / swPer + .5) * swPer;
   let sw = ss(0., .6, swT) * (1. - ss(1.4, 2.6, swT));
-  let mo = 1. - .80 * sw;
+  let gape = feed * (1. - .70 * sw) * (.95 + .05 * sin(TAU * .4 * t + 20. * s));
+  let cq = (tau - te - 1.2) / 1.5;
+  let cw = sin(3.14159 * sat(fract(cq) / .6));
+  let gulp = (.25 - .08 * floor(cq)) * cw * cw * step(0., cq) * step(cq, 1.999);
+  let bc = .5 - .5 * cos(TAU * t / (5. + 2. * fract(s * 4.3)) + 6.3 * fract(s * 8.9));
+  let tA = select(tau, fract(hc) * hPer + hPer * (1. - titanRun(hk - 1., s)), tau < te);   // since the last run began
+  let br = (.06 + .06 * (1. - ss(4., 30., tA - te))) * bc * bc;
+  let mo = max(gape, max(gulp, br));
   let sR = .5 - i.p.z; let cl = titanCleft(i.p.y);
   let isFin = step(.4, lt);
   let isJaw = sat(step(abs(lt - .25), .04) + step(abs(lt + .40), .04) + step(abs(lt + .70), .04));
   let wJ = (1. - ss(.125, .155, sR)) * ss(.004, .024, cl - sR) * isJaw;
   let wH = (1. - ss(cl - .014, cl + .010, sR)) * (1. - isFin);
-  let jawA = (.08 + .52 * mo) * wJ;                 // the jaw drops about its hinge: 34 degrees open, 9 nearly shut
+  let jawA = (.08 + .52 * mo) * wJ;                 // the jaw drops about its hinge: 34 degrees wide open, 5 shut
   let headA = (0. - .02 - .12 * mo) * wH;           // the head lifts a little about the joint of the neck
   l = titanRotY(l, vec3f(0., -.072, .348), jawA);
   l = titanRotY(l, vec3f(0., .062, .350), headA);
   n = titanRotN(titanRotN(n, jawA), headA);
-  // the body wave: stiff under the armour (to 0.37), the rear bends. The beat follows the speed
+  // ---- the tail beat: one beat per 0.7 body lengths swum, so it beats faster when it swims faster. Wider as it speeds
+  // up and while it pushes its open mouth through the water
+  let amp = (.85 + .15 * min(vr, 2.)) * (1. + .4 * push + .25 * feed);
+  let bp = TAU * dist / (.70 * sz) + s * 25.;
+  // ---- the pectoral fins turn about a hinge at their root (+ up and out): they scull and steer (the fin on the inside
+  // of the turn goes down). In a run they stand out further and scull less: they hold the body steady against the
+  // pull of the open mouth
+  let sx = select(-1., 1., i.p.x >= 0.);
+  let pw = isFin * (1. - ss(.38, .42, sR)) * ss(.10, .14, abs(i.p.x));
+  let up = .09 * (1. - .5 * feed) * sin(.5 * bp + 6.3 * s) - clamp(1.5 * kl, -.25, .25) * sx + .18 * feed;
+  let fa = sx * up * pw;
+  let hg = vec2f(sx * .10, -.08); let dq = l.xy - hg;
+  l = vec3f(hg + vec2f(dq.x * cos(fa) - dq.y * sin(fa), dq.x * sin(fa) + dq.y * cos(fa)), l.z);
+  n = vec3f(n.x * cos(fa) - n.y * sin(fa), n.x * sin(fa) + n.y * cos(fa), n.z);
+  // ---- the body. The stiff front swings a little against the tail (recoil). The wave runs back from behind the
+  // armour (0.37), its wavelength about one body length, so the tail lags behind the stalk. In a turn the body lies
+  // along the curve of its path, the armoured front less
+  let yr = .025 * amp * sin(bp - .9);
   let u = max(0., .13 - l.z);
-  let A = .22 * u * u;
-  let beat = R * abs(i.b.y) / (.65 * sz);
-  let wv = t * beat * TAU + s * 25. + l.z * 4.;
-  l.x += A * sin(wv);
-  let sl = 4. * A * cos(wv);
+  let wv = bp + 6. * l.z;
+  let Aw = .22 * amp;
+  let bw = .2 + .8 * ss(-.05, .25, 0. - l.z);
+  let zc = l.z;
+  l.x += yr * (zc - .1) + Aw * u * u * sin(wv) + .5 * kl * zc * zc * bw;
+  let sl = yr + Aw * (6. * u * u * cos(wv) - 2. * u * sin(wv)) + kl * zc * bw;
   n = vec3f(n.x + sl * n.z, n.y, n.z - sl * n.x);
+  // ---- it banks into the turn, a little
+  let rb = 0. - clamp(.6 * kl * min(vr, 1.5), -.2, .2);
+  l = vec3f(l.x * cos(rb) - l.y * sin(rb), l.x * sin(rb) + l.y * cos(rb), l.z);
+  n = vec3f(n.x * cos(rb) - n.y * sin(rb), n.x * sin(rb) + n.y * cos(rb), n.z);
   let w = dodge(P, sz + 4. * g.fwd.w, 0., 0.) + (S * l.x + Up * l.y + T * l.z) * sz;
   o.cp = g.vp * vec4f(w, 1.); o.wp = w; o.n = S * n.x + Up * n.y + T * n.z; o.op = i.p; o.sd = s; o.lt = lt;
   return o;
@@ -170,7 +242,7 @@ fn titanRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin
   var hgt = .0030 * armP;                                                         // the armour stands proud of the skin
   // ---- the plates: low domes. The joints a narrow groove between two raised lips of bone (the skin pulled over the edges
   // of the plates), not a painted line
-  hgt += .0050 * sqrt(sat(dB / .022)) * armP;
+  hgt += .0050 * sqrt(sat(min(dB, max(abs(y - my) - .006, 0.)) / .022)) * armP;   // the dome runs out softly at the lip
   let groove = titanLine(dB, .0010, fw) * armP; let lipB = titanLine(dB, .0034, fw) * armP;
   hgt += .0018 * lipB - .0030 * groove;
   alb *= (1. - .55 * groove) * (1. + .25 * (lipB - groove));
@@ -178,8 +250,11 @@ fn titanRotN(nn: vec3f, angle: f32) -> vec3f { let ca = cos(angle); let sa = sin
   // field a little domed. Large fields (about 5 cm at 3.7 m) and small ones (about 1.7 cm) in them. Deeper here, fainter there
   let bigC = (1. - ss(0., .12, ca.y - ca.x)) * n6;
   let smC = (1. - ss(0., .10, cb.y - cb.x)) * n4;
-  let wrk = (bigC * (skinP + .7 * armP) + .4 * smC * hull) * (.45 + 1.1 * mid) * (1. - .7 * lip);
-  hgt += 0. - .0011 * wrk + (.0006 * (.45 - ca.x) * n6 + .0005 * (.45 - cb.x) * n4) * hull + .00025 * (.5 - pits) * n2 * armP;
+  // no cracks and no fields on the soft skin of the head (lips, snout, cheek), cracks only on its plates. The lower jaw
+  // keeps them away from its lip: smooth, it looked like a paddle of plastic (fix of 2026-11-19)
+  let nearLip = max((1. - ss(.010, .045, abs(y - my))) * step(s, .135), (1. - armP) * (1. - ss(.15, .17, s)) * (1. - jawP));
+  let wrk = (bigC * (skinP + .7 * armP) + .4 * smC * hull) * (.45 + 1.1 * mid) * (1. - nearLip);
+  hgt += 0. - .0011 * wrk + (.0006 * (.45 - ca.x) * n6 + .0005 * (.45 - cb.x) * n4) * hull * (1. - nearLip) + .00025 * (.5 - pits) * n2 * armP;
   // ---- cavities: dark in the grooves and the cracks, both the colour and the light from around
   let ao = sat(1. - .60 * groove - .45 * wrk);
   alb *= .55 + .45 * ao;

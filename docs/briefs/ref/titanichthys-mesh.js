@@ -13,10 +13,9 @@
 // aux (what a vertex is; the shaders read it):
 //    0     skin of the body in ONE piece. Armour or naked skin is decided per pixel from the place on the body
 //    0.25  skin of the lower jaw: drops with the jaw
-//    0.5   fins and the lateral keels
+//    0.5   fins
 //   -0.25  inside of the mouth and of the filter basket, upper half (moves with the head)
 //   -0.40  inside of the mouth and of the filter basket, lower half (moves with the jaw)
-//   -0.55  the small plates of the upper jaw (move with the head)
 //   -0.70  the rods of the lower jaw, IG (move with the jaw)
 //   -1     eyes
 function meshTitanichthys() {
@@ -57,8 +56,9 @@ function meshTitanichthys() {
     [0.680, 0.058, -0.038, 0.050, 2.0, 0.50],
     [0.740, 0.050, -0.024, 0.038, 2.0, 0.50],
     [0.790, 0.046, -0.014, 0.028, 2.0, 0.50],
-    [0.830, 0.046, -0.008, 0.016, 2.0, 0.50],
-    [0.860, 0.048, -0.002, 0.006, 2.0, 0.50],
+    [0.830, 0.044, 0.002, 0.020, 2.0, 0.50],
+    [0.860, 0.041, 0.024, 0.011, 2.0, 0.50],
+    [0.875, 0.038, 0.034, 0.004, 2.0, 0.50],
   ];
   // the five numbers of a station at any s, rounded off between the stations
   const at = (s) => {
@@ -91,6 +91,10 @@ function meshTitanichthys() {
     // the plates stand out of the skin a little: they are thin (BR2017: 1 to 10 mm)
     const th = 0.0025 * armour(s, y), r = hypot(x, y - ym) || 1; x += x / r * th; y += (y - ym) / r * th;
     const k = 1 - 0.040 * exp(-pow((s - cleftS(y)) / 0.007, 2));             // the cleft is a groove in the one skin
+    // the lateral keels (J2022): a thickening of the flank from just behind the pelvic fins to the base of the tail fin,
+    // 0.24 long and up to 0.054 high in Amazichthys. Part of the one skin, a soft ridge along the middle of each side
+    // (until 2026-11-19 a separate plate, which stood off the flank with a gap and shone as a fin)
+    x += (x < 0 ? -1 : 1) * 0.012 * sm(0.54, 0.62, s) * (1 - sm(0.82, 0.875, s)) * exp(-pow((y - (T + B) / 2) / 0.013, 2));
     return [x * k, ym + (y - ym) * k, 0.5 - s];
   };
   // the angle at which the right flank is at height y
@@ -108,6 +112,7 @@ function meshTitanichthys() {
   const MU = 38, ML = 28, MP = 14, RS = [], rings = [];
   for (let k = 1; k <= 100; k++) RS.push(k * 0.004);
   for (let k = 1; k <= 46; k++) RS.push(0.40 + k * 0.01);
+  RS.push(0.868);
   const aC = angY(S_C, mouthY(S_C));
   // the lower jaw: narrower in front, its tip bent down (BR2017 and C2020: the tip of the lower jaw turns down and inward)
   const jw = (s) => 1 - 0.22 * (1 - sm(0.004, 0.070, s)), jdrop = (s) => -0.008 * (1 - sm(0, 0.030, s));
@@ -180,9 +185,11 @@ function meshTitanichthys() {
 
   // ---------------------------------------------------------------- the bones of the jaws
   // No blades and no teeth (C2020, BR2017). Below, on each side, the IG: a long slender rod of bone along the rim of the
-  // lower jaw, its front end a little wider, like a spatula, bent down and inward. Above, the plates of the upper jaw are
-  // tiny (16 % of the length of the lower jaw, half a millimetre thick, BR2017): a short thin rod at the front of the
-  // snout. Round in section. aux -0.55 moves with the head, -0.70 with the jaw
+  // lower jaw, its front end a little wider, like a spatula, bent down and inward. The plates of the upper jaw are left out:
+  // they are tiny (16 % of the length of the lower jaw, half a millimetre thick, BR2017) and would not show. Round in
+  // section. aux -0.70 moves with the jaw. The rod ends 0.007 in front of the corner of the mouth: behind it the shader
+  // turns the jaw less and less, and a rod that ran on to 0.150 bent there into a thin hook. Its front end starts at
+  // 0.016, in the skin of the chin: from 0.005 it stood out in front of the jaw as a loose stub (fix of 2026-11-19)
   const closed = (R) => R.reduce((a, p) => [a[0] + p[0] / R.length, a[1] + p[1] / R.length, a[2] + p[2] / R.length], [0, 0, 0]);
   // faces between rings of the same number of points, the right way round: away from the centre line `mid`; both ends
   // closed with a point
@@ -202,8 +209,7 @@ function meshTitanichthys() {
   };
   const RODS = [
     // up, from, to, radius at s
-    [true, 0.006, 0.026, (s) => 0.0022],
-    [false, 0.005, 0.150, (s) => 0.0034 + 0.0030 * (1 - sm(0.004, 0.030, s))],
+    [false, 0.016, 0.118, (s) => 0.0034 + 0.0030 * (1 - sm(0.004, 0.030, s))],
   ];
   for (const sx of [1, -1]) for (const [up, s0, s1, rad] of RODS) {
     const V = [], mid = [], aux = up ? -0.55 : -0.70, N = round((s1 - s0) / 0.0015);
@@ -293,20 +299,13 @@ function meshTitanichthys() {
   wing([V(0.300, 0, top(0.300) - 0.012), V(0.340, 0, top(0.340) + 0.018), V(0.385, 0, top(0.385) + 0.042), V(0.425, 0, top(0.425) + 0.060), V(0.455, 0, top(0.455) + 0.071), V(0.478, 0, top(0.478) + 0.075)],
     [V(0.520, 0, top(0.520) - 0.012), V(0.523, 0, top(0.523) + 0.020), V(0.516, 0, top(0.516) + 0.045), V(0.503, 0, top(0.503) + 0.062), V(0.490, 0, top(0.490) + 0.072), V(0.480, 0, top(0.480) + 0.075)], (t) => 0.010 * pow(1 - t, 0.6) + 0.0015, 0.5, 16);
   // tail fin, after Amazichthys (J2022): heterocercal, unusually high for a placoderm (0.38 of the length in the holotype),
-  // the upper lobe longer than the lower one (220 against 160 mm), both with rounded tips
+  // the upper lobe longer than the lower one (220 against 160 mm), both with rounded tips. The roots of both lobes run
+  // inside the tail stalk, along its back and its belly, and meet at the notch (0.872), where the stalk ends in a point
+  // inside the fin: before 2026-11-19 the stalk ended in a cut-off face beside the fin, with a gap above it
   const thT = (t) => 0.011 * pow(1 - t, 0.6) + 0.0018;
-  wing([V(0.770, 0, 0.060), V(0.812, 0, 0.088), V(0.855, 0, 0.122), V(0.900, 0, 0.155), V(0.945, 0, 0.180), V(0.982, 0, 0.196), V(1.000, 0, 0.196)],
-    [V(0.870, 0, 0.034), V(0.888, 0, 0.068), V(0.910, 0, 0.102), V(0.934, 0, 0.136), V(0.958, 0, 0.165), V(0.982, 0, 0.186), V(0.999, 0, 0.192)], thT, 0.5, 18);
-  wing([V(0.770, 0, 0.010), V(0.800, 0, -0.022), V(0.830, 0, -0.058), V(0.860, 0, -0.096), V(0.890, 0, -0.128), V(0.915, 0, -0.150), V(0.932, 0, -0.156)],
-    [V(0.870, 0, 0.040), V(0.874, 0, 0.004), V(0.884, 0, -0.036), V(0.896, 0, -0.076), V(0.909, 0, -0.112), V(0.922, 0, -0.142), V(0.933, 0, -0.154)], thT, 0.5, 18);
-  // the lateral keels (J2022): a thickening of the flank from just behind the pelvic fins to the base of the tail fin,
-  // 0.24 long and up to 0.054 high in Amazichthys. Here a thick, soft ridge along the middle of each side
-  {
-    const yc = (s) => (top(s) + bot(s)) / 2, X = (s) => at(s)[2];
-    const LE = [V(0.540, X(0.540) - 0.010, yc(0.540) + 0.020), V(0.600, X(0.600) + 0.004, yc(0.600) + 0.024), V(0.670, X(0.670) + 0.012, yc(0.670) + 0.022), V(0.740, X(0.740) + 0.012, yc(0.740) + 0.016), V(0.800, X(0.800) + 0.004, yc(0.800) + 0.008)];
-    const TE = [V(0.540, X(0.540) - 0.010, yc(0.540) - 0.016), V(0.600, X(0.600) + 0.004, yc(0.600) - 0.022), V(0.670, X(0.670) + 0.012, yc(0.670) - 0.022), V(0.740, X(0.740) + 0.012, yc(0.740) - 0.016), V(0.800, X(0.800) + 0.004, yc(0.800) - 0.008)];
-    const th = (t) => 0.006 * pow(sin(PI * clamp(t, 0.03, 0.97)), 0.5);
-    wing(LE, TE, th, 0.5, 12); wing(mir(LE), mir(TE), th, 0.5, 12);
-  }
+  wing([V(0.770, 0, top(0.770) - 0.004), V(0.812, 0, 0.088), V(0.855, 0, 0.122), V(0.900, 0, 0.155), V(0.945, 0, 0.180), V(0.982, 0, 0.196), V(1.000, 0, 0.196)],
+    [V(0.872, 0, 0.036), V(0.888, 0, 0.068), V(0.910, 0, 0.102), V(0.934, 0, 0.136), V(0.958, 0, 0.165), V(0.982, 0, 0.186), V(0.999, 0, 0.192)], thT, 0.5, 18);
+  wing([V(0.770, 0, bot(0.770) + 0.004), V(0.800, 0, -0.022), V(0.830, 0, -0.058), V(0.860, 0, -0.096), V(0.890, 0, -0.128), V(0.915, 0, -0.150), V(0.932, 0, -0.156)],
+    [V(0.872, 0, 0.036), V(0.876, 0, 0.004), V(0.884, 0, -0.036), V(0.896, 0, -0.076), V(0.909, 0, -0.112), V(0.922, 0, -0.142), V(0.933, 0, -0.154)], thT, 0.5, 18);
   return m;
 }

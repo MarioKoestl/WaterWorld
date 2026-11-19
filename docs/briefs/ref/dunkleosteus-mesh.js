@@ -213,17 +213,25 @@ function meshDunkleosteus() {
   };
   // how far a plate stands out of the lip at s (its depth below the upper lip, or its height above the lower one)
   const hook = (s, s0, apex, s1, h, base) => s < s0 || s > s1 ? 0 : s < apex ? base + (h - base) * pow((s - s0) / (apex - s0), 1.6) : h * pow(1 - (s - apex) / (s1 - apex), 0.75);
+  // the lip and the way out of it at s. For s < 0 the edge goes on round the blunt front of the snout to the middle, so
+  // that the plates of both sides meet there and the front of the jaw is closed (fix of 2026-11-19). Each one reaches
+  // 0.002 past the middle and keeps its full thickness to its end, so the two overlap and no seam shows
+  const SF = 0.008, edge = (s, up) => {
+    if (s >= 0) return [lipAt(s, up), outAt(s, angY(s, mouthY(s)))];
+    const E0 = lipAt(0, up), o0 = outAt(0, angY(0, mouthY(0))), u = -s / SF, w = 1 - u;
+    return [[-0.002 + (E0[0] + 0.002) * w, E0[1], E0[2]], nrm([o0[0] * w, 0, o0[2] * w + u])];
+  };
   const PLATES = [
     // up, from, to, depth of the edge at s, thickness at the gum
-    [true, 0.003, 0.024, (s) => hook(s, 0.003, 0.010, 0.024, 0.030, 0.010), 0.009],                                  // ASG
+    [true, -SF, 0.024, (s) => s < 0.003 ? 0.010 : hook(s, 0.003, 0.010, 0.024, 0.030, 0.010), 0.009],             // ASG
     [true, 0.025, 0.070, (s) => 0.004 + 0.012 * sm(0.025, 0.032, s) * (1 - sm(0.040, 0.066, s)) + 0.004 * (1 - sm(0.058, 0.070, s)), 0.007],   // PSG
-    [false, 0.006, 0.088, (s) => hook(s, 0.006, 0.012, 0.026, 0.024, 0.008) + 0.004 + 0.009 * sm(0.030, 0.036, s) * (1 - sm(0.070, 0.086, s)), 0.009],   // IG
+    [false, -SF, 0.088, (s) => (s < 0.006 ? 0.008 : hook(s, 0.006, 0.012, 0.026, 0.024, 0.008)) + 0.004 + 0.009 * sm(0.030, 0.036, s) * (1 - sm(0.070, 0.086, s)), 0.009],   // IG
   ];
   for (const sx of [1, -1]) for (const [up, s0, s1, depth, th] of PLATES) {
     const V = [], mid = [], aux = up ? -0.55 : -0.70, dn = up ? -1 : 1, N = round((s1 - s0) / 0.0008);
     for (let k = 0; k <= N; k++) {
-      const s = s0 + (s1 - s0) * k / N, E = lipAt(s, up), a = angY(s, mouthY(s)), o = outAt(s, a);
-      const f = 0.25 + 0.75 * sm(s0, s0 + 0.004, s) * (1 - sm(s1 - 0.004, s1, s)), e = max(depth(s), 0.002), t = th * f;
+      const s = s0 + (s1 - s0) * k / N, [E, o] = edge(s, up);
+      const f = 0.25 + 0.75 * (s0 < 0 ? 1 : sm(s0, s0 + 0.004, s)) * (1 - sm(s1 - 0.004, s1, s)), e = max(depth(s), 0.002), t = th * f;
       // the section, from the gum on the outside, down to the edge, up the inside: (out, along dn)
       const S = up ? [[0.0030 * f, -0.010], [0.0042 * f, 0.25 * e], [0.0020 * f, 0.75 * e], [0.0004, e], [0.0030 * f - t * 0.55, 0.70 * e], [0.0030 * f - t, 0.15 * e], [0.0030 * f - t, -0.010]]
                    : [[-0.0010 * f, -0.010], [0.0012 * f, 0.25 * e], [-0.0004 * f, 0.75 * e], [-0.0022, e], [-0.0010 * f - t * 0.55, 0.70 * e], [-0.0010 * f - t, 0.15 * e], [-0.0010 * f - t, -0.010]];

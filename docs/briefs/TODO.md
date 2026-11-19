@@ -62,3 +62,29 @@ These change the engine. One Claude Code instance at a time, in this order.
     (ASG, PSG, IG), no teeth; skin cracked into fields over bone; its own light instead of skinWet. Mario, 2026-11-19.
   - [ ] **11g. Titanichthys by the build sheet.** `titanichthys-build.md`: tested mesh, shader and picture in `ref/`,
     sources in `docs/research/devonian/titanichthys.md`. Wide flat head, mouth open to filter, body after Amazichthys.
+  - [ ] **11h. How the giants swim.** `devonian-giants-motion.md`: new vertex shaders and zoo functions for
+    Dunkleosteus and Titanichthys. Wandering paths, a pace of their own, tail beat from the speed, body curved in turns,
+    moving fins; Dunkleosteus strikes every 70 to 120 s, no threat any more. Both 4.1 m. Mario, 2026-11-19: stiff.
+  - [ ] **11i. Two motion bugs.** `devonian-motion-fixes.md`: the giants with a negative speed swam tail first (an
+    error in 11h); the goniatites jumped back and forth with each jet. Mario, 2026-11-19.
+  - [ ] **11j. Cladoselache by the build sheet.** `cladoselache-build.md`: tested mesh, shader with the motion and
+    picture in `ref/`, sources in `docs/research/devonian/cladoselache.md`. Mouth at the front, two dorsal fins with a
+    spine, no anal fin, keels, crescent tail; groups whose animals strike on their own. Mario, 2026-11-19.
+  - [ ] **11k. Stethacanthus by the build sheet.** `stethacanthus-build.md`: tested mesh, shader with the motion and
+    picture in `ref/`, sources in `docs/research/devonian/stethacanthus.md`. The brush, the head denticles and the
+    claspers on mature males only; small pectoral fins with whips; a slow swimmer. Mario, 2026-11-19.
+  - [ ] **11l. Ctenacanthus by the build sheet.** `ctenacanthus-build.md`: tested mesh, shader with the motion and
+    picture in `ref/`, sources in `docs/research/devonian/ctenacanthus.md`. C. concinnus of the Cleveland Shale: two
+    dorsal fins with ribbed spines, broad pectoral fins, one anal fin, a long upper tail lobe. Mario, 2026-11-19.
+  - [ ] **11m. Four gaps.** `devonian-gap-fixes.md`: the slit under the Ctenacanthus tail, the floating stumps and the
+    open end of the driftwood, the slot in the front of the Dunkleosteus jaw, the hook and the plain skin of the
+    Titanichthys lower jaw. Mario, 2026-11-19.
+  - [ ] **11n. Dunkleosteus hunts.** `dunkleosteus-hunt.md`: it cruises slowly and now and then, at no fixed beat,
+    chases with the mouth half open and the fins laid back, snaps, brakes. Mario, 2026-11-19.
+  - [ ] **11o. Titanichthys feeds in runs.** `titanichthys-feeding.md`: it cruises slowly with the mouth nearly shut
+    and now and then, at no fixed beat, makes a faster run with the mouth wide open, then swallows. Mario, 2026-11-19.
+  - [ ] **11p. Titanichthys tail.** `titanichthys-build.md`, section "Fix of 2026-11-19: tail stalk and lateral
+    keels": the stalk ends in a point inside the tail fin, the keels are part of the skin. Mario, 2026-11-19.
+  - [ ] **11q. Kentuckia by the build sheet.** `kentuckia-build.md`: tested mesh, shader with the motion and picture in
+    `ref/`, sources in `docs/research/devonian/kentuckia.md`. An early ray-finned fish in general: rhombic shiny
+    scales, a heterocercal tail, single fish darting out of the school. Mario, 2026-11-19.

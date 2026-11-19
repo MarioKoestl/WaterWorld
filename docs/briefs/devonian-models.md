@@ -139,6 +139,9 @@ begins 0.231 TL behind the snout). Its paper is not read yet: see "Not checked y
 
 ## Cladoselache
 
+**How to build it: `cladoselache-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the
+sources in `docs/research/devonian/cladoselache.md`.
+
 **Sources.**
 
 - **W:** Wikipedia, "Cladoselache", https://en.wikipedia.org/wiki/Cladoselache, section "Description". It carries
@@ -176,6 +179,9 @@ both dorsal fins, the span of the tail, the depth of the body.
 
 ## Stethacanthus
 
+**How to build it: `stethacanthus-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the
+sources in `docs/research/devonian/stethacanthus.md`.
+
 **Sources.**
 
 - **W:** Wikipedia, "Stethacanthus", https://en.wikipedia.org/wiki/Stethacanthus, and "Stethacanthidae".
@@ -206,6 +212,9 @@ skeletal reconstruction of CS2001: the crest against the head and the body, wher
 
 ## Ctenacanthus
 
+**How to build it: `ctenacanthus-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the
+sources in `docs/research/devonian/ctenacanthus.md`.
+
 The hardest one: of the sharks of this name from the Cleveland Shale mostly spines and teeth are published.
 
 **Sources.**
@@ -234,6 +243,9 @@ fins from the skeleton figure of Hodnett and others 2021 (p. 409), but not its f
 water. Say in the comment that the body is an estimate.
 
 ## Kentuckia
+
+**How to build it: `kentuckia-build.md`** (2026-11-19), with a tested mesh and shader in `ref/` and the sources in
+`docs/research/devonian/kentuckia.md`. The card's 10 cm is now backed by KGS ("4 inches or less").
 
 **Sources.**
 
