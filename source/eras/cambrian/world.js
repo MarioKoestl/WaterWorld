@@ -4,15 +4,15 @@
 // The kinds of this world in drawing order (see kind() in engine/tools.js). What lies about: stones that broke off
 // the wall, in three shapes (with a simpler mesh from 40 m on), and grit. What stands still: the tulip animal and
 // three bushes of the sponge Vauxia (meshes in standing.js), each with a simpler mesh further away. What swims:
-// Marrella, Metaspriggina, Opabinia, Anomalocaris and the jellyfish (meshes and shaders in swimmers.js: the first of
-// them brings what their shaders share). The jellyfish is see-through and is drawn after everything else. What walks,
-// Hallucigenia and the trilobite, is in walkers.js.
+// Marrella, Metaspriggina, Opabinia, Anomalocaris and the jellyfish (each in its own file, swimmers_<name>.js: the
+// first of them brings what all their shaders share, S_SEA of swimmers.js). The jellyfish is see-through and is
+// drawn after everything else. What walks, Hallucigenia and the trilobite, is in walkers.js.
 // Everything alive is made true size by TS (era.js): the tulip animal is 20 cm high, Vauxia 8 cm. So they are drawn
 // to 45 and 35 m, both with the simple mesh from 3 m on, and cast no shadow: the shadow map has about 9 cm a texel
 const stone = (sd, sub, det) => () => meshChunk(sd, sub, det).build();
 const STONE = [4, 15, 27].map((sd) => kind({ solid: 1, shadow: 1, cells: 1, far: 130, lodFrom: 40, mesh: stone(sd, 3), lod: stone(sd, 2, 1) }));
 const GRIT = kind({ solid: 1, shadow: 1, cells: 1, far: 34, mesh: stone(9, 1) });
-const TULIP = kind({ solid: 1, cells: 1, far: 45, lodFrom: 3, mesh: () => meshTulip().build(), lod: () => meshTulip(1).build() });
+const TULIP = [0, 1, 2].map((v) => kind({ solid: 1, cells: 1, far: 45, lodFrom: 3, mesh: () => meshTulip(v).build(), lod: () => meshTulip(v, 1).build() }));
 const VAUXIA = [1, 2, 3].map((sd) => kind({ solid: 1, cells: 1, far: 35, lodFrom: 3, mesh: () => meshVauxia(sd).build(), lod: () => meshVauxia(sd, 1).build() }));
 
 // sponge thickets that are sure to be there, at the blocks and ledges near the test poses: x, z, radius
@@ -199,9 +199,9 @@ function makeWorld(W) {
   }
 
   // --- the gardens (GARDENS at the top), each with its own random stream. Nothing that swims is scattered over the
-  // ground: the vertex shaders move the animals from the scene time (swimmers.js). An instance is eight floats, which
-  // mean what the shader of its kind says. For the zoo a swarm and a shoal have one row each, in the layout of their
-  // animals
+  // ground: the vertex shaders move the animals from the scene time (swimmers_<name>.js). An instance is eight
+  // floats, which mean what the shader of its kind says. For the zoo a swarm and a shoal have one row each, in the
+  // layout of their animals
   // (the height of the mud on a grid, for the zoo places of those that keep close to it: zooGround in swimmers.js)
   for (let j = 0; j < GRN; j++) for (let i = 0; i < GRN; i++) GRD[i + GRN * j] = gyExact(i * 0.5 - GRH, j * 0.5 - GRH);
   const marrellas = [], swarms = [], fishes = [], shoals = [], medusas = [], opabinias = [], hunters = [];
@@ -216,7 +216,7 @@ function makeWorld(W) {
       if (!keepIt || near.some((p) => hypot(x - p[0], z - p[1]) < 0.045) || glanes.some((p) => hypot(x - p[0], z - p[1]) < 0.04) || nearPose(x, z, 0.6)) continue;
       const y = gyExact(x, z); if (grad(x, y, z)[1] < 0.9) continue;
       near.push([x, z]); n++;
-      TULIP.at[cellOf(x, z)].push(x, y - 0.04 * TS, z, sc, q[0], q[1], q[2], q[3], 2, sd, 2 / TS, sw);
+      TULIP[sd * 3 | 0].at[cellOf(x, z)].push(x, y - 0.04 * TS, z, sc, q[0], q[1], q[2], q[3], 2, sd, 2 / TS, sw);
       piece('siphusauctum', [x, y, z], q, [0, 0, 0], [0, 4 * sc, 0], 2, 0.4 * TS);
     }
     // sponges: clumps on the block, on the side that faces the garden, from its foot up to a metre, where the rock is

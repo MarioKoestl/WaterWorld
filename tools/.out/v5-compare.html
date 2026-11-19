@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Dunkleosteus v5 – Stage A (jaws)</title>
+<style>
+body{margin:0;background:#1a1a1a;color:#eee;font:14px/1.4 system-ui}
+h1,h2{margin:0 0 8px;font-weight:600}
+h1{font-size:20px;padding:16px 24px 0}
+h2{font-size:16px}
+.row{display:flex;gap:12px;padding:12px 24px;flex-wrap:wrap}
+.col{flex:1;min-width:300px}
+.col img{width:100%;display:block;border-radius:4px}
+.label{font-size:12px;color:#aaa;margin:4px 0 2px}
+.bench{padding:12px 24px;background:#222;margin:12px 24px;border-radius:6px;font-family:monospace}
+.bench td{padding:2px 16px 2px 0}
+.note{color:#888;font-size:12px;padding:0 24px 16px}
+.info{padding:8px 24px;background:#1e2a1e;margin:12px 24px;border-radius:6px;border-left:3px solid #4a8}
+.warn{padding:8px 24px;background:#2a2a1e;margin:12px 24px;border-radius:6px;border-left:3px solid #a84}
+td.better{color:#6c6}
+td.worse{color:#c66}
+</style></head><body>
+<h1>Dunkleosteus v5 (jaws brief) – Stage A: take over</h1>
+<p class="note">WGSL compiled clean after 2 fixes (backticks in comments broke the template literal). 587 lines, 43,120 bytes. Mesh: 13,894 vertices, 27,188 triangles.</p>
+
+<div class="info">
+<strong>What changed in v5:</strong> Fangs moved to front/middle (upper s=0.011, lower s=0.020). Larger fangs (0.054/0.048). Throat tunnel replaces flat back wall. 4 gill arches (red). Ridges across roof. Flesh colour inside (not black). Threat opens to 0.95. Snout armour from s=0.006. MP=12 (was 8). All v4 tuning kept.
+</div>
+
+<div class="info">
+<strong>Fixes during assembly (2):</strong><br>
+1. Line 343: removed backticks around <code>patch</code> in WGSL comment (broke JS template literal)<br>
+2. Line 347: removed backticks around <code>node tools/wgsl.mjs devonian</code> in WGSL comment (same cause)
+</div>
+
+<div class="bench">
+<h2>Benchmark (2560&times;1440, RTX 2060)</h2>
+<table>
+<tr><th></th><th>Frame avg</th><th>Frame p99</th><th>Frame max</th><th>GPU avg</th><th>GPU p99</th><th>GPU max</th></tr>
+<tr><td>v4 tuned (before)</td><td>16.68 ms</td><td>16.80 ms</td><td>16.90 ms</td><td>6.01 ms</td><td>6.95 ms</td><td>7.67 ms</td></tr>
+<tr><td>v5 jaws (after)</td><td>17.56 ms</td><td>18.30 ms</td><td>20.10 ms</td><td>6.00 ms</td><td>6.95 ms</td><td>7.86 ms</td></tr>
+<tr><td>Diff</td><td class="worse">+0.88</td><td class="worse">+1.50</td><td class="worse">+3.20</td><td class="better">&minus;0.01</td><td>±0</td><td class="worse">+0.19</td></tr>
+</table>
+<p style="margin:8px 0 0;color:#aaa">GPU time unchanged (6.00 avg). Frame time up ~0.9 ms avg — likely CPU-side mesh build (27,188 vs 25,826 triangles, throat tunnel with 18 rings &times; 3 animals). Max 20.10 ms is a single-frame spike.</p>
+</div>
+
+<h2 style="padding:16px 24px 0">Reference (numpy renderer, not the engine)</h2>
+<div class="row">
+<div class="col"><img src="/docs/briefs/ref/dunkleosteus-reference.png"></div>
+</div>
+
+<h2 style="padding:16px 24px 0">Engine: Rest (mouth nearly shut, 8&deg;)</h2>
+<div class="row">
+<div class="col"><div class="label">side</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-side.png"></div>
+<div class="col"><div class="label">front</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-front.png"></div>
+<div class="col"><div class="label">diver (2 m)</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-diver.png"></div>
+</div>
+<div class="row">
+<div class="col"><div class="label">angle above</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-angle-above.png"></div>
+<div class="col"><div class="label">angle level</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-angle-level.png"></div>
+<div class="col"><div class="label">angle below</div><img src="/tools/out/turntable/v5-rest/dunkleosteus-angle-below.png"></div>
+</div>
+
+<h2 style="padding:16px 24px 0">Engine: Snap (mo forced to 1, mouth wide open)</h2>
+<div class="row">
+<div class="col"><div class="label">side</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-side.png"></div>
+<div class="col"><div class="label">front</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-front.png"></div>
+<div class="col"><div class="label">diver (2 m)</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-diver.png"></div>
+</div>
+<div class="row">
+<div class="col"><div class="label">angle above</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-angle-above.png"></div>
+<div class="col"><div class="label">angle level</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-angle-level.png"></div>
+<div class="col"><div class="label">angle below</div><img src="/tools/out/turntable/v5-snap/dunkleosteus-angle-below.png"></div>
+</div>
+
+<h2 style="padding:16px 24px 0">Engine: Walk / Threat (--walk, diver approaching)</h2>
+<div class="row">
+<div class="col"><div class="label">side</div><img src="/tools/out/turntable/v5-walk/dunkleosteus-side.png"></div>
+<div class="col"><div class="label">front</div><img src="/tools/out/turntable/v5-walk/dunkleosteus-front.png"></div>
+<div class="col"><div class="label">diver (2 m)</div><img src="/tools/out/turntable/v5-walk/dunkleosteus-diver.png"></div>
+</div>
+<div class="row">
+<div class="col"><div class="label">walk sequence: angle-level (8 frames, 0.2 s apart)</div></div>
+</div>
+<div class="row">
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-angle-level-walk1.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-angle-level-walk2.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-angle-level-walk3.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-angle-level-walk4.jpg"></div>
+</div>
+<div class="row">
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-diver-walk1.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-diver-walk2.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-diver-walk3.jpg"></div>
+<div class="col"><img src="/tools/out/turntable/v5-walk/dunkleosteus-diver-walk4.jpg"></div>
+</div>
+
+<div class="warn">
+<strong>Custom view not done by turntable.</strong> The turntable places cameras at fixed angles (the diver is 2 m, 40&deg; round, 20&deg; up). It cannot put the camera at mouth height from the front. The game code runs in a closure, so programmatic camera control from the console is not possible. <strong>Check in-engine:</strong> open <code>devonian-dev.html</code>, swim to a Dunkleosteus from the front at mouth level, trigger its threat from &lt;4 m. Press C for fish size for a closer look.
+</div>
+
+<div class="info">
+<strong>Bright line across the mouth floor.</strong><br>
+In v4 the back of the mouth was a flat wall of quads connecting the last palate ring to the last floor ring (line 156: <code>m.quad(C.pal[k], C.pal[k+1], C.flo[MP-k-1], C.flo[MP-k])</code>). This wall joined two parts that move differently (roof with head aux &minus;0.25, floor with jaw aux &minus;0.40). When the mouth opens, the two halves rotate apart. The seam and the flat geometry could catch a specular highlight as a thin bright line across the floor.<br><br>
+In v5 that flat wall is <strong>replaced by a throat tunnel</strong>: 18 rings from the corner of the mouth (s&nbsp;&asymp;&nbsp;0.088) back to the gills (s&nbsp;=&nbsp;0.185), narrowing, with 4 gill arches. The roof (aux &minus;0.25) and floor (aux &minus;0.40) are separate smooth half-tunnels that join smoothly. The geometric cause of the bright line is eliminated.<br><br>
+Additionally the shader now colours the inside as flesh (not black), so any small highlight would blend with the flesh tone. <strong>Cannot confirm visually</strong> from turntable angles (all views from above or from 24 m). Check in-engine from the front at mouth level.
+</div>
+
+<h2 style="padding:24px 24px 0">All turntable pages (alle 9 Ansichten)</h2>
+<div class="row">
+<div class="col"><a href="/tools/out/turntable/v5-rest/dunkleosteus.html" style="color:#6af">Rest</a></div>
+<div class="col"><a href="/tools/out/turntable/v5-snap/dunkleosteus.html" style="color:#6af">Snap</a></div>
+<div class="col"><a href="/tools/out/turntable/v5-walk/dunkleosteus.html" style="color:#6af">Walk / Threat</a></div>
+</div>
+
+<p class="note" style="padding-top:16px">
+mo ist auf <code>let mo = max(snap, .95 * threat);</code> (v5: .95 statt .85).<br>
+Ge&auml;nderte Datei: source/eras/devonian/swimmers_dunkleosteus.js
+</p>
+</body></html>

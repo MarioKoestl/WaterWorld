@@ -31,20 +31,34 @@ These change the engine. One Claude Code instance at a time, in this order.
 
 ## Then
 
-- [ ] **8. The rest of the Cambrian.** `era-cambrian.md`, the stages that are not done yet. The walkers are in
+- [x] **8. The rest of the Cambrian.** `era-cambrian.md`, the stages that are not done yet. The walkers are in
   (2026-11-16). Mario: the trilobites look flat. They are rebuilt in item 9, stage 3, and this item is done with it.
-- [ ] **9. The look of the Cambrian.** `cambrian-look.md`. Beside `today` it looks empty and flat (Mario, 2026-11-16):
+  Done 2026-11-17: Mario accepted the rebuilt trilobite.
+- [x] **9. The look of the Cambrian.** `cambrian-look.md`. Beside `today` it looks empty and flat (Mario, 2026-11-16):
   light, water, ground and far more life. Stage 1 is one picture in three moods, from which Mario picks.
-  In progress: stage 1 is made (`tools/out/moods/final/index.html`). Mario's pick: mood B, golden green
-  (2026-11-16). He accepted every proposal of the brief, also W3, B6, P2 and C2, and asked for better animals: the
-  trilobites look flat. The brief has a new section for that, "The animals" (K1 to K9). Stage 2 (light and water in
-  mood B) is made (2026-11-17, `tools/out/look2/index.html`), and Mario is fine with it (2026-11-17). Stage 3, the
-  animals: the trilobite is rebuilt in the round (what is known of its shape: `tools/out/research/olenoides.md`) and
-  waits for Mario's look (`tools/out/look3/index.html`: its turntable before and after, and the animal in a garden
-  as a fish and as a diver). No other kind is reworked before he has seen it. Then the other kinds, each with its
-  turntable first (K8), and at the end of the stage the six poses and the flight for the visual critic.
+  Mario's pick: mood B, golden green (2026-11-16). Stage 2 (light and water) done (2026-11-17). Stage 3: all animals
+  rebuilt as solid 3D bodies after the trilobite pattern. Visual critic: 0 defects above minor. GPU avg 6.67 ms
+  (RTX 2060, 2560×1440). Done 2026-11-17.
 - [ ] **10. The other eras.** `era-common.md` and `era-<id>.md`. The Cambrian comes first and is the era on which
-  everything above is built and tried. Only when Mario has accepted it come the next ones, in order of time: the
-  Ordovician (`era-ordovician.md`) first. The Hadean, the Archean and the Proterozoic are skipped (Mario,
-  2026-11-16). Only one instance renders at a time: the graphics card is shared (`node tools/chrome.mjs status`).
-  The plesiosaur leaves `today` with the Jurassic (`era-jurassic.md`).
+  everything above is built and tried. Only when Mario has accepted it come the next ones. The Hadean, the Archean
+  and the Proterozoic are skipped (Mario, 2026-11-16). Only one instance renders at a time: the graphics card is
+  shared (`node tools/chrome.mjs status`). The plesiosaur leaves `today` with the Jurassic (`era-jurassic.md`).
+  Mario's order: the Devonian first (2026-11-17), not streng nach Zeit.
+- [ ] **11. The animals of the Devonian from sources.** `devonian-models.md`. The models look bad (Mario, 2026-11-17):
+  they were built from a few sentences. Every animal gets its sources, its figures in lengths of the body and a
+  rebuild, as the trilobite did. Dunkleosteus first, and it goes to Mario before the others.
+  - [ ] **11a. Dunkleosteus by the build sheet.** `dunkleosteus-build.md`, with a tested mesh and a picture of it in
+    `ref/`. The model built from the list of numbers alone did not work (Mario, 2026-11-18). Four stages, the shape
+    first and alone, and it goes to Mario after each.
+  - [ ] **11b. Dunkleosteus surface.** `dunkleosteus-surface.md`: second mesh measured off Fig. 4 of E2024, the
+    whole shader as text, a picture of both. Mario, 2026-11-18: the shape is right, colour, skin and plates missing.
+  - [ ] **11c. Dunkleosteus dangerous.** `dunkleosteus-danger.md`: third mesh and shader. Mouth open at rest, the
+    snap, the threat, a deep eye in a ring of bone, armour as old scarred bone. Size: Mario decides (sources: 3.4 to 4.1 m).
+  - [ ] **11d. Dunkleosteus armour.** `dunkleosteus-armour.md`: fourth mesh and shader. Solid fangs and jaws of bone,
+    plates with a thickness, pale bone against a dark body, mouth nearly shut at rest. Mario, 2026-11-18: paper teeth, dorky.
+  - [ ] **11e. Dunkleosteus jaws.** `dunkleosteus-jaws.md`: fifth mesh and shader. Fangs at the front as a beak, higher
+    blades, a throat with red gill arches to look into. After this Mario is content for now (2026-11-18).
+  - [ ] **11f. Dunkleosteus bone.** `dunkleosteus-bone.md`: sixth mesh and shader. Jaws as plates of bone after Fig. 3
+    (ASG, PSG, IG), no teeth; skin cracked into fields over bone; its own light instead of skinWet. Mario, 2026-11-19.
+  - [ ] **11g. Titanichthys by the build sheet.** `titanichthys-build.md`: tested mesh, shader and picture in `ref/`,
+    sources in `docs/research/devonian/titanichthys.md`. Wide flat head, mouth open to filter, body after Amazichthys.

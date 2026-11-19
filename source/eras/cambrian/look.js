@@ -73,21 +73,70 @@ const LOOK = {
     alb = mix(alb, mud, flt);
     hgt = mix(hgt, .7, flt); bump = mix(bump, .12, flt); gloss = mix(mix(gloss, .03, flt), .22, slime); sgro *= 1. - flt;
   } else if (mat == 2) {
-    // where on the animal: its own space, without the offset that the seed gives the textures
+    // The tulip animal. lp: where on it, in metres, in its own space (without the offset that the seed gives the
+    // textures). i.ao says which part a place is: 0 the holdfast, up to .7 the stalk, .75 to .9 the outside of the
+    // cup from its cone to the tips of its six parts, above .9 its inside, down to the end of the gut
     let lp = i.op - sd * 37.;
-    let cup = ss(.72, .78, i.ao);
+    let cup = ss(.72, .78, i.ao); let seg = ss(.775, .8, i.ao); let inn = ss(.9, .95, i.ao);
+    // across one of the six parts: 1 on its middle line, 0 in the groove to the next
     let part = .5 + .5 * cos(6. * atan2(lp.z, lp.x));
-    let rose = mix(CUP0, CUP1, fract(sd * 7.3)) * (.62 + .38 * part) * mix(1., .5, ss(.965, 1., i.ao));
-    alb = mix(vec3f(.36, .36, .28), rose * mix(.72, 1., ss(.76, .86, i.ao)), cup) * (.88 + .18 * B.c);
+    // no two alike: the tone of its rose and how deep it is (from the seed)
+    let deep = fract(sd * 13.7);
+    let rose = mix(CUP0, CUP1, fract(sd * 7.3)) * mix(vec3f(.9, .62, .84), vec3f(1.1, 1.08, 1.02), deep);
+    // The sheath is thin: the comb of each part shows through it, some thirty cross bars to either side of a paler
+    // middle line, drooping towards the grooves. Each bar is light above and shaded below (a relief too fine for
+    // the mesh). Only close up: further away the bars would flicker
+    let comb = seg * (1. - inn) * ss(.9, .3, dist);
+    let bph = lp.y * 3600. + (1. - part) * 4.;
+    var cu = rose * (.42 + .58 * mix(1., part, seg)) * (1. + comb * (.2 * sin(bph) + .12 * cos(bph)));
+    cu = mix(cu, rose * 1.25 + .05, ss(.86, 1., part) * seg * (1. - inn) * .4);
+    // the stiff cone under the six parts is smooth and paler, and so are their tips and the lips of the openings
+    cu = mix(cu, vec3f(.78, .6, .56) * (.8 + .4 * deep), max((1. - seg) * .5, ss(.85, .9, i.ao) * (1. - ss(.9, .93, i.ao)) * .55));
+    // inside, the cup is wine-dark. The end of the gut in its middle is pale, with the dark anus in it
+    cu = mix(cu, rose * vec3f(.34, .16, .24), inn);
+    cu = mix(cu, vec3f(.66, .52, .44), ss(.972, .988, i.ao) * ss(.0003, .0008, length(lp.xz)));
+    // The stalk has two layers: the darker inner one shows through the pale outer one, most where one looks straight
+    // at it. A wrinkle here and there, and a trace of the cup's rose towards its top
+    let core = pow(sat(dot(n0, Vt)), 2.5);
+    let wr = ss(.9, 1., sin(lp.y * 800. + sd * 60.)) * ss(.42, .6, B.c) * ss(1.5, .5, dist);
+    var st = mix(vec3f(.42, .40, .30), vec3f(.25, .20, .16), core * .6) * (1. - .4 * wr);
+    st = mix(st, rose * .7, ss(.45, .72, i.ao) * .3);
+    alb = mix(st, cu, cup) * (.88 + .18 * B.c);
     // the foot of the stalk is dark, as the mud is under the garden
     alb *= mix(.4, 1., ss(.0, .3, i.ao));
-    hgt = .7; bump = mix(.3, .12, cup); gloss = .1 + .25 * cup; flu = .45 * cup;
-    // the wall of the cup is thin: the sun comes through it
-    emi = rose * vec3f(1.2, .8, .6) * sunE(i.wp.y, 0.) * shadow1(i.wp + Lt * .05) * (.3 * sat(-dot(n0, Lt)) + 1.4 * pow(sat(-dot(Vt, Lt)), 3.)) * mix(.15, 1., cup) * TRANS;
+    hgt = .7; bump = mix(.3, .14, cup); gloss = .12 + .3 * cup * (1. - inn); flu = .45 * cup;
+    // shade where little light gets: in the grooves between the parts and inside the cup
+    vao = 1. - seg * (.55 * (1. - part) * (1. - inn) + .6 * inn);
+    // the wall of the cup is thin: the sun comes through it (less through the bars of the combs)
+    emi = rose * vec3f(1.2, .8, .6) * sunE(i.wp.y, 0.) * shadow1(i.wp + Lt * .05) * (.3 * sat(-dot(n0, Lt)) + 1.4 * pow(sat(-dot(Vt, Lt)), 3.)) * mix(.15, 1., cup) * (1. - .2 * comb * (.5 + .5 * sin(bph))) * TRANS;
   } else {
+    // The sponge. i.ao is how light a place is: from the foot (.3) up to the rims of its tubes (1), and below .3
+    // down a throat. lp: where on the bush, in metres, in its own space
+    let lp = i.op - sd * 37.;
+    let thr = ss(.3, .12, i.ao);
+    // The net of its skeleton, as shade and as a relief too fine for the mesh: pale fibres round darker meshes of
+    // four to six sides. Three sets of planes through the bush, bent by the mottling so that no line is straight:
+    // where they cut the skin are the fibres (a set that lies nearly flat in the skin is left out there: it would
+    // smear). Each fibre is light on its side towards the sun. In some meshes a pore. Only close up: further away
+    // the net would flicker
+    let fine = ss(.8, .3, dist) * (1. - thr);
+    let np = lp * 700. + (vec3f(A.c, B.c, C.c) - .5) * 1.4;
+    let ns = fract(np) - .5;
+    let nh = vec3f(1.) - smoothstep(vec3f(.03), vec3f(.2), abs(ns) / sqrt(max(vec3f(1.) - on * on, vec3f(.04))));
+    let net = max(nh.x, max(nh.y, nh.z));
+    let Lo = qrot(vec4f(-i.q.xyz, i.q.w), Lt);
+    let emb = dot(sign(ns) * nh * (vec3f(1.) - nh) * 4., Lo - on * dot(on, Lo));
+    let pore = ss(.3, .14, length(ns)) * step(.5, hs(dot(floor(np), vec3f(1., 57., 113.))));
+    // ochre, from bush to bush a little more yellow or more orange: older and duller towards the foot, fresh and
+    // pale at the rims
+    var och = mix(vec3f(.58, .42, .17), vec3f(.63, .33, .14), fract(sd * 5.7)) * (.88 + .16 * B.c) * (.9 + .14 * C.h);
+    och = mix(och * vec3f(.72, .8, .62), och, ss(.3, .7, i.ao));
+    och = mix(och, och * 1.2 + vec3f(.06, .05, .02), ss(.9, 1., i.ao) * .6);
+    alb = och * mix(.86, mix(.6, 1.2, net) * (1. + .45 * emb) * (1. - .5 * pore), fine);
+    // down a throat it is dark and warm
     // (a bush of 8 cm on dark rock: its throats stay dark, but not so dark that the whole bush reads as a black blot)
-    alb = mix(vec3f(.56, .42, .19), vec3f(.60, .34, .17), fract(sd * 5.7)) * (.88 + .16 * B.c) * (.9 + .14 * C.h) * (.35 + .65 * i.ao);
-    hgt = .7; vao = .65 + .35 * i.ao; bump = .7; gloss = .12; flu = .3;
+    alb = mix(alb, vec3f(.20, .09, .05), thr) * (.35 + .65 * i.ao);
+    hgt = .7; vao = (.65 + .35 * i.ao) * (1. - .25 * fine * (1. - net)); bump = .7; gloss = .12; flu = .3;
     // its thin tubes let a little of the sun through
     emi = alb * vec3f(1.1, .9, .6) * sunE(i.wp.y, 0.) * shadow1(i.wp + Lt * .05) * (.2 * sat(-dot(n0, Lt)) + .8 * pow(sat(-dot(Vt, Lt)), 4.)) * TRANS;
   }

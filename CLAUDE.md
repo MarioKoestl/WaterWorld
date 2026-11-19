@@ -163,7 +163,35 @@ kind with a material in the era's `LOOK.mats`, and a last instance number below 
 
 To add another plesiosaur, add one more array to the `plesios` list. Nothing else changes.
 
-What else an animal can be (`source/eras/cambrian/swimmers.js` and `walkers.js` have an example of each):
+**Every animal is a body, not a cut-out.** The first trilobites of the Cambrian looked flat, like 2D (Mario,
+2026-11-16). The rebuilt one he accepted on 2026-11-17 as the pattern for every animal of every era: "exactly like
+this". `meshTrilo` and `S_TRILO` in `source/eras/cambrian/walkers.js` are the worked example,
+`docs/briefs/cambrian-look.md` (K1 to K9) has the reasons. An animal is finished only when it meets all of this:
+
+- **Its shape comes from a body in the round.** Fossils are often pressed flat. Take heights and cross-sections from
+  a reconstruction or from a relative kept in the round, name the sources in a comment next to the figures, and say
+  there what is an estimate. Sizes and card texts stay what the sources say; colour and movement are free.
+- **No sheets.** Every shield, flap, fin and plate has an upper side, an under side and an edge with a thickness.
+  Every body has a cross-section: round, oval or arched, never a line. What overlaps in the animal is built as
+  pieces that overlap. (`slab()` and `sheet()` in the Cambrian's `swimmers.js`. A shell is drawn from both sides,
+  and its inside gets a colour of its own.)
+- **An underside.** What is under it (legs, gills, a mouth), not a flat lid. A walker stands on its legs, with a gap
+  between body and ground. Feelers, legs and fins come out where they grow, never through a shell.
+- **A skin.** A relief (worked out as a height in the fragment shader and handed to `skinRelief()`), a pattern,
+  shade in the furrows and under the edges, and the sheen of something wet (`skinWet()`). No part in one flat
+  colour, and every kind in a colour family of its own.
+- **Not all the same.** Tone, pattern and size differ from one animal to the next, from the seed of its instance.
+- **It moves as a body.** It bends, its parts move against each other, and a foot on the ground stays where it is.
+- **A place in the world.** What walks or lies has a shadow that falls away from the sun and touches the ground.
+  From a diver's height at 2 m it still reads as an animal: its back is set off from the ground.
+- **The check.** `node tools/turntable.mjs <era> <zoo id> <name>` before the work and after it. The visual critic
+  gets the turntable (and closer views, as a fish) with one question: is this a solid animal or a flat cut-out, and
+  from which views? Go on until it reports nothing above "minor".
+- **Triangles are not the limit.** An animal that is looked at from 5 cm may have ten thousand (the trilobite has).
+  Measure with the benchmark, and say in the hand-over what it costs.
+
+What else an animal can be (the Cambrian has an example of each: one file per animal, `swimmers_<name>.js` and
+`walkers.js`, and what they all share in `swimmers.js`):
 
 - **See-through** (the jellyfish): `glass: 1` in its kind. It is drawn after everything solid and laid over it, far
   ones first. For that the first three floats of its instances have to say about where each one is, and its fragment

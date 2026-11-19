@@ -30,7 +30,8 @@
 //   rb, ra how far its body and legs reach from its middle, and with feelers or tentacles; rf: its feet
 //   kd     its own part of how near the viewer may come before it gives way (dodge in swimmers.js)
 //   line, rad  its zoo place: a line along it, this much ahead and behind its middle, and its radius
-const HW = { l0: 0.012, l1: 0.05, lp: 0.7, c0: 0.5, c1: 2.2, z0: 0.15, dz: 0.09, nl: 7, xf: 0.082, lam: 0.1, be: 0.65, lf: 0.035, wave: 0.13, rp: 0.5, v0: 0.05, v1: 0.03, hc: 0.11, hh: 0.2, rb: 0.52, ra: 0.52, rf: 0.42, kd: 0.9, line: 0.45, rad: 0.1 };
+// (Hallucigenia: its body ends with its last pair of legs, see meshHallu, so that pair stands 0.45 behind its middle)
+const HW = { l0: 0.012, l1: 0.05, lp: 0.7, c0: 0.5, c1: 2.2, z0: 0.12, dz: 0.095, nl: 7, xf: 0.082, lam: 0.1, be: 0.65, lf: 0.035, wave: 0.13, rp: 0.5, v0: 0.05, v1: 0.03, hc: 0.11, hh: 0.2, rb: 0.52, ra: 0.52, rf: 0.42, kd: 0.9, line: 0.45, rad: 0.1 };
 //   hb     (the trilobite) how high the lower edge of the rim of its shield is over the ground when it walks
 //   sink, dig, hd  how deep one that lies half dug in is sunk, what share of them do, and how high the middle of its
 //               zoo place is over the ground (on what of its shield shows)
@@ -94,29 +95,95 @@ const TXF = Array.from({ length: TW.nl }, (_, k) => k < 3 ? [0.2, 0.26, 0.305][k
 const wkNum = (v) => { const s = String(+v.toFixed(6)); return /[.e]/.test(s) ? s : s + '.'; };
 
 // ---------------------------------------------------------------- meshes
-// Hallucigenia sparsa: a thin worm on seven pairs of legs that end in claws, with seven pairs of long spines on its
-// back, one pair over each pair of legs, three pairs of thin tentacles under its neck, and a long head held low, with
-// two small eyes and the ring of teeth round the mouth at its tip.
-// aux: 0 on the body, 0 to .5 down a leg (.5 at its foot and on the claws), .6 to 1 along a tentacle, -.5 on the
-// spines, -1 on the eyes
+// Hallucigenia sparsa, in the round: a soft tube of a body on seven pairs of legs, with seven pairs of long spines on
+// its back, three pairs of thin tentacles under a long neck, and a small head held low. Every fossil of it is pressed
+// flat and seen from the side. It was a lobopodian, a relative of the velvet worms, whose bodies and legs are soft
+// tubes: so its sections are round here. What the sources say:
+//   Smith and Caron, Nature 523 (2015), as the University of Cambridge tells it (zoo.js) and National Geographic
+//   (https://www.nationalgeographic.com/science/article/scientists-finally-decide-which-bit-of-this-weird-animal-is-the-head):
+//   an elongated head with a pair of simple eyes above a mouth with a ring of teeth; behind it ten pairs of limbs, the
+//   first three slender and without claws (the tentacles), the last seven legs with claws and without joints; the
+//   body ends with a pair of legs.
+//   Royal Ontario Museum, Burgess Shale gallery (https://burgess-shale.rom.on.ca/fossils/hallucigenia-sparsa/): a
+//   small, slightly swollen head at the end of a long neck, the eyes on its upper side, the mouth at its tip, a ring
+//   of many small plates round its opening; the first pair of spines over the last pair of tentacles, one pair over
+//   each of the first six pairs of legs, none over the last pair; the spines stand in sheaths of skin; each leg ends
+//   in a pair of claws.
+//   Wikipedia, "Hallucigenia" (https://en.wikipedia.org/wiki/Hallucigenia): the spines rigid cones; the trunk of this
+//   species shows no rings; one end often droops as if to reach the ground.
+// Estimates, which no source gives: how thick the trunk is (a sixteenth of its length), how long legs and spines are
+// against it, how far the spines lean out and back, how high their sheaths reach, how large eyes and mouth are.
+// The body is one unit long from its rear end to its mouth, as far along its middle line (the neck curves down).
+// hlY: how high its middle line is at z; hlR: how thick it is there (half of it): round at the blunt rear end just
+// behind the last legs, thinning from the first spines on into the neck, swollen at the head, narrower at the mouth.
+// fsHallu has hlY and hlR too: change one, change the other. HL_ZN, HL_WN: where the neck begins to bend and how long
+// that part is
+const HL_YA = 0.112, HL_ZN = 0.235, HL_WN = 0.2;
+const hlY = (z) => HL_YA - 0.066 * clamp((z - 0.2) / 0.3, 0, 1) ** 2 - 0.012 * sstep(0.38, 0.5, -z);
+const hlR = (z) => (0.034 - 0.019 * sstep(0.14, 0.32, z) + 0.01 * exp(-(((z - 0.447) / 0.04) ** 2))) * sqrt(max(1 - (max(-0.455 - z, 0) / 0.047) ** 2, 0)) * (1 - 0.4 * sstep(0.478, 0.502, z));
+// The point of its surface at z, the angle a round from its right side over its back (k: this share of the way out
+// from the middle line). A section stands across the middle line; the head is a little wider than high
+const hlAt = (z, a, k = 1) => {
+  const z1 = min(z + 0.002, 0.5), dy = (hlY(z1) - hlY(z1 - 0.004)) / 0.004, tl = hypot(1, dy), r = hlR(z) * k, rv = r * (1 - 0.1 * exp(-(((z - 0.447) / 0.04) ** 2))) * sin(a) / tl;
+  return [cos(a) * r, hlY(z) + rv, z - rv * dy];
+};
+// the middle of the right eye, the middle of the mouth and the way the mouth looks: forward and down
+const HL_EYE = hlAt(0.44, 1.08, 0.88), HL_MC = [0, hlY(0.499), 0.499];
+const HL_MT = (() => { const dy = (hlY(0.499) - hlY(0.495)) / 0.004, l = hypot(1, dy); return [0, dy / l, 1 / l]; })();
+// aux: 0 on the body, .008 to .5 down a leg (how much of the way of its foot a place on it goes along), .51 on the
+// claws, .6 to 1 along a tentacle, -.12 to -.28 up the sheath of a spine, -.4 to -.7 up a spine, -.8 on the mouth, -1
+// on the eyes
 function meshHallu() {
-  const m = new Mesh(), H = HW;
-  loft(m, [[-0.5, 0.01, 0.01, 0.08], [-0.47, 0.02, 0.02, 0.092], [-0.42, 0.027, 0.027, 0.103], [-0.3, 0.031, 0.031, 0.11], [-0.1, 0.033, 0.033, 0.112], [0.1, 0.032, 0.032, 0.112], [0.2, 0.027, 0.026, 0.108], [0.27, 0.02, 0.019, 0.098], [0.34, 0.017, 0.016, 0.083], [0.39, 0.019, 0.018, 0.072], [0.44, 0.023, 0.021, 0.066], [0.48, 0.02, 0.018, 0.063], [0.5, 0.008, 0.008, 0.062]], 2, 10);
+  const m = new Mesh(), H = HW, M = 14;
+  // ---- the body: rings round its middle line, from the rear end to the mouth
+  const zs = [-0.499, -0.495, -0.487, -0.474, -0.455];
+  for (let z = -0.43; z < 0.135; z += 0.04) zs.push(z);
+  zs.push(0.165, 0.2, 0.235, 0.265, 0.295, 0.32, 0.345, 0.37, 0.39, 0.408, 0.424, 0.438, 0.452, 0.465, 0.476, 0.485, 0.492, 0.499);
+  const rings = zs.map((z) => Array.from({ length: M }, (_, s) => m.v(...hlAt(z, s / M * TAU), 0)));
+  for (let j = 0; j < rings.length - 1; j++) for (let s = 0; s < M; s++) { const s2 = (s + 1) % M; m.quad(rings[j][s], rings[j][s2], rings[j + 1][s2], rings[j + 1][s]); }
+  const e0 = m.v(0, hlY(-0.5), -0.502, 0);
+  for (let s = 0; s < M; s++) m.tri(rings[0][(s + 1) % M], rings[0][s], e0);
+  // ---- the mouth at its tip: a lip all round (fsHallu draws the ring of plates on it) and the throat inside it
+  const [, ty, tz] = HL_MT, lip = [];
+  for (let s = 0; s < M; s++) {
+    const a = s / M * TAU, ring = [];
+    for (let b = 0; b < 4; b++) { const e = (b + 0.5) / 4 * TAU, r = 0.0088 + 0.0032 * cos(e), f = 0.0035 + 0.0032 * sin(e), v = 0.9 * r * sin(a); ring.push(m.v(r * cos(a), HL_MC[1] + v * tz + f * ty, HL_MC[2] - v * ty + f * tz, -0.8)); }
+    lip.push(ring);
+  }
+  const th = m.v(0, HL_MC[1] - 0.012 * ty, HL_MC[2] - 0.012 * tz, -0.8);
+  for (let s = 0; s < M; s++) { const s2 = (s + 1) % M; for (let b = 0; b < 4; b++) m.quad(lip[s][b], lip[s2][b], lip[s2][(b + 1) % 4], lip[s][(b + 1) % 4]); m.tri(lip[s][1], lip[s2][1], th); }
+  // (how long a spine is against the longest, how thick a leg is, and how far its root is ahead of its foot)
+  const SK = [0.8, 0.94, 1, 1, 1, 0.93, 0.82], LK = [0.9, 1, 1.05, 1.05, 1, 0.96, 0.9], LEAN = [-0.01, -0.005, 0, 0, 0, 0, -0.004];
+  // a leg, in the plane of its z: [how far out (of the way to its foot), how high, how thick, how much of the way of
+  // its foot it goes along]. A soft tube without joints: out of the side of the body below its middle, in an arch
+  // out and down to its foot
+  const LEG = [[0.17, 0.1, 0.02, 0], [0.36, 0.091, 0.019, 0.02], [0.58, 0.08, 0.017, 0.1], [0.8, 0.065, 0.015, 0.25], [0.96, 0.046, 0.013, 0.45], [1.03, 0.028, 0.0115, 0.7], [1.02, 0.014, 0.0103, 0.9], [1, 0.007, 0.008, 1]];
   for (const sx of [-1, 1]) {
+    // the eye: a low dome on the upper side of the head
+    ball(m, [sx * HL_EYE[0], HL_EYE[1], HL_EYE[2]], 0.0062, -1, 8, 4);
+    for (let k = 0; k < 7; k++) {
+      // ---- a spine: the first pair over the last pair of tentacles, then one pair over each pair of legs but the
+      // last. From inside the body up, out and back, curved back a little towards its tip; no two quite alike
+      const z = H.z0 + H.dz * (1 - k), B = hlAt(z, PI / 2 - sx * 0.42, 0.5), q = 0.18 * SK[k] * (1 + 0.035 * sin(k * 1.9 + sx));
+      const D = [sx * (0.34 + 0.05 * sin(k * 2.3 + 2 * sx)), 1, -0.2 - 0.04 * cos(k * 1.3 + sx)], dl = hypot(...D);
+      const at = (s, bend) => [B[0] + (D[0] / dl * s + sx * 0.012 * bend) * q, B[1] + D[1] / dl * s * q, B[2] + (D[2] / dl * s - 0.11 * bend) * q];
+      m.tube(curve([at(0, 0), at(0.33, 0.1), at(0.67, 0.42), at(1, 1)], 6), (j) => 0.012 * pow(1 - j / 6.3, 0.85), 6, true, (j) => -0.4 - 0.3 * j / 6);
+      // its sheath: a collar of the body's skin round its foot, wide where it grows out of the back, with a rim that
+      // lies against the spine
+      m.tube([0.03, 0.1, 0.18, 0.25, 0.3].map((s) => at(s, 0)), (j) => [0.029, 0.023, 0.017, 0.013, 0.008][j], 6, false, (j) => -0.12 - 0.04 * j);
+    }
     for (let k = 0; k < H.nl; k++) {
-      const z = H.z0 - k * H.dz, f = H.xf, fk = [0.72, 0.9, 1, 1, 1, 0.92, 0.8][k], zs = z + 0.01;
-      // the leg: thick where it leaves the body, bending out and down to its foot, and two claws curved forward
-      m.tube([[sx * 0.012, 0.1, z], [sx * 0.04, 0.078, z], [sx * 0.062, 0.05, z], [sx * 0.075, 0.024, z], [sx * f, 0.009, z]], (j) => [0.017, 0.015, 0.0125, 0.0105, 0.0085][j], 5, true, (j) => 0.125 * j);
-      for (const e of [-1, 1]) m.tube([[sx * f + e * 0.0032, 0.008, z + 0.003], [sx * f + e * 0.005, 0, z + 0.017]], (j) => [0.0034, 0.0007][j], 3, true, () => 0.5);
-      // the spine over it: up, out and back, curved a little
-      m.tube(curve([[sx * 0.01, 0.13, zs], [sx * 0.024, 0.13 + 0.06 * fk, zs - 0.01 * fk], [sx * 0.043, 0.13 + 0.12 * fk, zs - 0.03 * fk], [sx * 0.06, 0.13 + 0.175 * fk, zs - 0.065 * fk]], 4), (j) => 0.0095 * (1 - j / 4.4), 4, true, () => -0.5);
+      // ---- a leg, each bowed a little more or less than the next, and at its end two claws, curved forward and down
+      const z = H.z0 - k * H.dz, f = H.xf, bow = 0.38 * sin(k * 2.4 + sx * 1.3);
+      m.tube(LEG.map(([u, y, , w]) => [sx * f * u * (1 + bow * w * (1 - w)), y, z + LEAN[k] * (1 - w)]), (j) => LEG[j][2] * LK[k], 6, true, (j) => 0.008 + 0.49 * LEG[j][3]);
+      for (const e of [-1, 1]) m.tube([[sx * f + e * 0.004, 0.008, z + 0.002], [sx * f + e * 0.0062, 0.004, z + 0.015], [sx * f + e * 0.007, 0.0006, z + 0.027], [sx * f + e * 0.006, -0.001, z + 0.034]], (j) => [0.0042, 0.003, 0.0014, 0.0003][j], 4, true, () => 0.515);
     }
-    // the tentacles under the neck: down and forward, their tips just over the ground
+    // ---- the tentacles: the last pair under the first spines, two pairs on the neck in front of it. Thin, out of the
+    // under side, down and forward, their tips just over the ground
     for (let k = 0; k < 3; k++) {
-      const z = 0.235 + 0.05 * k, y = [0.087, 0.08, 0.071][k], d = y - 0.014;
-      m.tube(curve([[sx * 0.006, y, z], [sx * 0.018, y - 0.35 * d, z + 0.012], [sx * 0.028, y - 0.7 * d, z + 0.03], [sx * 0.033, y - d, z + 0.055]], 5), (j) => 0.0042 - 0.0006 * j, 4, true, (j) => 0.6 + 0.08 * j);
+      const z = [H.z0 + H.dz, 0.285, 0.345][k], R = hlAt(z, -PI / 2 + sx * 0.52, 0.6), yt = 0.013, xt = sx * (0.034 - 0.003 * k);
+      m.tube(curve([R, [R[0] + sx * 0.01, mix(R[1], yt, 0.42), z + 0.004], [mix(R[0], xt, 0.8), mix(R[1], yt, 0.8), z + 0.02], [xt, yt, z + 0.05]], 8), (j) => 0.0055 - 0.0035 * j / 8, 5, true, (j) => 0.6 + 0.4 * j / 8);
     }
-    ball(m, [sx * 0.011, 0.083, 0.455], 0.0065, -1, 8, 4);
   }
   return m;
 }
@@ -138,9 +205,8 @@ function meshHallu() {
 // of the eyes, .008 to .5 down a leg, .6 to 1 along a feeler
 function meshTrilo() {
   const m = new Mesh(), hb = TW.hb, ry = hb + TR_RT, S = TR_SEG;
-  // joins rows of points, each from -x to +x, into a surface whose outer side is up. The rows from the rear to the
-  // front, or (flip) from the front to the rear
-  const join = (rows, flip) => { for (let j = 0; j < rows.length - 1; j++) for (let c = 0; c < rows[j].length - 1; c++) { const a = rows[flip ? j + 1 : j], b = rows[flip ? j : j + 1]; m.quad(a[c], b[c], b[c + 1], a[c + 1]); } };
+  // (sheet() of swimmers.js: rows of points, each from -x to +x, joined into a surface whose outer side is up)
+  const join = (rows, flip) => sheet(m, rows, flip);
   // a row across the head shield or the tail piece at z: over the axis (at AX of its width) and over both sides out to
   // the outline (at T of the way). h: its height; dy: this much lower; zAt: with the shape it has at this z
   const row = (z, part, h, AX, T, dy = 0, zAt = z) => {
@@ -293,52 +359,128 @@ const S_HALLU = /*wgsl*/`
 const HL_Z0 = ${wkNum(HW.z0)}; const HL_DZ = ${wkNum(HW.dz)}; const HL_NL = ${wkNum(HW.nl - 1)}; const HL_XF = ${wkNum(HW.xf)};
 const HL_LAM = ${wkNum(HW.lam)}; const HL_BE = ${wkNum(HW.be)}; const HL_LF = ${wkNum(HW.lf)}; const HL_WAVE = ${wkNum(HW.wave)};
 const HL_RP = ${wkNum(HW.rp)}; const HL_V0 = ${wkNum(HW.v0)}; const HL_V1 = ${wkNum(HW.v1)}; const HL_HC = ${wkNum(HW.hc)}; const HL_HH = ${wkNum(HW.hh)}; const HL_KD = ${wkNum(HW.kd)};
+const HL_YA = ${wkNum(HL_YA)}; const HL_ZN = ${wkNum(HL_ZN)}; const HL_WN = ${wkNum(HL_WN)};
+const HL_EYE = vec3f(${HL_EYE.map(wkNum).join(', ')}); const HL_MC = vec3f(${HL_MC.map(wkNum).join(', ')}); const HL_MT = vec3f(${HL_MT.map(wkNum).join(', ')});
+// How it bends. HL_BEND: a place along the body heads the way the walker will head (in front of its middle) or did
+// head (behind it) when it has walked on by this share of the way between them: in a turn the head goes first and
+// the rear end follows. HL_SW: how far the trunk sways to either side with the steps of its legs. HL_PIV: the height
+// about which the neck bends up and down
+const HL_BEND = .12; const HL_SW = .01; const HL_PIV = .11;
+fn hlG(v: f32) -> f32 { return exp(-v * v); }
+fn hlY(z: f32) -> f32 { let u = sat((z - .2) / .3); return HL_YA - .066 * u * u - .012 * ss(.38, .5, -z); }
+fn hlR(z: f32) -> f32 {
+  return (.034 - .019 * ss(.14, .32, z) + .01 * hlG((z - .447) / .04)) * sqrt(max(1. - pow(max(-.455 - z, 0.) / .047, 2.), 0.)) * (1. - .4 * ss(.478, .502, z));
+}
 @vertex fn vsHallu(i: VI) -> VO {
   var o: VO;
   let t = g.cam.w; let L = i.b.z; let sd = fract(i.b.w); let au = i.n.w;
   let w = wkOf(i.a, i.b, HL_RP); let s = wkS(t, w, sd, HL_V0 + HL_V1 * fract(sd * 7.3)); let P = wkPose(s, w);
-  var l = i.p; var n = i.n.xyz; let sg = select(-1., 1., l.x > 0.);
-  // the legs step (aux up to .5: how far down a leg a vertex is), the two of a pair in turn, each pair a little
-  // after the one behind it. Too far away to be seen, they are left as they are
-  if (au > .003 && au < .52 && distance(g.cam.xyz, i.a.xyz) < 12. + abs(i.a.w)) {
+  var l = i.p; let sg = select(-1., 1., l.x > 0.);
+  // The tentacles feel about (aux .6 to 1, out along one): each sweeps forward and back and in and out and lifts its
+  // tip, in waves that run out along it
+  let tn = sat((au - .6) / .4) * step(.55, au); let tp = sd * 40. + sg * 1.9 + l.z * 37.;
+  l += vec3f(sg * .014 * sin(t * .8 + tp * 1.3 - tn * 2.), .011 * (.5 + .5 * sin(t * 1.1 + tp * .7 - tn * 3.)), .028 * sin(t * .9 + tp - tn * 2.5)) * tn * tn;
+  // The legs step (aux up to .5: how much of the way of its foot a place on a leg goes along), the two of a pair in
+  // turn, each pair a little after the one behind it. Too far away to be seen, they are left as they are
+  let wl = sat((au - .008) / .49) * step(.004, au) * step(au, .52);
+  var d = vec3f(0.);
+  if (wl > 0. && distance(g.cam.xyz, i.a.xyz) < 12. + abs(i.a.w)) {
     let k = clamp(round((HL_Z0 - l.z) / HL_DZ), 0., HL_NL); let f = vec2f(sg * HL_XF, HL_Z0 - k * HL_DZ);
-    let d = wkFoot(s, P, f, k * HL_WAVE + .25 + .25 * sg, w, HL_LAM, HL_BE, HL_LF) - vec3f(f.x, 0., f.y);
-    let wl = 2. * au;
-    l += vec3f(d.x * wl, d.y * wl * wl, d.z * wl);
+    d = wkFoot(s, P, f, k * HL_WAVE + .25 + .25 * sg, w, HL_LAM, HL_BE, HL_LF) - vec3f(f.x, 0., f.y);
   }
-  // the tentacles feel about (aux .6 to 1, out along one)
-  let tn = sat((au - .6) / .4) * step(.55, au);
-  l += vec3f(0., .008 * sin(t * 1.7 + l.z * 70. + sd * 40.), .012 * sin(t * 1.3 + l.x * 90. + l.z * 50. + sd * 30.)) * tn * tn;
-  // it lifts its head a little and turns it this way and that, bending the neck (from z .18 on)
-  let nk = ss(.18, .36, i.p.z); let pa = nk * (.06 + .06 * sin(t * .5 + sd * 20.)); let ya = nk * .3 * sin(t * .31 + sd * 9.);
-  let cp = cos(pa); let sp = sin(pa); let cy = cos(ya); let sy = sin(ya);
-  let q = vec2f(l.y - .1, l.z - .2); l = vec3f(l.x, q.x * cp + q.y * sp + .1, q.y * cp - q.x * sp);
-  n = vec3f(n.x, n.y * cp + n.z * sp, n.z * cp - n.y * sp);
-  l = vec3f(l.x * cy + l.z * sy, l.y, l.z * cy - l.x * sy + .2);
-  n = vec3f(n.x * cy + n.z * sy, n.y, n.z * cy - n.x * sy);
+  // The body bends, each place along it (zc) about its own middle. The neck (nk: how much of its bend a place has,
+  // ink: how far that has carried it) lifts and lowers the head, now and then down to the mud, and turns it this way
+  // and that, and into a turn before the body follows (ya, pn). The trunk bends into a turn (dt) and sways with the
+  // steps (HL_SW). xo: how far all that puts a place to the side
+  let zc = clamp(l.z, -.5, .5); let ze = l.z - zc;
+  let u = sat((zc - HL_ZN) / HL_WN); let nk = u * u * (3. - 2. * u); let ink = HL_WN * (u * u * u - .5 * u * u * u * u) + max(zc - HL_ZN - HL_WN, 0.);
+  let ya = .2 * sin(t * .31 + sd * 9.) + .1 * sin(t * .83 + sd * 23.) + .6 * clamp(wkHead(s + .3, w) - P.z, -.7, .7);
+  let pn = .02 + .1 * sin(t * .5 + sd * 20.) - .08 * ss(.6, 1., sin(t * .23 + sd * 50.));
+  let dt = wkHead(s + HL_BEND * zc, w) - P.z; let da = dt + ya * nk; let pa = pn * nk;
+  let xo = (HL_SW * sin(TAU * (s / HL_LAM + (HL_Z0 - zc) / HL_DZ * HL_WAVE)) + .006 * sin(t * 1.2 + sd * 15. + zc * 7.)) * (1. - nk) - .5 * dt * zc - ya * ink;
+  let cp = cos(pa); let sp = sin(pa); let cy = cos(da); let sy = sin(da);
+  let yr = l.y - HL_PIV; let z1 = ze * cp - yr * sp;
+  var bd = vec3f(l.x * cy - z1 * sy + xo, HL_PIV + pn * ink + yr * cp + ze * sp, zc + l.x * sy + z1 * cy);
+  // (neck, head and tentacles never go into the mud)
+  bd.y = max(bd.y, .004 * (1. - step(.004, au) * step(au, .52)));
+  // A leg goes with the body where it leaves it, and with its foot at its end: a foot on the ground stays there. It has
+  // no joint: lifted, the whole leg bows outwards
+  l = mix(bd, l, wl) + vec3f(d.x * wl + sg * .55 * d.y * sin(3.1415927 * wl), d.y * pow(wl, 2.5), d.z * wl);
+  let n1 = vec3f(i.n.x, i.n.y * cp + i.n.z * sp, i.n.z * cp - i.n.y * sp); let n = vec3f(n1.x * cy - n1.z * sy, n1.y, n1.x * sy + n1.z * cy);
   let fr = wkFrame(i.b); let c = wkWorld(i.a, L, fr, P, vec3f(0., HL_HC, 0.));
   let wp = wkWorld(i.a, L, fr, P, l) + wkGive(c, HL_KD * L, HL_HH * L, i.b);
-  o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = wkDir(fr, P, n); o.op = i.p; o.sd = sd; o.lt = au;
+  // (the fragment shader needs the length too: it travels with the seed, as whole thousandths of a quarter millimetre)
+  o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = wkDir(fr, P, n); o.op = i.p; o.sd = floor(L * 4000.) + sd; o.lt = au;
   return o;
 }
+// The skin. Colours are free: no fossil shows them. Rose and violet: the back dark mauve, darkest in a saddle round
+// each pair of spines, the sides rose, the under side pale; the legs pale where they leave the body and dark at their
+// feet; spines and claws nearly black, hard and glossy against the soft body; each animal in its own tone. Its relief
+// is free too (the fossils show a smooth trunk, no rings): soft, uneven wrinkles across body and legs and small
+// papillae, as the skin of a velvet worm has them, and a fold of skin round the foot of each sheath and the root of
+// each leg. It is dark in its folds, it shines like something wet, and what is thin lets the sun through
 @fragment fn fsHallu(i: VO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
-  let tx = textureSample(tD, sR, i.op.zx * vec2f(9., 7.) + i.op.y * 4. + i.sd);
-  let n = normalize(normalize(i.n) * select(-1., 1., ff) + (vec3f(tx.r, 0., tx.g) - vec3f(.5, 0., .5)) * .2);
-  let spine = step(i.lt, -.3) * step(-.7, i.lt); let eye = step(i.lt, -.75); let leg = step(.004, i.lt) * step(i.lt, .52); let tent = step(.55, i.lt);
-  // a rose-brown body, darker along its back, finely ringed (the rings fade where they would be finer than the pixels)
-  let rg = i.op.z * 150.;
-  var alb = mix(vec3f(.42, .26, .20), vec3f(.28, .15, .11), ss(.09, .145, i.op.y) * (1. - leg) * (1. - tent));
-  alb *= 1. - .16 * ss(.3, .5, abs(fract(rg) - .5)) * ss(1.2, .4, fwidth(rg)) * (1. - spine) * (1. - leg) * (1. - tent);
-  // the tentacles a little paler; the legs darker down towards their feet, the claws dark
-  alb = mix(alb, vec3f(.44, .29, .23), tent * .6);
-  alb = mix(alb, mix(vec3f(.30, .18, .13), vec3f(.11, .055, .035), ss(.085, .03, i.op.y)), leg);
-  alb = mix(alb, vec3f(.07, .04, .025), leg * ss(.011, .004, i.op.y));
-  // the spines dark brown at their foot, paler towards the tip
-  alb = mix(alb, mix(vec3f(.14, .07, .04), vec3f(.38, .27, .17), ss(.16, .3, i.op.y)), spine);
-  // the ring of teeth round the mouth at the tip of the head, and the eyes
-  alb = mix(alb, vec3f(.13, .06, .05), ss(.484, .494, i.op.z) * (1. - eye));
-  alb = mix(alb * (.85 + .3 * tx.b), vec3f(.02, .015, .015), eye);
-  return fin(fog(skin(alb, n, i.wp, .25 + .35 * spine + 1.4 * eye), i.wp, zone(i.wp)));
+  let L = floor(i.sd) / 4000.; let sd = fract(i.sd); let lt = i.lt; let p = i.op; let ax = abs(p.x);
+  let leg = step(.004, lt) * step(lt, .52); let claw = leg * step(.505, lt); let tent = step(.55, lt);
+  let body = step(-.05, lt) * step(lt, .003); let sheath = step(-.3, lt) * step(lt, -.1); let spine = step(-.75, lt) * step(lt, -.35);
+  let mouth = step(-.9, lt) * step(lt, -.76); let eye = step(lt, -.95);
+  let limb = leg - claw + tent; let soft = body + sheath + limb;
+  // where on the body: v from -1 on the under side to 1 on the back; the nearest pair of spines (zs: how far in
+  // front of the place it is) and the nearest pair of legs (zl); how far up a sheath (sr) and up a spine (su)
+  let ya = hlY(p.z); let ra = max(hlR(p.z), .004); let v = clamp((p.y - ya) / ra, -1., 1.);
+  let ks = (HL_Z0 + HL_DZ - p.z) / HL_DZ; let zs = (fract(ks + .5) - .5) * HL_DZ; let onS = step(-.5, ks) * step(ks, 6.5);
+  let kl = (HL_Z0 - p.z) / HL_DZ; let zl = (fract(kl + .5) - .5) * HL_DZ; let onL = step(-.5, kl) * step(kl, 6.5);
+  let sr = sat((-lt - .12) / .16); let su = sat((-lt - .4) / .3);
+  // the fold round the foot of each sheath and round the root of each leg
+  let fS = hlG((length(vec2f(ax - .0125, zs - .004)) - .021) / .006) * onS * ss(.15, .55, v) * body;
+  let fL = hlG((length(vec2f((v + .62) * ra, zl)) - .018) / .006) * onL * ss(.15, -.2, v) * body;
+  // The relief (it fades where it would be finer than the pixels): wrinkles that run across the body and across a
+  // limb (wr), papillae (pap), the folds, and on the spines a fine grain
+  let fine = ss(.007, .002, fwidth(p.z) + fwidth(p.x) + fwidth(p.y));
+  let q = mix(vec3f(p.x * 14., p.y * 14., p.z * 105.), vec3f(p.z * 18., (ax - p.y) * 9., lt * 48.), sat(limb));
+  let wr = vn(q + sd * 31.) + .6 * vn(q * vec3f(1.7, 1.7, .6) + 7.3) - .8;
+  let pap = ss(.5, .12, wor(p * 125. + sd * 17.));
+  let grain = vn(vec3f(p.x, p.y * .5, p.z) * 90.) - .5;
+  let lgr = sin(lt * 200.) * leg * ss(.05, .15, lt) * ss(.48, .4, lt);
+  let ns = normalize(i.n) * select(-1., 1., ff);
+  let n = skinRelief(ns, i.wp, ((.003 * wr + .004 * pap + .0015 * lgr) * (1. - .5 * tent) * soft - .005 * (fS + fL) + .001 * grain * spine) * fine * L);
+  // (one in seven is a pale one, the large ones are darker)
+  let tone = fract(sd * 13.7); let hue = fract(sd * 5.3); let lite = step(.86, fract(sd * 3.1));
+  let cb = mix(vec3f(.24, .09, .34), vec3f(.38, .09, .24), hue);
+  let cf = mix(vec3f(.64, .30, .62), vec3f(.82, .34, .48), hue);
+  let cv = vec3f(.94, .76, .80);
+  let mo = vn(p * vec3f(30., 30., 22.) + sd * 9.);
+  // the body: pale below, rose on the sides, the back dark with a saddle at each pair of spines; the snout dark, and
+  // a pale ring round each eye
+  var alb = mix(cv, cf, ss(-.8, -.15, v));
+  alb = mix(alb, cb, ss(-.1, .55, v) * (.4 + .6 * hlG(zs / .02) * onS));
+  alb = mix(alb, cb, .5 * ss(.465, .5, p.z));
+  alb = mix(alb, cv * .95, ss(.0135, .009, distance(vec3f(ax, p.y, p.z), HL_EYE)) * .7);
+  // the sheaths: of the back's colour, paler to their rims; the legs: pale at the body, dark down to their feet; the
+  // tentacles pale
+  alb = mix(alb, mix(cb, cf, .15 + .45 * sr), sheath);
+  alb = mix(alb, mix(mix(cf, cv, .4), cb, .8 * ss(.12, .5, lt)), leg);
+  alb = mix(alb, mix(cv, cf, .3), tent);
+  alb *= mix(1., (.75 + .5 * mo) * (1. + .3 * pap * fine) * mix(.72, 1.28, tone) * (1. + .4 * lite) * mix(1.1, .88, ss(.02, .045, L)), soft);
+  // spines and claws: black-violet, a little paler towards the tip of a spine
+  alb = mix(alb, mix(vec3f(.03, .016, .045), vec3f(.15, .07, .17), su * su) * (.85 + .3 * mo), spine);
+  alb = mix(alb, vec3f(.045, .022, .05), claw);
+  // the mouth: the dark throat, and round it the ring of small pale plates (ma: the angle round the mouth)
+  let mv = p - HL_MC; let mr = length(mv - HL_MT * dot(mv, HL_MT)); let ma = atan2(mv.x, mv.y * HL_MT.z - mv.z * HL_MT.y);
+  alb = mix(alb, mix(vec3f(.05, .015, .03), mix(vec3f(.3, .12, .2), vec3f(.95, .86, .78), ss(-.3, .4, cos(ma * 14.))), ss(.0055, .0075, mr)), mouth);
+  alb = mix(alb, vec3f(.02, .012, .02), eye);
+  // shade: in the folds and the wrinkles, under the body, where a leg, a tentacle or a sheath leaves the body, and at
+  // the foot of a spine inside its sheath
+  let sh = (1. - .55 * (fS + fL)) * (1. - .4 * body * ss(-.3, -1., v)) * (1. - .5 * leg * ss(.09, 0., lt)) * (1. - .5 * sheath * ss(.3, 0., sr))
+    * (1. - .45 * spine * ss(.2, 0., su)) * (1. - .45 * tent * ss(.68, .6, lt)) * (1. - .3 * soft * ss(-.1, -.7, wr) * fine);
+  // its light: that of a wet skin (skinWet of S_SEA), soft on the body, hard on spines, claws and eyes
+  var c = skinWet(alb * sh, n, ns, i.wp, .2 * soft + .55 * (spine + claw) + 1.6 * eye + .25 * mouth, .5 * soft + 1.5 * (spine + claw) + 3. * eye + .3 * mouth);
+  // and the sun that comes through what is soft and thin, seen against it (TRANS of air.js): the tentacles most, then
+  // the legs, then the body
+  let V = normalize(g.cam.xyz - i.wp);
+  c += alb * vec3f(1.2, .85, .8) * sunE(i.wp.y, zone(i.wp)) * shadow1(i.wp + g.sun.xyz * .05) * (.35 * sat(-dot(ns, g.sun.xyz)) + 1. * pow(sat(-dot(V, g.sun.xyz)), 3.)) * TRANS
+    * (.25 * (body + sheath) + .5 * (leg - claw) + .7 * tent);
+  return fin(fog(c, i.wp, zone(i.wp)));
 }
 `;
 const S_TRILO = /*wgsl*/`
@@ -396,12 +538,6 @@ fn trIn(x: f32, zr: f32, a: f32, b: f32) -> f32 { let q = max(length(vec2f(x / a
   o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = wkDir(fr, P, n); o.op = i.p; o.sd = floor(L * 4000.) + sd; o.lt = au;
   return o;
 }
-// the normal n of a surface at wp, tilted by a relief on it that is h high there (in metres): from how h changes from
-// pixel to pixel
-fn trBump(n: vec3f, wp: vec3f, h: f32) -> vec3f {
-  let px = dpdx(wp); let py = dpdy(wp); let r1 = cross(py, n); let r2 = cross(n, px); let det = dot(px, r1);
-  return normalize(abs(det) * n - sign(det) * (dpdx(h) * r1 + dpdy(h) * r2));
-}
 // The skin. Colours are free: no fossil shows them. A dark back and paler sides, the rim and the spines pale amber, a
 // dark band across the rear of every segment, pale spots on the sides; each animal in its own tone, the large ones
 // darker. The shell has a relief: the furrows of the glabella, the furrow along each side lobe, the rings and ribs of
@@ -439,7 +575,7 @@ fn trBump(n: vec3f, wp: vec3f, h: f32) -> vec3f {
   let fT = pow(.5 - .5 * cos(TAU * (tz * 5.5 - (x - Ap) * 8.)), 3.) * (1. - onA) * ss(0., .03, dp) * .8;
   let fur = sat(hd * fG * .5 + th * (fP + fA) + tl * (fR + fT));
   let ns = normalize(i.n) * select(-1., 1., ff); let ny = ns.y;
-  let n = trBump(ns, i.wp, (.0022 * (tg.a - .5) * (1. - fur) - .005 * fur) * outer * fine * L * 1.6);
+  let n = skinRelief(ns, i.wp, (.0022 * (tg.a - .5) * (1. - fur) - .005 * fur) * outer * fine * L * 1.6);
   // (one in seven is a pale one)
   let tone = fract(sd * 13.7); let hue = fract(sd * 5.3); let lite = step(.86, fract(sd * 3.1));
   let dk = mix(vec3f(.12, .05, .03), vec3f(.095, .066, .035), hue);
@@ -468,15 +604,9 @@ fn trBump(n: vec3f, wp: vec3f, h: f32) -> vec3f {
   alb = mix(alb, mix(vec3f(.2, .1, .06), vec3f(.44, .25, .15), ss(0., .05, y)) * (1. - .3 * ring) * mix(.45, 1., ss(.16, .3, x)), leg);
   alb = mix(alb, vec3f(.46, .29, .17) * (1. - .3 * ring), ant);
   alb = mix(alb, vec3f(.03, .025, .02), eye);
-  // Its light is that of skin() of S_SEA (the sun as far as it reaches down, the water above and around), without the
-  // pale line that skin() lays along every edge: on a shell with so many edges that is a net of teal lines
-  let V = normalize(g.cam.xyz - i.wp); let zn = zone(i.wp); let H = normalize(V + g.sun.xyz);
-  let E = sunE(i.wp.y, zn) * shadow4(i.wp + n * .3);
-  var c = alb * (E * sat(dot(n, g.sun.xyz)) * .65 + amb(i.wp, vec3f(n.x, abs(n.y) * .55 + .25, n.z), vol(i.wp).g, zn) * 1.1 + side(i.wp, n, 1., zn) * .8);
-  c += E * pow(sat(dot(n, H)), 40.) * (.25 * (outer + knob + rim) + 1.6 * eye + .12 * (und + leg + gill + ant + inner));
-  // the wet shell: a soft light of the sun on its shape (not on every granule: that glitters like sequins)
-  c += E * pow(sat(dot(ns, H)), 70.) * (.6 * (outer + knob) + .35 * rim + 3. * eye);
-  return fin(fog(c, i.wp, zn));
+  // its light: that of a wet skin (skinWet of S_SEA), strongest on the shell and on the lenses of the eyes
+  let c = skinWet(alb, n, ns, i.wp, .25 * (outer + knob + rim) + 1.6 * eye + .12 * (und + leg + gill + ant + inner), .6 * (outer + knob) + .35 * rim + 3. * eye);
+  return fin(fog(c, i.wp, zone(i.wp)));
 }
 `;
 // The soft dark patch on the mud right under a walker, so that it stands on the ground and is not laid over it. It is

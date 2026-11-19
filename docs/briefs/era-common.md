@@ -106,7 +106,15 @@ world is held to this list, and stage 1 of every world is judged by it:
 - **Bodies, not cut-outs.** Fossils are often pressed flat, and a body modelled on such a fossil comes out as a
   sheet (Mario on the first trilobites, 2026-11-16: flat, like 2D). Every animal gets its thickness back: a
   cross-section, an underside, edges with a thickness, a skin with relief, pattern and sheen, and animals that are
-  not all the same. `cambrian-look.md`, K1 to K9, has the list.
+  not all the same. `cambrian-look.md`, K1 to K9, has the list. The rebuilt trilobite of the Cambrian is the pattern
+  for every animal of every era (Mario, 2026-11-17: exactly like this, and all are to be made this way): the rules
+  are in `CLAUDE.md`, "Recipe: adding an animal", under "Every animal is a body, not a cut-out". No kind is done
+  before its turntable has passed the visual critic.
+- **Sources before the model.** No animal is modelled from a few sentences. First its notes (which sources, what
+  they print, what was measured on which drawing), kept in `docs/research/<era>/<id>.md`, and its figures in lengths
+  of the body in a comment at the mesh. The first models of the Devonian were built without that and had to be
+  redone (`devonian-models.md` shows the form). If a brief names no sources for an animal's shape, find them first,
+  or ask Mario.
 - **Places.** Two or three places worth swimming to, each a picture.
 - **Spend the budget.** A world may cost as much GPU time as `today` on the same machine. One that costs half is
   probably too empty.
@@ -156,6 +164,8 @@ The brief of the era names the order inside the stages where it matters.
 8. The menu shows the sentences of the brief for this era.
 9. Nothing of another era is in the page, to see or to hear.
 10. No new messages in the browser console. Both builds run. The hand-over names the bundle size of the page.
+11. Every animal is a body (`CLAUDE.md`, "Every animal is a body, not a cut-out"): each kind has its turntable
+    (`tools/turntable.mjs`), and in none of its views does the visual critic call the animal flat or a cut-out.
 
 ## Verification
 
