@@ -12,6 +12,28 @@ Earth has seen so far: a squid relative in a straight shell almost 6 m long.
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian. Since version 1 the facts were checked (see "Sources"; some numbers changed),
+and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor life, walkers and swarms are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/ordovician/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs ordovician <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Ordovician lasted from 486.85 to 443.1 million years ago. The world shows one moment late in it, about 450
@@ -27,7 +49,7 @@ the story of this era.
 
 | Special feature | Where the player meets it |
 |---|---|
-| Life in the sea multiplies: three times as many kinds as in the Cambrian | the crowded floor; the menu text |
+| Life in the sea multiplies: more than three times as many kinds at the end as at the start | the crowded floor; the menu text |
 | The sea stands higher than ever: most continents are flooded | the wide shallow floor without a shore |
 | New builders: moss animals, corals, sea lilies | the thickets, the horn corals, the meadows |
 | Giant hunters in straight shells | Endoceras |
@@ -44,6 +66,8 @@ the story of this era.
 | Astraspis is added from Colorado | Claude |
 | The giant is Endoceras at 5.7 m, the largest estimate that the sources support, not the 9 m of older books | Claude |
 | The list of the ten | Claude |
+| Endoceras stays as a guest: the giant found in the Cincinnati rocks is Cameroceras, with no size found | Claude, 2026-11-23 |
+| Megalograptus is 0.78 m, not 1 m (source) | Claude, 2026-11-23 |
 
 The decisions marked Claude are defaults. Mario can change them; ask before building something else.
 
@@ -78,12 +102,12 @@ Sizes in metres, one unit is one metre.
 
 | Id | What | Size | Shape | Movement | Where and how many |
 |---|---|---|---|---|---|
-| `endoceras` | Endoceras, the giant | shell 5.7 long, 0.3 thick at the opening | a long straight cone with faint bands; at the wide end a head with eyes and a ring of arms | glides slowly just above the floor, shell level, head first or backwards; the arms reach down | 2 |
-| `orthocones` | small straight-shelled relatives | 0.15 to 0.4 | the same in small, with coloured stripes on the shell | swim in loose groups, in short jerks | 5 groups of about 30 |
+| `endoceras` | Endoceras, the giant | shell 5.7 long, 0.3 thick at the opening | a long straight cone with low rings around it; at the wide end a head with eyes and a ring of arms | glides slowly just above the floor, shell level, head first or backwards; the arms reach down | 2 |
+| `orthocones` | small straight-shelled relatives | 0.15 to 0.4 | the same in small, smooth, with darker bands on the upper side only | swim in loose groups, in short jerks | 5 groups of about 30 |
 | `isotelus` | the trilobite Isotelus | up to 0.4 | a broad smooth oval in three parts, head and tail like shovels, small eyes | walks, ploughs through the mud; some lie half dug in | about 60 |
-| `megalograptus` | the sea scorpion Megalograptus | about 1 | a scorpion shape: head shield, two long spiny grasping arms, paddles, a tail ending in pincers | walks on the floor, swims in short bursts | about 6 |
+| `megalograptus` | the sea scorpion Megalograptus | up to 0.78 | a scorpion shape: head shield, two long spiny grasping arms, paddles, a tail spike between two grasping blades | walks on the floor, swims in short bursts | about 6 |
 | `crinoid` | sea lilies | 0.3 to 1 high | a stalk of stacked discs, a cup on top with feathery arms | sway; the arms bend into a bowl against the current | thousands, in meadows |
-| `horncoral` | horn corals | 0.05 to 0.12 | a curved horn of stone lying on the mud, a ring of tentacles in its opening | the tentacles move | hundreds |
+| `horncoral` | horn corals | 0.05 to 0.13 | a ringed horn of stone lying loose on the mud, a ring of tentacles in its opening | the tentacles move | hundreds |
 | `bryozoan` | moss animals | twigs 0.05 to 0.15, mounds up to 0.3 | stony twigs, branching, and low domes, covered with pinprick pores | none | thickets on every ledge |
 | `brachiopod` | lamp shells | 0.02 to 0.05 | ribbed shells of two unequal halves, a little open | none | tens of thousands, in pavements |
 | `graptolite` | graptolites | 0.02 to 0.1 | thin dark blades with a saw edge, hanging in the water | drift | swarms in the open water |
@@ -95,6 +119,71 @@ swimmers (`graptolite`, `orthocones`, `astraspis`, `endoceras`), then the walker
 What the engine already offers: scattering in masses and standing kinds that sway, the swarms and walkers of
 `cambrian`, a long animal that follows its path with its whole body (the plesiosaur of `today`). Endoceras is a
 stiff body with a soft head: a rigid cone on a path, arms that move.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, rings, steps
+  between segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has plates (the head shield of Astraspis), and there as relief with soft grooves.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the light.
+- **L4. Nothing shines under water.** Shell, armour and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** Sourced here: Megalograptus (brown and black) and the small orthocones (darker
+  bands, upper side only). Everything else gets the plain colour of its material (shell and stone: greys, creams,
+  browns), with low saturation, and no card says anything about it. Each kind still has its own colour family.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags (arms, tentacles, the arms of sea lilies). What was stiff does not
+  bend (shells). Nothing repeats exactly.
+- **L10. The dead belong on this floor.** Empty shells, broken twigs, shed shields of trilobites: the storm beds and
+  the thin cover between the patches are made of them.
+
+## Build notes
+
+Main source for the shapes of the floor kinds: the Digital Atlas of Ordovician Life (https://ordovicianatlas.org),
+which shows the fossils of the Cincinnati region kind by kind, with photographs and how to tell them. Read the page
+of each genus before modelling it. Do not copy its pictures into the repo: measure on them.
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `brachiopod`, `bryozoan`, `horncoral` | a standing kind of `cambrian` (`standing.js`) | 300 to 1,500 |
+| `crinoid` | the sea lily in `meshDriftwood` (`devonian/driftwood.js`): stem of discs, cup, arms | 1,500 |
+| `graptolite` | the swarm of `MARRELLA` (`cambrian`) | 200 |
+| `orthocones`, `endoceras` | `meshGoniatite` (`devonian`) for the soft head and arms; the shell is new | 1,500 and 20,000 |
+| `astraspis` | `meshMetaspriggina` (`cambrian`) for a small fish that swims with its tail | 4,000 |
+| `isotelus` | `meshTrilo`, `S_TRILO`, `TRILO_HEAP`, `TRILO_SHADOW` (`cambrian/walkers.js`) | 6,000 |
+| `megalograptus` | the walker code of `TRILO`; legs as in `meshHallu` | 12,000 |
+
+- **`brachiopod`.** Two shapes, both named for this region: Rafinesquina (flat, wide) and Platystrophia (ribbed).
+  Shapes and sizes from the Atlas (not verified here). Many lie dead: single halves, hollow side up or down (L10).
+- **`bryozoan`.** Twigs and low domes. Genera, sizes and the pattern of pores from the Atlas (not verified here).
+- **`horncoral`.** Grewingkia canadensis, the one large horn coral of this sea: a straight or slightly curved horn up
+  to 13 cm with strong rings around it, more than a hundred thin walls in its cup. It lies loose on the mud, not
+  cemented. Its soft parts are not known: a low ring of plain short tentacles, estimate.
+- **`crinoid`.** Genera and heights from the Atlas (not verified here; if the sea lilies of this region were smaller
+  than 0.3 to 1 m, the source wins, and the card with it).
+- **`graptolite`.** Graptolites are in these rocks, some preserved in the round. Shape and size of the kind found
+  here from the Atlas (not verified here).
+- **`orthocones`.** Treptoceras, the common one. A straight cone, a little wider than high, smooth outside. Darker
+  bands on a pale shell, on the upper side only; the underside plain and pale. It swims level, the banded side up.
+  Soft parts are not known for any of these animals: a plain head with a few arms and an eye on each side, estimate.
+- **`endoceras`.** A straight cone 5.7 m long with low rings around it (Endoceras has them; Cameroceras, the giant
+  found in the Cincinnati rocks, is smooth). 0.3 thick at the opening is an estimate. Soft parts as above, larger.
+- **`astraspis`.** 20 cm. Oval in cross-section. Head and chest under a shield of many-sided little plates wider
+  than 2 mm, each with star-shaped or round bumps; the tail with scales under 1 mm. Large eyes at the sides; behind
+  each a line of eight open gill holes slanting down and back. No fins but the tail. Read the abstract of Sansom and
+  others 1997 for the tail before modelling it.
+- **`isotelus`.** Isotelus maximus, 40 cm. Smooth: head and tail shields are half-circles of about the same size,
+  with a spine at each back corner of the head. Figures: Ohio Geological Survey, GeoFacts 6. Number of segments and
+  the eyes from there (not verified here). Shed shields lie about (L10).
+- **`megalograptus`.** Megalograptus ohioensis, up to 78 cm. The labelled drawing in Ohio Geological Survey,
+  GeoFacts 34 (fig. 2) names every part: head, pincers, the long spiny third pair of arms, two pairs of walking legs,
+  the swimming paddles, the tail spike with a rounded blade on each side that could grasp. Brown and black, covered
+  in scales; this species the darkest.
 
 ## Texts
 
@@ -116,13 +205,13 @@ const ZOO = {
   },
   isotelus: {
     name: 'Trilobite', sub: 'Isotelus · a giant among trilobites', size: 0.4,
-    facts: [['Length', 'up to about 40 cm'], ['Largest relative', '72 cm, found in Canada'], ['Shell', 'shed again and again as it grew']],
-    text: 'Most trilobites would fit in your hand. This one is as long as your forearm, and a relative from the same time reached 72 cm, the largest trilobite ever found. It ploughed through the mud for food. The ice age at the end of the Ordovician wiped out most of its kind.',
+    facts: [['Length', 'up to about 40 cm'], ['Largest relative', 'over 70 cm, found in Canada'], ['Shell', 'shed again and again as it grew']],
+    text: 'Most trilobites would fit in your hand. This one is as long as your forearm, and a relative from the same time reached more than 70 cm, the largest complete trilobite ever found. It ploughed through the mud for food. The ice age at the end of the Ordovician wiped out most of its kind.',
   },
   megalograptus: {
-    name: 'Sea scorpion', sub: 'Megalograptus · an early sea scorpion', size: 1,
-    facts: [['Length', 'about 1 m'], ['Catches prey with', 'two long spiny arms'], ['Tail', 'ends in pincers']],
-    text: 'Sea scorpions are new in this sea. They are not true scorpions, but relatives of them, and of spiders and horseshoe crabs. This one swept the floor with two long, spiny arms, like a rake. In the next era its relatives will become the largest arthropods that ever lived.',
+    name: 'Sea scorpion', sub: 'Megalograptus · an early sea scorpion', size: 0.78,
+    facts: [['Length', 'up to 78 cm'], ['Colour', 'brown and black, read from the fossils'], ['Tail', 'a spike between two grasping blades']],
+    text: 'Sea scorpions are new in this sea. They are not true scorpions, but relatives of them, and of spiders and horseshoe crabs. This one swept the floor with two long, spiny arms, like a rake. Droppings found with it hold pieces of trilobites, and of its own kind. Later relatives will become the largest arthropods that ever lived.',
   },
   crinoid: {
     name: 'Sea lilies', sub: 'animals, not flowers', size: 1,
@@ -130,8 +219,8 @@ const ZOO = {
     text: 'A stalk, a cup and a crown of feathery arms: it looks like a flower and is a relative of the starfish. The arms spread into a bowl against the current and pass food down to the mouth in the middle. Whole meadows of them stood in this sea. A few hundred kinds still live in the oceans today.',
   },
   horncoral: {
-    name: 'Horn coral', sub: 'a single polyp in a horn of stone', size: 0.12,
-    facts: [['Length', '5 to 12 cm'], ['Lives', 'alone, not in a colony'], ['Its group', 'died out 252 million years ago']],
+    name: 'Horn coral', sub: 'a single polyp in a horn of stone', size: 0.13,
+    facts: [['Length', 'up to 13 cm'], ['Lives', 'alone, not in a colony'], ['Its group', 'died out 252 million years ago']],
     text: 'One animal like a small sea anemone sits in the open end of each horn and builds it longer as it grows. The fine lines on the outside are growth lines, something like the rings of a tree. These corals are not the ancestors of the corals of today: their whole group has died out.',
   },
   bryozoan: {
@@ -166,32 +255,77 @@ The sentences for the title menu:
 
 ## Sources
 
+Quotations are word for word from the page named. Everything else in this brief is Claude's wording or conclusion.
+
 **Checked on 2026-11-16:**
 
 - **Dates.** International Chronostratigraphic Chart v2024/12
   (https://stratigraphy.org/ICSchart/ChronostratChart2024-12.pdf): 486.85 and 443.1.
 - `endoceras`: Wikipedia, "Endoceras" (https://en.wikipedia.org/wiki/Endoceras): a specimen of Endoceras giganteum
   in the Museum of Comparative Zoology measures 3 m as preserved, a 2015 estimate puts the complete shell at about
-  5.73 m, which would make it the longest cephalopod in the fossil record; a report of a 9.1 m shell was never
-  confirmed and is doubted. Wikipedia, "Endocerida" (https://en.wikipedia.org/wiki/Endocerida): endocerids may have
-  been the top hunters of the Ordovician, probably living close to the sea floor and eating trilobites, molluscs
-  and lamp shells; their way of life is debated. Endoceras is known from North America and Europe.
+  5.73 m; a report of a 9.1 m shell was never confirmed. Wikipedia, "Endocerida"
+  (https://en.wikipedia.org/wiki/Endocerida): possibly the top hunters of the Ordovician, close to the sea floor.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23:**
 
-- **Place.** The Cincinnati region as a shallow tropical sea about 450 million years ago, and which of the ten are
-  known from its rocks. Check Endoceras there in particular: it is known from North America, but Claude has not
-  seen it listed for this region.
-- Three times as many kinds as in the Cambrian; the highest sea level; the ice age and the second largest mass
-  extinction at the end; the first land plants.
+- **Place and time.** Britannica, "Cincinnatian Series" (https://www.britannica.com/science/Cincinnatian-Series):
+  "deposited between approximately 451 and 443 million years ago". Miami University, Limper Geology Museum,
+  "Geological history of SW Ohio"
+  (https://miamioh.edu/cas/centers-institutes/limper-geology-museum/geological-history-sw-ohio.html): "Bryozoans and
+  brachiopods, nearly equal in abundance, form about 60%" of the grains of the limestone; sea lilies about 20 %,
+  trilobites nearly 10 %.
+- **Many more kinds.** Sepkoski 1995, "Global diversification of genera during the Ordovician radiations"
+  (Cambridge Core, abstract): "more than tripled over the course of the Ordovician radiations".
+- **Sea level.** Scientific Reports, https://link.springer.com/10.1038/srep18884: "a Phanerozoic sea level maximum
+  in the Late Ordovician" (the authors write "potentially").
+- **The end.** Britannica, "Ordovician-Silurian extinction": "eliminated an estimated 85 percent of all Ordovician
+  species"; second in severity after the end of the Permian.
+- `megalograptus`: Wikipedia, "Megalograptus" (https://en.wikipedia.org/wiki/Megalograptus), section "Size":
+  "ranged in length from 49 to 78 centimeters". Same article: colour inferred as brown and black, this species the
+  darkest; possible fossil droppings with pieces of trilobites and of its own kind; blades under the tail spike that
+  could grasp. Ohio Geological Survey, GeoFacts 34 (Peter 2021,
+  https://dam.assets.ohio.gov/image/upload/ohiodnr.gov/documents/geology/GF34_Peter_2021.pdf): labelled drawing;
+  "coprolite also contained remains of the large trilobite Isotelus".
+- `isotelus`: Wikimedia Commons, file "Isotelus maximus fossil trilobite (Upper Ordovician; southwestern Ohio, USA)
+  1", description: "up to 15 inches for complete Ohio specimens"; Isotelus maximus has spines at the corners of the
+  head at every size and half-round head and tail. Cincinnati Museum Center,
+  https://www.cincymuseum.org/2019/03/08/isotelus-ohio-states-fossil/: "an Isotelus specimen from the Ordovician of
+  Manitoba that measures 70 cm". (Wikipedia, "Isotelus", gives over 70 cm; a dealer's page gives 720 mm. The card
+  says "over 70 cm".) Figures: GeoFacts 6
+  (https://dam.assets.ohio.gov/image/upload/ohiodnr.gov/documents/geology/GF6_Shrake_2023.pdf).
+- `astraspis`: Wikipedia, "Astraspis" (https://en.wikipedia.org/wiki/Astraspis), section "Description": "a series
+  of eight gill openings on each side"; about 200 mm; large eyes at the sides; oval in cross-section; tail scales
+  under 1 mm, plates of the forebody over 2 mm. Sansom and others 1997, Palaeontology 40 (3), abstract
+  (https://palass.org/publications/palaeontology-journal/archive/40/3/article_pp625-643): "dorsal headshield formed
+  from polygonal tesserae", with star-shaped or smooth bumps; Harding Sandstone, Colorado.
+- `orthocones`: Frey, Journal of Paleontology, "Paleoecology of a well-preserved nautiloid assemblage from a Late
+  Ordovician shale unit, southwestern Ohio" (abstract): "dominated by three species of the longiconic orthocerid
+  Treptoceras", with fewer of the endocerid Cameroceras. Digital Atlas of Ordovician Life, "Treptoceras"
+  (https://ordovicianatlas.org/atlas/mollusca/cephalopoda/orthocerida/proteoceratidae/treptoceras): "darker markings
+  on the lighter ground of the shell". Estonian Journal of Earth Sciences 2015, 64 (1), 74 to 79
+  (https://kirj.ee/public/Estonian_Journal_of_Earth_Sciences/2015/issue_1/earth-2015-1-74-79.pdf): "in Ordovician
+  pseudorthocerids colour bands are restricted dorsally".
+- `endoceras`, the place: Wikipedia, "Cameroceras" (https://en.wikipedia.org/wiki/Cameroceras): "Cameroceras lacks
+  annulations". Conclusion: the giant of the Cincinnati rocks is Cameroceras; Endoceras at 5.7 m is a guest in this
+  world, like Astraspis. No size was found for the Cameroceras of this region.
+- `horncoral`: Digital Atlas of Ordovician Life, "Grewingkia canadensis"
+  (https://www.ordovicianatlas.org/atlas/cnidaria/anthozoa/rugosa/streptelasmatidae/grewingkia/grewingkia-canadensis/):
+  "reaching lengths in excess of 13cm"; straight or slightly curved, strongly ringed, a hundred or more walls.
+- `graptolite`: Mitchell 1975, Ohio State University (https://core.ac.uk/download/159555958.pdf): "Three
+  dimensionally preserved graptolites occur abundantly in some of the nodules".
+
+**Not checked yet** (from Claude's knowledge; check before the text ships, and put the source next to the entry):
+
+- The first land plants. That Endoceras lived in this region (see above: it probably did not).
 - `orthocones`: sizes, gas chambers, the nautilus as the last with such a shell.
-- `isotelus`: 40 cm for the species of this region; the 72 cm of Isotelus rex from Manitoba, Canada.
-- `megalograptus`: 1 m, the arms, the tail, that it is from Ohio.
-- `crinoid`: heights, relatives, the number of living kinds.
-- `horncoral`: sizes, growth lines, extinction 252 million years ago.
-- `bryozoan`: first appearance in the Ordovician.
-- `brachiopod`, `graptolite`: all facts.
-- `astraspis`: 20 cm, the armour, from Colorado, its age.
+- `isotelus`: that it ploughed through the mud; the number of segments; the eyes.
+- `megalograptus`: that later relatives were the largest arthropods.
+- `crinoid`: genera of this region, heights, relatives, the number of living kinds.
+- `horncoral`: growth lines as on a tree, extinction 252 million years ago.
+- `bryozoan`: genera, sizes; first appearance in the Ordovician (a Cambrian find has been claimed and disputed).
+- `brachiopod`: sizes and shapes of Rafinesquina and Platystrophia; all facts of the card.
+- `graptolite`: which kind, its size; all facts of the card.
+- `astraspis`: its age in millions of years; the shape of the tail.
 
 ## Zoo reach to start with
 

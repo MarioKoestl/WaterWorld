@@ -98,3 +98,8 @@ These change the engine. One Claude Code instance at a time, in this order.
     of the kinds that exist, still, on their sides, half in the mud. Nothing living on the floor. Mario, 2026-11-19.
   - [ ] **11u. Driftwood v3, not plastic.** `driftwood-matte.md`: furrows in the mesh, matte under water, shade in
     the furrows, flaking plates, rough bare wood. Replaces meshDriftwood and S_WOOD whole. Mario, 2026-11-19.
+  - [ ] **11v. Dunkleosteus 2.0.** `dunkleosteus-v2.md`: light from above, no shine, colour follows relief, form in
+    the mesh, soft motion. Three sessions: A+B (done), B2 (cells, ink lines, colour, eye, blades), then C+D.
+    Checked in the engine with turntable. Mario, 2026-11-23.
+- [ ] **12. The Ordovician.** `era-ordovician.md`, version 2 (2026-11-23): facts checked, "How to work", "The look"
+  and "Build notes" added. Five stages, a stop after each. Mario left the Devonian as it is. Mario, 2026-11-23.
