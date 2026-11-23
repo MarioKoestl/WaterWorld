@@ -19,6 +19,7 @@
 // --fill: the share of the picture's height it spans, default a third (0.5: half as far away).
 // --walk: in addition eight consecutive pictures, 0.2 s of scene time apart, of angle-level and of diver.
 // --list: only the list of all individuals (it loads the world, so it needs the card too), no pictures.
+// --flip: its front is the other end of its line (for an exhibit whose line the zoo gives from head to tail).
 // Output: tools/out/turntable/<name>/<id>-front.png ... -diver.png, <id>-angle-level-walk1.jpg ... and <id>.html, a
 // page that shows them all
 import { writeFileSync, rmSync } from 'node:fs';
@@ -28,8 +29,8 @@ import { harness } from './harness.mjs';
 import { readPng } from './png.mjs';
 
 const args = process.argv.slice(2), opt = (n) => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
-// (--walk, --list and --mock take no value: what follows them is a name)
-const plain = args.filter((a, i) => !a.startsWith('--') && !/^--(?!walk$|list$|mock$)/.test(args[i - 1] || ''));
+// (--walk, --list, --flip and --mock take no value: what follows them is a name)
+const plain = args.filter((a, i) => !a.startsWith('--') && !/^--(?!walk$|list$|flip$|mock$)/.test(args[i - 1] || ''));
 const [era, id, name = era] = plain, time = +(opt('--time') || 20), fill = +(opt('--fill') || 1 / 3), walk = args.includes('--walk');
 const pick = opt('--pick') === null ? null : +opt('--pick'), near = opt('--at') ? opt('--at').split(',').map(Number) : null;
 if (!id) { console.log('usage: node tools/turntable.mjs <era> <zoo id> [name] [--page <test.html>] [--time <seconds>] [--pick <n>] [--at <x,z>] [--fill <share>] [--walk]'); process.exit(1); }
@@ -148,6 +149,7 @@ if (animal && !alone(e)) console.log(`NOTE: another animal is ${cm(Math.max(e.ga
 const t = mid(e.l), v = e.l.slice(3, 6), S = size(e.l), d = away(e.l), D = Math.PI / 180;
 let h = len(v) > 1e-6 ? unit(v) : len(e.way) > 1e-6 ? unit(e.way) : [0, 0, 1];
 if (Math.hypot(h[0], h[2]) < 0.5) h = [0, 0, 1];
+if (args.includes('--flip')) h = h.map((q) => -q);
 const s = Math.asin(h[1]), hl = unit([h[0], 0, h[2]]), u = [-Math.sin(s) * hl[0], Math.cos(s), -Math.sin(s) * hl[2]], r = cross(h, u), yaw = Math.atan2(h[0], -h[2]);
 // the side that is seen from the side and from an angle: the one the sun of the era shines on (1 its right, -1 its left)
 const lit = Array.isArray(I.sun) && r[0] * I.sun[0] + r[1] * I.sun[1] + r[2] * I.sun[2] < 0 ? -1 : 1;
