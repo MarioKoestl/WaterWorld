@@ -12,6 +12,28 @@ long-necked plesiosaurs, giant turtles, fish with fangs, birds that have teeth a
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/today/` (the plesiosaur, the schools, the leaves and the kelp are there),
+   then take out everything of today.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/cretaceous/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs cretaceous <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Cretaceous lasted from 143.1 to 66.0 million years ago. The world shows one moment late in it, about 85 million
@@ -77,7 +99,7 @@ Sizes in metres, one unit is one metre.
 | `styxosaurus` | the long-necked plesiosaur Styxosaurus | about 10.5, more than half of it neck | a small head with long teeth on a very long neck, a broad body, four long flippers, a short tail | flies slowly with its four flippers, the neck held almost straight | 2 |
 | `xiphactinus` | the fish Xiphactinus | 4, one of 5 | like a giant tarpon: a long silver body, an upturned mouth with long fangs, a deeply forked tail | fast, alone or in twos | 5 |
 | `shark` | the shark Cretoxyrhina | about 6 | built like a great white: a heavy spindle-shaped body, a pointed snout, a half-moon tail | cruises steadily, alone | 2 |
-| `protostega` | the giant turtle Protostega | about 3 | a sea turtle with a leathery shell that shows the ribs beneath, a large head with a hooked beak, long front flippers | rows with its front flippers, slowly | 4 |
+| `protostega` | the giant turtle Protostega | about 2.5 | a sea turtle with a leathery shell that shows the ribs beneath, a large head with a hooked beak, long front flippers | rows with its front flippers, slowly | 4 |
 | `hesperornis` | the diving bird Hesperornis | 1.5 | a long-bodied bird like a huge grebe, with tiny wings, strong legs set far back with lobed toes, and a long beak with small teeth | swims on the surface, dives and chases fish under water with its feet | about 12, in two groups |
 | `pteranodon` | the flying reptile Pteranodon | wingspan about 6 | seen from below: a long toothless beak, a long crest at the back of the head, narrow wings | glides above the surface as a shadow, floats on it, dips its beak in | 5 |
 | `platyceramus` | the giant clam | up to 1.5 across, a few of 3 | a thin, flat, nearly round shell with wide ripples, lying on the ooze, with oysters grown on top | none; small fish shelter inside the open ones | about 60 |
@@ -93,6 +115,75 @@ Styxosaurus, with a much longer neck. A long animal that follows its path with i
 manta of `today` for the turtle's flippers. New: animals at and above the surface. They are drawn in the world
 like any other, and the surface is seen in front of those above it. Check with the engine how the surface is drawn
 before planning Pteranodon, and ask Mario if it cannot be done without a large change.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the small scales of the mosasaur, the scales of the fish, the plates of the
+  turtle. There they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the
+  light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** Colour is sourced for the mosasaur (dark; pigment found in its scales) and, from
+  earlier relatives, for smooth dark-above, pale-below skin. The fish are pale silver-grey with a soft sheen on the
+  flank, never a mirror. Everything else plain. Low saturation, each kind its own colour family, and no card says
+  anything about colour.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Giant clam shells, empty and broken, on the white ooze; here and there a backbone.
+
+### Skin of the large animals (why the fish of the Devonian failed)
+
+This world is full of large animals with skin. That is the hardest thing for this engine: the Dunkleosteus of the
+Devonian failed on it three times. So:
+
+- **One test animal first.** Stage 3 starts with `tylosaurus` alone. Stop after it and let Mario look. Only when he
+  accepts it, build the others the same way.
+- **K1. Smooth skin is smooth.** No scale texture, no cell noise, no wrinkle lines drawn on. The life is in the large
+  soft forms in the mesh: muscle swelling at the base of each flipper, the ribcage as a faint barrel, a fold where a
+  flipper or a neck bends, the eye in a socket, the lips of the mouth.
+- **K2. Colour in zones.** Dark back, flank, pale belly, with soft wandering borders. No stripes, no spots.
+- **K3. No shine,** no bright rim, no highlight but a small one in the eye.
+- **K4. Wear,** sparse and from the seed: a few long scratches, a nick in a flipper edge.
+- **K5. The test for every skin** is a living animal of the same build seen under water: a dolphin for the
+  ichthyosaurs, a leatherback turtle for the plesiosaurs and the placodont, a marine iguana for the lizard shapes.
+  If the render shows a pattern or a shine such an animal does not have, take it out.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `platyceramus` | a standing kind of `cambrian` (`standing.js`) | 800 |
+| `uintacrinus` | the sea lily in `meshDriftwood` (`devonian`), without the stalk | 2,000 |
+| `enchodus`, `xiphactinus` | `meshKentuckia` (`devonian`) | 2,500 and 15,000 |
+| `shark` | `meshCladoselache` (`devonian`), with the build of a great white | 20,000 |
+| `styxosaurus` | the plesiosaur of `jurassic` if built, else of `today` | 35,000 |
+| `tylosaurus` | the plesiosaur of `today` for path and zoo; `meshCladoselache` for a tail that beats | 40,000 |
+| `protostega` | the manta of `today` for the flippers; the shell is new | 15,000 |
+| `hesperornis`, `pteranodon` | new | 8,000 |
+
+Main source for shapes: "Oceans of Kansas" by Mike Everhart (https://oceansofkansas.com), with field guides to the
+fossils of this chalk (FieldGuide3.html for the reptiles) and photographs of the skeletons. Measure, do not copy.
+
+- **`tylosaurus`** (the test animal). The largest mosasaur of this chalk. Skin: small smooth scales, like a lizard's
+  but fine (relief only when the camera is near; from a few metres the skin reads as smooth). Dark, as the pigment in
+  mosasaur scales shows; pale below as an assumption. The tail ends in a fin like a shark's turned upside down.
+  12 m is not verified here (a popular page gives 45 feet); the skull of one large skeleton is 1.24 m.
+- **`styxosaurus`.** Plesiosaurs are rare in this chalk. Skin as in the Jurassic brief: smooth, with small scales
+  only at the rear edge of the flippers (from an earlier relative).
+- **`protostega`.** In this chalk no Protostega longer than about 2 to 2.5 m is known; the 3.4 m one is from Texas.
+  The table and the card now say 2.5.
+- **`pteranodon`.** A wingspan of more than 24 feet (7.3 m) is the figure of the State of Kansas; the table's 6 m is
+  within it.
+- **`xiphactinus`**, **`shark`**, **`hesperornis`**, **`enchodus`**, **`platyceramus`**, **`uintacrinus`.** Shapes and
+  sizes from the field guides above: not verified here.
 
 ## Texts
 
@@ -123,8 +214,8 @@ const ZOO = {
     text: 'As large as a great white shark and built much the same, tens of millions of years before it. Its teeth are found stuck in the bones of mosasaurs and plesiosaurs. Researchers named it after a brand of kitchen knives, because it sliced its prey into pieces.',
   },
   protostega: {
-    name: 'Protostega', sub: 'Protostega gigas · a giant sea turtle', size: 3,
-    facts: [['Length', 'about 3 m'], ['Shell', 'leathery, with little bone'], ['Laid its eggs', 'on a beach']],
+    name: 'Protostega', sub: 'Protostega gigas · a giant sea turtle', size: 2.5,
+    facts: [['Length', 'about 2.5 m here, 3.4 m elsewhere'], ['Shell', 'leathery, with little bone'], ['Laid its eggs', 'on a beach']],
     text: 'One of the largest turtles of all time. To swim well it has given up most of its armour: the shell is a frame of ribs under leathery skin, as in the leatherback turtle of today. That made it light and fast, and easy to bite. Some fossils show the tooth marks of sharks.',
   },
   hesperornis: {
@@ -194,7 +285,22 @@ The sentences for the title menu:
   herrings and Xiphactinus, the bulldog fish, in this sea. The same page gives 15 m for Tylosaurus; the brief uses
   the measured skeleton.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- `tylosaurus`: Oceans of Kansas, "Tylosaurus proriger" (https://oceansofkansas.com/page10.html): "The skull is 49
+  inches long"; tylosaurs are the largest of the three kinds of mosasaur common in the chalk. FossilGuy, mosasaur
+  gallery (https://www.fossilguy.com/gallery/vert/reptile/mosasaur/): skin impressions show "smooth scales rather
+  than the rough, crocodile-like skin"; pigment bodies in fossil scales point to a dark animal; a tail fin like a
+  shark's.
+- `protostega`: Oceans of Kansas, field guide part 3 (https://oceansofkansas.com/FieldGuide3.html): "the largest
+  Protostega is a 3.4m beast in the Dallas Museum"; nothing from this chalk over about 2 to 2.5 m.
+- `pteranodon`: Kansas Historical Society, state fossils (https://www.kansashistory.gov/kansapedia/state-fossils/18626):
+  "a wingspread of more than 24 feet".
+- `styxosaurus`: Oceans of Kansas, Dan Varner page (https://oceansofkansas.com/varner.html): plesiosaurs "were rare
+  during the deposition of the Smoky Hill Chalk".
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - `tylosaurus`: relatives; the shape of the tail fin.
 - `styxosaurus`: 10.5 m, the share of the neck, more than 60 neck bones, how far it could bend.

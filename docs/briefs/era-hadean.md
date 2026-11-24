@@ -10,6 +10,28 @@ has only just cooled. Nothing lives here. The exhibits are rock, fire, water and
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor, standing kinds and scattering are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/hadean/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs hadean <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Hadean lasted from 4567 to 4031 million years ago. The world shows a moment about 4.3 billion years ago: the
@@ -96,6 +118,34 @@ plane above the world (`above` in the era's `AIR`) for sky and Moon. New: light 
 glow of the lava. If the engine cannot do it, extend it in general terms: an era may name places that give off
 light.
 
+## The look: rules from the worlds built so far
+
+This world has no animals. Its exhibits are rock, water, light and films of microbes. What makes such things look
+real and not like plastic props:
+
+- **R1. Form at three sizes.** The outline; lumps, ledges, cracks and layers of a few percent of the size in the mesh;
+  grain in the shader. A smooth shape with a painted texture looks like a toy.
+- **R2. No pattern that repeats,** and no noise that draws closed cells, except where the rock has them: the cracked
+  glassy crust of pillow lava. There they are relief, not outlines.
+- **R3. No drawn dark line of one width.** A layer is a step, a crack is a groove, shaded by the light.
+- **R4. Nothing shines under water.** Rock and mats are matte. The lava glows by itself and lights what is near it;
+  that glow is the only bright thing.
+- **R5. Colours** as in "Atmosphere", with low saturation. Colour follows relief: hollows darker and dustier, edges
+  and tops paler.
+- **R6. No two alike.** Every dome, chimney or block differs in size, lean, wear and tone, from its seed.
+- **R7. Motion** comes from water, particles, bubbles and light only. Nothing repeats exactly.
+- **R8. Broken pieces belong here:** fallen blocks, rubble at the foot of every structure, a broken one that shows its
+  inside.
+
+## Build notes
+
+Everything is rock, part of the floor or a standing kind: start from `FLOOR` and `standing.js` of `cambrian`. The
+glow of the lava is new: an emissive term in the material, and a warm light on what lies within a few metres.
+
+Nothing in this brief was checked again on 2026-11-23. All shapes follow things that exist today (pillow lava, black
+smokers, the towers of the Lost City field): find a photograph with a scale for each before modelling, and name it
+in the notes.
+
 ## Texts
 
 For the zoo file of this era. Put the source links next to each entry as comments once the facts are checked (see
@@ -169,7 +219,12 @@ The sentences for the title menu:
   Suggest Earlier Ocean" (https://earthobservatory.nasa.gov/features/Zircon): the chemistry of the crystals suggests
   that they formed in the presence of liquid water, likely an ocean; no Hadean rocks exist.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- Nothing new. See "Checked on 2026-11-16" above.
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - `pillow`: pillows about 1 m across; most of the deep sea floor of today is pillow basalt.
 - `lava`: temperature of basalt lava; that the young Earth was hotter inside and its crust thin.

@@ -12,6 +12,28 @@ reptiles 8 m long swim here, small ones in schools, armoured ones on the floor, 
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 the facts were checked (see
+"Sources"; some sizes and shapes changed), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/today/` (the plesiosaur and the schools are there), then take out
+   everything of today.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/triassic/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs triassic <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Triassic lasted from 251.902 to 201.4 million years ago. The world shows one moment in its middle, about 242
@@ -76,12 +98,12 @@ Sizes in metres, one unit is one metre.
 | Id | What | Size | Shape | Movement | Where and how many |
 |---|---|---|---|---|---|
 | `besanosaurus` | the ichthyosaur Besanosaurus | 8 | a long, slender body, a small head with a very long, thin snout and tiny teeth, four long narrow flippers, a long tail with a low fin, not the half-moon tail of later ichthyosaurs | swims like an eel, with the whole body, on wide paths over the basin | 2 |
-| `mixosaurus` | the small ichthyosaur Mixosaurus | about 1 | like a small dolphin with a long snout, large eyes, a back fin and a low tail fin | fast, in schools | 3 schools of about 12 |
-| `tanystropheus` | Tanystropheus | up to 6, of which the neck 3 | a lizard body with a neck as long as body and tail together, stiff as a rod, a small head with long front teeth | hangs still in the water or walks the floor of the banks, neck held straight ahead just above the ground | 4 |
+| `mixosaurus` | the small ichthyosaur Mixosaurus | about 1 | like a small dolphin with a long snout, large eyes, a back fin and a tail fin with a triangular upper lobe | fast, in schools | 3 schools of about 12 |
+| `tanystropheus` | Tanystropheus | up to 6, of which the neck 3 | a lizard body with a neck as long as body and tail together, stiff as a rod, a small head with curved teeth and nostrils on top | hangs still in murky water or glides slowly, the small head far ahead of the body; strikes sideways | 4 |
 | `ceresiosaurus` | the nothosaur Ceresiosaurus | 3 | a long body, a long neck, a small flat head, a long tail; four limbs that have become paddles with long fingers | swims with its front paddles and tail | 5 |
 | `neusticosaurus` | the small reptile Neusticosaurus | 0.2 to 0.5 | a slim little lizard shape with a long neck and tail and a small head | swims with a wave of body and tail, in groups; rests on the banks | 5 groups of about 30 |
 | `cyamodus` | the placodont Cyamodus | about 1.3 | broad and flat under a shield of bony plates in two parts, much like a turtle; a short, wide head | paddles slowly over the banks, head down | 6 |
-| `askeptosaurus` | the thalattosaur Askeptosaurus | about 3 | a long, slim lizard with a pointed snout and a very long tail, flattened from side to side | swims like an eel | 3 |
+| `askeptosaurus` | the thalattosaur Askeptosaurus | about 3 | a long, slim lizard with a long neck, a long straight snout that ends bluntly, and a very long tail, flattened from side to side | swims like an eel | 3 |
 | `saurichthys` | the fish Saurichthys | up to 1 | built like a pike: long, thin, with a beak full of teeth and its fins set far back | stands still, then shoots forward | about 30 |
 | `ammonoid` | ammonoids | shell 0.05 to 0.15 across | coiled, ribbed shells with head and arms in the opening | swim in short jerks, in groups | 4 groups of about 30 |
 | `daonella` | the clam Daonella | 0.03 to 0.08 | thin, flat, half-round shells with fine ribs, lying edge to edge | none | pavements on the slope down to the basin |
@@ -92,6 +114,76 @@ Order of work, easiest first: the clams, then the schools (`ammonoid`, `sauricht
 
 What the engine already offers: a long animal that follows its path with its whole body (the plesiosaur of
 `today`) is the model for five of these. Schools and pavements as in `today` and `cambrian`.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the plates of the placodont's shell, the scales of the fish.
+  There they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of any animal of this world Colour is sourced only for ichthyosaurs, and only for a later relative: dark above, pale
+  below. The other reptiles get the same scheme as an assumption; shells and fish plain.
+  Low saturation, each kind its own colour family, and no card says anything about colour.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Whole skeletons on the black mud of the basin (the brief asks for them), single
+  clam shells on the slope.
+
+### Skin of the large animals (why the fish of the Devonian failed)
+
+This world is full of large animals with skin. That is the hardest thing for this engine: the Dunkleosteus of the
+Devonian failed on it three times. So:
+
+- **One test animal first.** Stage 3 starts with `mixosaurus` alone. Stop after it and let Mario look. Only when he
+  accepts it, build the others the same way.
+- **K1. Smooth skin is smooth.** No scale texture, no cell noise, no wrinkle lines drawn on. The life is in the large
+  soft forms in the mesh: muscle swelling at the base of each flipper, the ribcage as a faint barrel, a fold where a
+  flipper or a neck bends, the eye in a socket, the lips of the mouth.
+- **K2. Colour in zones.** Dark back, flank, pale belly, with soft wandering borders. No stripes, no spots.
+- **K3. No shine,** no bright rim, no highlight but a small one in the eye.
+- **K4. Wear,** sparse and from the seed: a few long scratches, a nick in a flipper edge.
+- **K5. The test for every skin** is a living animal of the same build seen under water: a dolphin for the
+  ichthyosaurs, a leatherback turtle for the plesiosaurs and the placodont, a marine iguana for the lizard shapes.
+  If the render shows a pattern or a shine such an animal does not have, take it out.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `daonella` | a standing kind of `cambrian` (`standing.js`) | 150 |
+| `ammonoid` | `meshGoniatite` (`devonian`) | 2,500 |
+| `saurichthys` | `meshKentuckia` (`devonian`): a fish that darts | 3,000 |
+| `mixosaurus`, `besanosaurus` | the plesiosaur of `today` for body, path and zoo; `meshCladoselache` for a tail that beats | 12,000 and 30,000 |
+| `neusticosaurus`, `askeptosaurus`, `ceresiosaurus`, `tanystropheus` | the plesiosaur of `today` (a long animal that follows its path with its whole body) | 5,000 to 25,000 |
+| `cyamodus` | the plesiosaur of `today` for the paddling; the shell is new | 15,000 |
+
+- **`mixosaurus`** (the test animal). Mixosaurus cornalianus. Two skeletons with skin are described in Renesto and
+  others 2020 (open access, with photographs and drawings: measure there): a back fin, a tail fin whose upper lobe is
+  a well-developed triangle, and skin without scales. It ate squid relatives and small fish. Dark above, pale below
+  (shown for a later ichthyosaur, assumed here).
+- **`besanosaurus`.** Shape from the figures of Bindellini and others 2021 (PeerJ, open access). Whether it had a
+  back fin is not known: none, or a low one, estimate.
+- **`tanystropheus`.** The large species of this lagoon is Tanystropheus hydroides. Thirteen very long neck bones,
+  stiffened by long neck ribs: the neck is three times as long as the trunk and bends little. Nostrils on top of the
+  snout, curved teeth. It lived in the water and hunted from ambush, the small head far ahead of the body. Skeleton
+  drawing with a diver for scale: press release of the University of Zurich, 2020 (measure, do not copy).
+- **`askeptosaurus`.** Up to 3 m, the skull 26 cm. A long neck, small but complete limbs, a tail of more than half
+  the length. The snout is long and straight and ends bluntly (not pointed, as version 1 said).
+- **`cyamodus`.** Cyamodus hildegardis. Scheyer 2010 (Palaeontologia Electronica, open access) has a life
+  reconstruction: a rounder shell than in its relatives, with a row of larger plates along its edge. The plates are
+  real (L2): low bumps with soft grooves between, under skin, not a drawn pattern.
+- **`ceresiosaurus`, `neusticosaurus`.** Shapes and sizes of the species: not verified beyond version 1. The small
+  ones (pachypleurosaurs) lived in shallow water. Find a skeleton drawing with a scale for each before modelling.
+- **`saurichthys`, `ammonoid`, `daonella`.** As in the table. Living ammonoids show no zigzag lines (they are inside
+  the shell); ribs are relief.
 
 ## Texts
 
@@ -112,7 +204,7 @@ const ZOO = {
     text: 'A reptile shaped like a small dolphin, long before there were dolphins. It could not go ashore to lay eggs any more. Fossils from this lagoon show how it solved that: mothers with unborn young inside them. Ichthyosaurs gave birth in the water, as whales do today.',
   },
   tanystropheus: {
-    name: 'Tanystropheus', sub: 'Tanystropheus · the reptile with the impossible neck', size: 6,
+    name: 'Tanystropheus', sub: 'Tanystropheus hydroides · the reptile with the impossible neck', size: 6,
     facts: [['Length', 'up to 6 m'], ['Neck', 'half of that, on only 13 bones'], ['Food', 'fish and squid relatives']],
     text: 'Its neck is as long as its body and tail together, and it has only 13 bones in it, each one stretched like a rod. So the neck was stiff. When its bones were first found, they were taken for the wing bones of a flying reptile. It probably waited for fish and struck sideways with its small, toothed head.',
   },
@@ -163,6 +255,8 @@ The sentences for the title menu:
 
 ## Sources
 
+Quotations are word for word from the page named. Everything else in this brief is Claude's wording or conclusion.
+
 **Checked on 2026-11-16:**
 
 - **Dates.** International Chronostratigraphic Chart v2024/12
@@ -186,21 +280,39 @@ The sentences for the title menu:
   (https://m4.ti.ch/fileadmin/DT/temi/mcsn/Monte_San_Giorgio/documentazione/I_Fossili.pdf): a predator up to 1 m
   long with a lightning strike.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23:**
 
-- The moment "about 242 million years ago", and the oxygen-free deep water.
-- `besanosaurus`: its food; the eel-like way of swimming (a paper of 2024 on its skeleton deals with this: see
-  https://doaj.org/article/38193ec2fef14758889d879416a776bb).
-- `mixosaurus`: 1 m; the back fin.
-- `tanystropheus`: 6 m, 13 neck bones, the stiff neck, the first reading as a flying reptile, how it hunted, and
-  whether it lived in the water or at its edge (researchers disagree; the table lets it do both).
-- `ceresiosaurus`: the name; that it could go ashore; nothosaurs as relatives of the plesiosaurs' ancestors.
-- `neusticosaurus`: sizes (the largest species is larger), number of skeletons, what is known of its life.
-- `cyamodus`: 1.3 m, the shell in two parts, the teeth, the end of the placodonts.
-- `askeptosaurus`: 3 m, the tail, claws, the life span of its group.
-- `saurichthys`: "some of the oldest proof".
-- `ammonoid`: the recovery after the Permian; dating of the beds by ammonoids.
-- `daonella`: sizes and the puzzle of how it lived.
+- `tanystropheus`: University of Zurich, "Long Neck Helped Reptile Hunt Underwater", 2020
+  (https://www.news.uzh.ch/en/articles/2020/Tanystropheus.html, also at https://idw-online.de/en/news752210): "had
+  only 13 extremely elongated vertebrae"; the neck three times as long as the torso; it lived in water; two species
+  in this lagoon, a large and a small one. Spiekman and others 2020, Current Biology, summary: aquatic habits, the
+  large species named T. hydroides. Phys.org on the same study: nostrils on top of the snout, curved teeth, the
+  large ones about twenty feet long.
+- `mixosaurus`: Renesto and others 2020, Acta Palaeontologica Polonica 65 (3), 511 to 522
+  (https://doi.org/10.4202/app.00731.2020), abstract: "the oldest amniote so far known that developed a dorsal fin";
+  a triangular upper lobe of the tail fin; skin without scales; stomach contents of squid relatives and small fish.
+- `askeptosaurus`: Wikipedia, "Askeptosaurus": "a total length up to 3 metres", skull 26 cm, a long neck, a very long
+  tail. Klein and others 2023, Swiss Journal of Palaeontology (https://pmc.ncbi.nlm.nih.gov/articles/PMC10432342):
+  "a long, straight, and bluntly terminating snout" and a tail of more than half the length.
+- `cyamodus`: Scheyer 2010, Palaeontologia Electronica (https://palaeo-electronica.org/2010_2/232/232.pdf),
+  abstract: "a series of similar-sized, enlarged lateral armour plates"; the shell rounder than thought; a new life
+  reconstruction.
+- **Skin and colour of ichthyosaurs.** Lindgren and others 2018, Nature
+  (https://doi.org/10.1038/s41586-018-0775-x), abstract, on Stenopterygius, an ichthyosaur of the Early Jurassic:
+  "flexible remnants of the original scaleless skin"; the spread of the pigment cells suggests dark above and pale
+  below. This is a later relative: for the animals of this lagoon it is an assumption.
+
+**Not checked yet** (from Claude's knowledge; check before the text ships, and put the source next to the entry):
+
+- The moment "about 242 million years ago" (the Zurich release gives the same figure for Tanystropheus).
+- `besanosaurus`: its food; how it swam; a back fin.
+- `mixosaurus`: 1 m.
+- `tanystropheus`: 6 m exactly; its food on the card.
+- `ceresiosaurus`: the name; nothosaurs as relatives of the plesiosaurs' ancestors.
+- `neusticosaurus`: sizes, number of skeletons.
+- `cyamodus`: 1.3 m, the shell in two parts, the teeth.
+- `askeptosaurus`: the life span of its group.
+- `saurichthys`, `ammonoid`, `daonella`: as in version 1.
 - Menu text: first dinosaurs and mammals late in the Triassic.
 
 ## Zoo reach to start with

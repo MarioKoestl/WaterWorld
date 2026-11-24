@@ -103,3 +103,19 @@ These change the engine. One Claude Code instance at a time, in this order.
     Checked in the engine with turntable. Mario, 2026-11-23.
 - [ ] **12. The Ordovician.** `era-ordovician.md`, version 2 (2026-11-23): facts checked, "How to work", "The look"
   and "Build notes" added. Five stages, a stop after each. Mario left the Devonian as it is. Mario, 2026-11-23.
+- [ ] **13. The Silurian.** `era-silurian.md`, version 2 (2026-11-23): the same additions as for the Ordovician. Reef
+  builders at the sizes of the source. Five stages, a stop after each. Mario, 2026-11-23.
+- [ ] **14. The Carboniferous.** `era-carboniferous.md`, version 2 (2026-11-23): the same additions. The Tully monster
+  has an upright tail fin. Five stages, a stop after each. Mario, 2026-11-23.
+- [ ] **15. The Permian.** `era-permian.md`, version 2 (2026-11-23): the same additions. Living ammonoids show no
+  zigzag lines. Five stages, a stop after each. Mario, 2026-11-23.
+- [ ] **16. The Triassic.** `era-triassic.md`, version 2 (2026-11-23): the same additions, and rules for the skin of
+  large animals. Mixosaurus is the test animal: stop after it. Mario, 2026-11-23.
+- [ ] **17. The Jurassic.** `era-jurassic.md`, version 2 (2026-11-23): the same. Muraenosaurus (5.2 m) is the test
+  animal: stop after it. Mario, 2026-11-23.
+- [ ] **18. The remaining eras.** Version 2 (2026-11-23) of `era-cretaceous.md`, `era-paleogene.md`, `era-neogene.md`,
+  `era-ediacaran.md`, `era-proterozoic.md`, `era-archean.md`, `era-hadean.md`: the same additions. Test animals:
+  Tylosaurus, Dorudon, the small baleen whale. One era per session, five stages each. Mario, 2026-11-23.
+- [ ] **19. The quality gate.** `quality-gate.md` and `.claude/agents/visual-critic.md`: every kind is judged by a
+  separate critic against a living model. First: rebuild `orthocones` and `endoceras` of the Ordovician after
+  Nautilus (`era-ordovician.md`), then put its other kinds through the gate. Mario, 2026-11-24.

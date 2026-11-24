@@ -187,6 +187,8 @@ this". `meshTrilo` and `S_TRILO` in `source/eras/cambrian/walkers.js` are the wo
 - **The check.** `node tools/turntable.mjs <era> <zoo id> <name>` before the work and after it. The visual critic
   gets the turntable (and closer views, as a fish) with one question: is this a solid animal or a flat cut-out, and
   from which views? Go on until it reports nothing above "minor".
+  Since 2026-11-24 that one question is replaced by the twelve of `docs/briefs/quality-gate.md` (the subagent
+  `visual-critic`). Read that file, with its recipe for building a body, before building any kind.
 - **Triangles are not the limit.** An animal that is looked at from 5 cm may have ten thousand (the trilobite has).
   Measure with the benchmark, and say in the hand-over what it costs.
 

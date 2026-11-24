@@ -153,7 +153,7 @@ of each genus before modelling it. Do not copy its pictures into the repo: measu
 | `brachiopod`, `bryozoan`, `horncoral` | a standing kind of `cambrian` (`standing.js`) | 300 to 1,500 |
 | `crinoid` | the sea lily in `meshDriftwood` (`devonian/driftwood.js`): stem of discs, cup, arms | 1,500 |
 | `graptolite` | the swarm of `MARRELLA` (`cambrian`) | 200 |
-| `orthocones`, `endoceras` | `meshGoniatite` (`devonian`) for the soft head and arms; the shell is new | 1,500 and 20,000 |
+| `orthocones`, `endoceras` | new, after Nautilus (see below); nothing of `meshGoniatite` | 5,000 and 30,000 |
 | `astraspis` | `meshMetaspriggina` (`cambrian`) for a small fish that swims with its tail | 4,000 |
 | `isotelus` | `meshTrilo`, `S_TRILO`, `TRILO_HEAP`, `TRILO_SHADOW` (`cambrian/walkers.js`) | 6,000 |
 | `megalograptus` | the walker code of `TRILO`; legs as in `meshHallu` | 12,000 |
@@ -168,11 +168,29 @@ of each genus before modelling it. Do not copy its pictures into the repo: measu
   than 0.3 to 1 m, the source wins, and the card with it).
 - **`graptolite`.** Graptolites are in these rocks, some preserved in the round. Shape and size of the kind found
   here from the Atlas (not verified here).
-- **`orthocones`.** Treptoceras, the common one. A straight cone, a little wider than high, smooth outside. Darker
-  bands on a pale shell, on the upper side only; the underside plain and pale. It swims level, the banded side up.
-  Soft parts are not known for any of these animals: a plain head with a few arms and an eye on each side, estimate.
-- **`endoceras`.** A straight cone 5.7 m long with low rings around it (Endoceras has them; Cameroceras, the giant
-  found in the Cincinnati rocks, is smooth). 0.3 thick at the opening is an estimate. Soft parts as above, larger.
+- **`orthocones`, `endoceras`: the living model is Nautilus** (rebuilt 2026-11-24; the first version was a cone with a
+  smaller cone for a head and boxes for arms). Nautilus is the only living cephalopod with an outer shell. The soft
+  parts of these fossils are not known: everything about them here is an estimate after Nautilus, and no card says
+  more. What to take from it:
+  - **The shell is a tube with a wall.** Its opening has a rim with a thickness, and one looks into a dark inside.
+    Fine growth lines run around the shell, parallel to the rim, as relief.
+  - **The animal sits in the last chamber** and comes out of the opening. It fills the opening; there is no head
+    stuck onto the shell. Where body and shell meet, the soft body bulges a little over the rim.
+  - **A hood**: a tough, leathery, wrinkled flap over the top of the head, shaped to close the opening when the
+    animal draws back.
+  - **Many tentacles, not five.** Nautilus has about 90, slim, without suckers, in two rings around the mouth, and
+    can draw them in. Model 30 to 40: round, tapering, each from a thicker sheath, of different lengths, bent and
+    trailing, no two alike. Never straight rods, never evenly spaced.
+  - **The eye** is a round swelling on each side under the hood with a small dark hole in its middle (Nautilus has
+    no lens). Form, not a painted dot.
+  - **The funnel**: a soft tube under the head. It pulses when the animal swims: each pulse pushes the shell
+    backward, tip first, and the tentacles trail.
+  - Colour of the soft parts: not known. Plain pale brown, the hood darker (estimate).
+  - Vertices: about 5,000 for an orthocone, about 30,000 for Endoceras.
+  - **`orthocones`.** Treptoceras: a straight cone, a little wider than high, smooth outside. Darker bands on a pale
+    shell, on the upper side only; the underside plain and pale. It swims level, the banded side up.
+  - **`endoceras`.** A straight cone 5.7 m long with low rings around it (Endoceras has them; Cameroceras, the giant
+    found in the Cincinnati rocks, is smooth). 0.3 thick at the opening is an estimate.
 - **`astraspis`.** 20 cm. Oval in cross-section. Head and chest under a shield of many-sided little plates wider
   than 2 mm, each with star-shaped or round bumps; the tail with scales under 1 mm. Large eyes at the sides; behind
   each a line of eight open gill holes slanting down and back. No fins but the tail. Read the abstract of Sansom and
@@ -280,6 +298,10 @@ Quotations are word for word from the page named. Everything else in this brief 
   in the Late Ordovician" (the authors write "potentially").
 - **The end.** Britannica, "Ordovician-Silurian extinction": "eliminated an estimated 85 percent of all Ordovician
   species"; second in severity after the end of the Permian.
+- **Nautilus** (the living model of the cephalopods): Animal Diversity Web, "Nautilus pompilius"
+  (https://animaldiversity.org/accounts/Nautilus_pompilius): "about 90 small suckerless tentacles" below a tough
+  hood; a funnel beneath; eyes without lens. Aquarium of the Pacific, "Chambered Nautilus": the hood closes the
+  opening; it swims by blowing water out of a siphon under the tentacles.
 - `megalograptus`: Wikipedia, "Megalograptus" (https://en.wikipedia.org/wiki/Megalograptus), section "Size":
   "ranged in length from 49 to 78 centimeters". Same article: colour inferred as brown and black, this species the
   darkest; possible fossil droppings with pieces of trilobites and of its own kind; blades under the tail spike that

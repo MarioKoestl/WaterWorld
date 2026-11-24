@@ -12,6 +12,28 @@ known, and Livyatan, a sperm whale with teeth as long as a forearm. In the shall
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/today/` (the plesiosaur, the schools, the leaves and the kelp are there),
+   then take out everything of today.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/neogene/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs neogene <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Neogene lasted from 23.04 to 2.58 million years ago. The world shows one moment in its second half, about 9
@@ -76,7 +98,7 @@ Sizes in metres, one unit is one metre.
 |---|---|---|---|---|---|
 | `megalodon` | megalodon | 16 | a very large shark with a long, fairly slim body, a blunt snout, a wide mouth with triangular teeth as large as a hand, long breast fins, a half-moon tail | cruises slowly and steadily on the widest path of the world | 1 |
 | `livyatan` | the sperm whale Livyatan | 15 | a sperm whale with a shorter, rounder head of about 3 m and big teeth in both jaws, visible when the mouth opens | swims with slow beats of its fluke, comes up to breathe | 1 |
-| `whale` | small baleen whales | about 5 | like a small, slim rorqual: a pointed head, baleen in place of teeth, a small back fin | in a loose group near the surface, mouths opening as they feed | 6 |
+| `whale` | small baleen whales | 3 to 4 | like a small, slim rorqual: a pointed head, baleen in place of teeth, a small back fin | in a loose group near the surface, mouths opening as they feed | 6 |
 | `thalassocnus` | the sea sloth Thalassocnus | about 3 | a sloth: long snout, long arms with big claws, shaggy fur, a strong tail | walks along the floor on all fours and holds on with its claws; pulls at the sea plants | 5 |
 | `seal` | the seal Acrophoca | about 1.5 | a slim seal with a long neck and a long, pointed head | swims with its hind flippers, twists and turns among the rocks | 8 |
 | `gharial` | the sea gharial | about 4 | a crocodile with a very long, thin snout full of needle teeth | lies still near the rocks, swims with its tail | 2 |
@@ -91,6 +113,71 @@ Order of work, easiest first: rocks, sand and plants, the schools, then `penguin
 What the engine already offers: the fish school and the kelp of `today`, the walkers of `cambrian` for the sloth,
 the plesiosaur's path-following for the whales and sharks. A whale's fluke beats up and down, a shark's tail from
 side to side: two different shaders.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the scales of the gharial, the feathers of the penguin (as a smooth coat). There
+  they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the
+  light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of any animal of this world was found in a source. Sharks and whales
+  dark above, pale below, as in their living relatives (assumption). Everything else plain. Low saturation, each kind
+  its own colour family, and no card says anything about colour.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Whale bones on the floor with shark teeth among them (bones with bite marks of
+  megalodon are known from here), shells.
+
+### Skin of the large animals (why the fish of the Devonian failed)
+
+This world is full of large animals with skin. That is the hardest thing for this engine: the Dunkleosteus of the
+Devonian failed on it three times. So:
+
+- **One test animal first.** Stage 3 starts with `whale` alone. Stop after it and let Mario look. Only when he
+  accepts it, build the others the same way.
+- **K1. Smooth skin is smooth.** No scale texture, no cell noise, no wrinkle lines drawn on. The life is in the large
+  soft forms in the mesh: muscle swelling at the base of each flipper, the ribcage as a faint barrel, a fold where a
+  flipper or a neck bends, the eye in a socket, the lips of the mouth.
+- **K2. Colour in zones.** Dark back, flank, pale belly, with soft wandering borders. No stripes, no spots.
+- **K3. No shine,** no bright rim, no highlight but a small one in the eye.
+- **K4. Wear,** sparse and from the seed: a few long scratches, a nick in a flipper edge.
+- **K5. The test for every skin** is a living animal of the same build seen under water: a dolphin for the
+  ichthyosaurs, a leatherback turtle for the plesiosaurs and the placodont, a marine iguana for the lizard shapes.
+  If the render shows a pattern or a shine such an animal does not have, take it out.
+- **K6. Fur under water** (sloth, seal) is sleek and dark, lying flat in the direction of the flow, with a few clumped
+  strands at elbows and tail. Never fluffy, never single hairs.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `seaweed`, `fish` | the kelp and the fish school of `today` | as there |
+| `penguin` | the fish school of `today` for the paths; the body is new | 3,000 |
+| `seal`, `gharial` | the plesiosaur of `today` (a long animal that follows its path) | 10,000 |
+| `thalassocnus` | the walker code of `TRILO` (`cambrian`) for walking on the floor; the body is new | 15,000 |
+| `whiteshark`, `megalodon` | `meshCladoselache` (`devonian`) | 20,000 and 45,000 |
+| `whale`, `livyatan` | the plesiosaur of `today` for path and zoo; a fluke that beats up and down | 20,000 and 45,000 |
+
+- **`whale`** (the test animal). The small baleen whale of these beds is Piscobalaena nana, about 3 to 4 m (version 1
+  said 5). Smooth skin, throat without the long grooves of a rorqual unless a source shows them: not verified.
+- **`megalodon`.** After the study of 2025: a slender body, more like a lemon shark than a great white. 16 m follows
+  from the 11 m backbone from Belgium; the largest may have reached 24.3 m. Only teeth, backbones and scales are
+  known: the outline is the study's "tentative body outline" (DePaul University's release shows it: measure).
+- **`thalassocnus`**, **`seal`** (Acrophoca longirostris), **`gharial`** (Piscogavialis jugaliperforatus),
+  **`penguin`** (Spheniscus urbinai), **`whiteshark`** (Carcharodon). All are listed for the Pisco beds at Sacaco.
+  Sizes and shapes: not verified.
+- **One sea from several beds.** The Pisco rocks span about 9.6 to 4.5 million years. The oldest sea sloth is about
+  7 million years old, Livyatan about 9. The world puts them into one sea, as the Triassic brief does for its
+  lagoon. Say so in the hand-over of stage 4, and Mario decides whether the menu text needs a word on it.
 
 ## Texts
 
@@ -111,8 +198,8 @@ const ZOO = {
     text: 'A sperm whale of today eats squid. This one had teeth as long as a forearm in both jaws, the largest biting teeth of any animal known, and it hunted other whales. Its skull, 3 m long, was found in the desert of Peru in 2008. It lived in the same waters as megalodon.',
   },
   whale: {
-    name: 'Baleen whale', sub: 'a small whale that strains its food', size: 5,
-    facts: [['Length', 'about 5 m'], ['In place of teeth', 'baleen, a curtain of horny plates'], ['Eats', 'the smallest animals in the sea']],
+    name: 'Baleen whale', sub: 'Piscobalaena nana · a small whale that strains its food', size: 4,
+    facts: [['Length', '3 to 4 m'], ['In place of teeth', 'baleen, a curtain of horny plates'], ['Eats', 'the smallest animals in the sea']],
     text: 'The whales of this sea are small beside a blue whale. Most are no longer than a rowing boat, and there are more kinds of them than ever before or since. They gulp water and press it out through the baleen in their mouths. For megalodon and Livyatan they are the main food.',
   },
   thalassocnus: {
@@ -185,7 +272,21 @@ The sentences for the title menu:
   south of Lima, holds baleen whales, seals, penguins, crocodiles and sharks as well as fish and squid: the prey
   available to the hunting sperm whales.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- `megalodon`: Shimada and others 2025, Palaeontologia Electronica 28 (1), abstract
+  (https://pmc.ncbi.nlm.nih.gov/articles/PMC7617484): it "could have had a slender body and possibly reached about
+  24.3 m in length". SciTechDaily on the same study: the body probably resembled that of a lemon shark.
+- **The beds.** Wikipedia, "Pisco Formation" (https://en.wikipedia.org/wiki/Pisco_Formation): "roughly from 9.6 to
+  4.5 Ma"; the oldest Thalassocnus about 7 million years old. Ochoa and others 2021, International Journal of Earth
+  Sciences, supplement: the Sacaco beds hold Thalassocnus, Acrophoca longirostris, megalodon, Carcharodon,
+  Spheniscus urbinai and Piscogavialis jugaliperforatus.
+- `whale`, and megalodon as its hunter: Collareta and others 2017, Palaeogeography, Palaeoclimatology, Palaeoecology
+  (accepted manuscript at boa.unimib.it): bite marks of megalodon on whale and seal bones from these beds;
+  "small-sized mysticetes around 3-4 m" (Piscobalaena nana).
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - The moment "about 9 million years ago" follows the date of Livyatan. Check for each of the others whether it is
   known from Pisco rocks of about that age. The Pisco Formation spans several million years.

@@ -13,6 +13,28 @@ anything alive today. Nothing hunts, nothing hides, and nothing swims.
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor, standing kinds and scattering are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/ediacaran/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs ediacaran <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Ediacaran lasted from 635 to 538.8 million years ago. The world shows one moment near its end, about 555 million
@@ -95,6 +117,42 @@ What the engine already offers: standing kinds that sway, as the tulip animal of
 New: animals that creep on the ground. `makeWorld` knows the height of the ground while it places things. Keep the
 creepers on flat sand, and keep the rule that animation has no state. The marks they leave (resting ovals, scratch
 fans, grooves) are part of the ground or flat kinds on it, placed with the animal.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the ribs of Dickinsonia, the segments of Spriggina, the rings of Funisia, the
+  branches of the frond: quilted bodies, soft pillows side by side. There they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the
+  light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of anything in this world is known. Soft, pale, a little translucent
+  bodies in quiet tones, each kind its own; the mat darker. Low saturation, each kind its own colour family, and no
+  card says anything about colour.
+- **L6. No eyes, no mouths, no legs.** Nothing here has them. Do not add any to make a body readable.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Faint resting marks of Dickinsonia on the mat, torn mat with sand showing, flattened
+  tubes.
+
+## Build notes
+
+All ten are low, soft things on a mat: start each from a standing kind of `cambrian` (`standing.js`), the creeping
+ones from the walker code of `TRILO` without legs. 300 to 3,000 vertices each; Dickinsonia up to 6,000.
+
+- **Soft, not rubber.** These bodies were thin and soft. Edges sag onto the mat, large ones follow its wrinkles.
+  Matte, a little light through the thin rim.
+- **`funisia`.** Settled: up to about 30 cm long and 12 mm thick (version 1 doubted 30 cm against 30 mm), built of
+  ring-shaped units up to 8 mm long. The most common fossil of these beds, in dense lawns.
+- **The other nine.** Sizes and shapes as in the table: not verified beyond version 1. The pages of the South
+  Australian Museum and Droser and Gehling 2015 (PNAS, open access, with photographs and scale bars) are the place
+  to measure.
 
 ## Texts
 
@@ -188,7 +246,15 @@ The sentences for the title menu:
 - `funisia`: the summary of the Nilpena beds above: densely packed, over 1,000 to a square metre, neighbours on one
   bed of similar size.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- `funisia`: Wikipedia, "Funisia" (https://en.wikipedia.org/wiki/Funisia): "stood about 0.3 m (11.8 in) tall, with
+  a diameter of 12 mm"; units up to 8 mm long. A journal article on Funisia at Cambridge Core (core
+  reader): Funisia is "the most abundant by an order of magnitude" of the fossils of the Ediacara Member, which is
+  about 555 to 550 million years old.
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - The age "about 555 million years" for these beds.
 - `dickinsonia`: body a few millimetres thick; no mouth or gut found; the resting marks as feeding traces; the

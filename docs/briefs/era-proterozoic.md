@@ -12,6 +12,28 @@ a forearm.
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor, standing kinds and scattering are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/proterozoic/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs proterozoic <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 In the timeline of the game the Proterozoic lasts from 2500 to 635 million years ago. The world shows one moment,
@@ -83,6 +105,34 @@ Sizes in metres, one unit is one metre. The fronds and Grypania are small: this 
 
 What the engine already offers: standing kinds in masses, the leaves of `today` for blades that sway, sprites for
 bubbles.
+
+## The look: rules from the worlds built so far
+
+This world has no animals. Its exhibits are rock, water, light and films of microbes. What makes such things look
+real and not like plastic props:
+
+- **R1. Form at three sizes.** The outline; lumps, ledges, cracks and layers of a few percent of the size in the mesh;
+  grain in the shader. A smooth shape with a painted texture looks like a toy.
+- **R2. No pattern that repeats,** and no noise that draws closed cells, except where the rock has them: the fine
+  layers of a broken column, the wrinkles of a mat. There they are relief, not outlines.
+- **R3. No drawn dark line of one width.** A layer is a step, a crack is a groove, shaded by the light.
+- **R4. Nothing shines under water.** Rock and mats are matte. The bubbles are the only bright thing.
+- **R5. Colours** as in "Atmosphere", with low saturation. Colour follows relief: hollows darker and dustier, edges
+  and tops paler.
+- **R6. No two alike.** Every dome, chimney or block differs in size, lean, wear and tone, from its seed.
+- **R7. Motion** comes from water, particles, bubbles and light only. Nothing repeats exactly.
+- **R8. Broken pieces belong here:** fallen blocks, rubble at the foot of every structure, a broken one that shows its
+  inside.
+
+## Build notes
+
+Everything is a standing kind or part of the floor: start from `standing.js` and `FLOOR` of `cambrian`.
+
+- **`fronds`.** Four shapes in the source: oblong, tongue-shaped (the largest, up to 28.6 cm), wedge-shaped (up to
+  18 cm, widening to a ribbon up to 4.2 cm wide) and linear. Up to 30 cm long and nearly 8 cm wide in all. They are
+  known as flat dark films in the rock: thickness and colour in life are not known. Thin, dark, limp blades that
+  move with the water, estimate.
+- **`columns`, `domes`, `mat`, `oxygen`, `grypania`.** As in the table: not verified beyond version 1.
 
 ## Texts
 
@@ -161,7 +211,14 @@ The sentences for the title menu:
 - `oxygen`: the date of about 2.4 billion years for the Great Oxidation Event, from the sources of
   `era-archean.md`.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- `fronds`: Zhu and others 2016, Nature Communications 7, 11500 (https://doi.org/10.1038/ncomms11500), figure 3:
+  "linear to lanceolate shapes up to 30 cm long and nearly 8 cm wide"; 1,560 million years old, Gaoyuzhuang
+  Formation, North China; the shapes and sizes given in "Build notes".
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - Whether stromatolites and Grypania occur in the same rocks as the fronds. Grypania is known from several places
   and ages; the world puts it next to the fronds as a fossil of the same era, not of the same bed.

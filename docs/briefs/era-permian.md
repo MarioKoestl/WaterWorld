@@ -13,6 +13,29 @@ here will be gone at the end of the era.
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 the facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (a reef wall, floor life, walkers and swarms are there), then
+   take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/permian/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs permian <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Permian lasted from 298.9 to 251.902 million years ago. The world shows one moment in its first half, about 280
@@ -82,7 +105,7 @@ Sizes in metres, one unit is one metre. The reef life is small: this world asks 
 | `fusulinid` | fusulinids | 0.005 to 0.01 | grains like rice or small spindles, forming the sand | none | sand patches on the flat |
 | `bryozoan` | lace moss animals | fans 0.05 to 0.15 | upright fans and funnels of fine stony mesh | none | hundreds |
 | `crinoid` | sea lilies | 0.3 to 0.8 high | a stalk with a crown of feathery arms | sway | meadows on the upper slope |
-| `ammonoid` | ammonoids | shell 0.03 to 0.1 across | a coiled shell with a zigzag line pattern, head and arms in its opening | swim in short jerks | 4 groups of about 30 |
+| `ammonoid` | ammonoids | shell 0.03 to 0.1 across | a coiled shell, smooth or finely ribbed, head and arms in its opening; the zigzag lines only on worn dead shells | swim in short jerks | 4 groups of about 30 |
 | `cooperoceras` | the spiny nautilus Cooperoceras | shell about 0.12 across | a loosely coiled shell with two rows of long curved spines | swims slowly, alone | about 15 |
 | `trilobite` | one of the last trilobites | about 0.03 | a small oval shield in three parts | walks on the reef rock | about 40, hard to find on purpose |
 | `reef` | the reef | no `size` | the rim and the slope | | a backdrop |
@@ -94,6 +117,64 @@ Order of work, easiest first: the reef builders and what stands (`sponge`, `cone
 
 What the engine already offers: a wall as the edge of the world (the reef wall of `cambrian`), scattering in masses,
 swarms, walkers, a large animal on a path (the plesiosaur of `today`).
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the mesh of the lace moss animals, the chambers of the sponges.
+  There they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of any animal of this world was found in a source.
+  Plain colours of the material: shell and reef stone in creams, greys and browns; Helicoprion grey, darker above.
+  Low saturation, each kind its own colour family, and no card says anything about colour.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Empty shells between the living ones, worn ammonoid shells that show their zigzag
+  lines,
+  blocks broken from the rim on the slope.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `reef`, `sea` | the reef wall of `cambrian` (`FLOOR`) | none |
+| `sponge`, `coneshell`, `productid`, `bryozoan` | a standing kind of `cambrian` (`standing.js`) | 300 to 2,000 |
+| `fusulinid` | grains scattered as the smallest standing kind (`GRIT` of `cambrian`) | 30 |
+| `crinoid` | the sea lily of `ordovician` or `silurian` if built, else the one in `meshDriftwood` (`devonian`) | 1,500 |
+| `ammonoid`, `cooperoceras` | `meshGoniatite` (`devonian`): a coiled shell with head and arms | 2,500 and 5,000 |
+| `helicoprion` | `meshCtenacanthus` (`devonian`) for a shark body on a path; the head is new | 25,000 |
+| `trilobite` | `meshTrilo`, `S_TRILO` (`cambrian/walkers.js`) | 3,000 |
+
+Main source for the shapes of the reef kinds: Cooper and Grant, "Permian Brachiopods of West Texas", parts I to VI
+(Smithsonian Contributions to Paleobiology 14, 15, 19, 21, 24, 32; free at https://repository.si.edu). Its plates
+show the shells of these very rocks, freed from the limestone with acid, spines and all. Measure on them, do not copy
+them.
+
+- **`sponge`, `coneshell`, `productid`, `bryozoan`, `fusulinid`, `crinoid`.** Sponges, lamp shells, moss animals and
+  sea lilies are all listed for the Glass Mountains. Which kinds, their shapes and sizes: not verified here. Take
+  them from the plates above (lamp shells) and from a museum page with a scale (the others) before modelling.
+- **`ammonoid`.** The zigzag lines are where the inner walls meet the shell from inside. A living animal does not
+  show them: its shell is smooth or finely ribbed. Only worn, empty shells on the floor show the lines (L10). Which
+  kinds lived here: not verified.
+- **`cooperoceras`.** Cooperoceras texanum. A loosely coiled shell whose turns do not cover each other, flat on the
+  sides and on the outer edge, with wavy ribs when grown. Along each outer corner a row of long, hollow spines, far
+  apart, curving backward. The spines are longest in mid-life and worn on the last third of the shell: it lived
+  close to the floor. Its size is uncertain: one page gives about 10 cm, a museum model is called life-sized at
+  30 cm. Keep 0.12 until the first description (Miller 1945) is read.
+- **`helicoprion`.** Only the tooth spiral and pieces of jaw and skull are known; nothing of the body. The jaw is
+  sourced: one spiral of more than 130 teeth that fills the whole lower jaw, no teeth above. The body is an estimate
+  after its relatives: a plain large shark shape. Say so on no card. Dark small eyes, matte skin, the mouth a dark
+  slot with the saw standing in it. It is a relative of ratfish, so do not give it the gill slits or the face of a
+  great white without checking: not verified.
+- **`trilobite`.** Which kind lived here: not verified. Small and plain.
 
 ## Texts
 
@@ -150,7 +231,7 @@ const ZOO = {
   },
   trilobite: {
     name: 'One of the last trilobites', sub: 'the end of a long line', size: 0.03,
-    facts: [['Length', 'about 3 cm'], ['Trilobites have lived for', 'almost 270 million years'], ['Kinds left', 'a few']],
+    facts: [['Length', 'about 3 cm'], ['Trilobites have lived for', 'more than 250 million years'], ['Kinds left', 'a few']],
     text: 'Look closely: this small animal is one of the last of its kind. Trilobites crawled over the floor of the Cambrian sea and came through four eras and two great extinctions. Only a few kinds are left, and they will not survive the next one. At the end of the Permian the trilobites are gone for good.',
   },
   reef: {
@@ -175,6 +256,8 @@ The sentences for the title menu:
 
 ## Sources
 
+Quotations are word for word from the page named. Everything else in this brief is Claude's wording or conclusion.
+
 **Checked on 2026-11-16:**
 
 - **Dates.** International Chronostratigraphic Chart v2024/12
@@ -192,21 +275,39 @@ The sentences for the title menu:
   **Sources disagree on the length:** the Australian Museum (https://australian.museum/learn/animals/fishes/helicoprion)
   gives 10.5 to 20.3 m. The brief follows the researcher who studied the jaws.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23:**
 
-- **Place.** The Glass Mountains as the reef rim of a deep basin, the moment "about 280 million years ago" (the age
-  of the Skinner Ranch Formation), and which of the exhibits are known from these rocks.
-- `sponge`: the chambered sponges and crusts as reef builders; the Guadalupe Mountains as a Permian reef (it is
-  younger than this moment, about 265 million years).
-- `coneshell` (richthofenids), `productid`: shapes, sizes, the spines as snowshoes, "hundreds of kinds" from these
-  rocks.
+- **Place.** University of California Museum of Paleontology, "Localities of the Permian: Glass Mountains, Texas"
+  (https://ucmp.berkeley.edu/permian/glassmts.html): "on the southern boundary of the Delaware Basin"; fossils there
+  include algae, sponges, moss animals, lamp shells, sea lilies, snails and nautiloids. (The page calls the reef a
+  coral reef; the brief stays with sponges, see below under not checked.) Cooper and Grant 1972, "Permian
+  Brachiopods of West Texas, I" (https://repository.si.edu/items/634e99da-ee0e-4c2f-912f-7f3318c95209): fossils
+  turned to silica and freed with acid; reef mounds in the Glass Mountains.
+- `helicoprion`: Tapanila and Pruitt 2013, "Unraveling species concepts for the Helicoprion tooth whorl", Journal of
+  Paleontology, abstract: "a continuous spiral root that forms the base for more than 130 teeth"; found worldwide in
+  Lower Permian sea rocks. Its reference list names Kelly and Zangerl 1976, "Helicoprion (Edestidae) in the Permian
+  of west Texas". National Geographic 2014
+  (https://www.nationalgeographic.com/science/article/bizarre-prehistoric-ratfish-chomped-prey-with-buzzsaw-jaws):
+  no upper teeth, only the saw in the lower jaw.
+- `cooperoceras`: Wikipedia, "Cooperoceras" (https://en.wikipedia.org/wiki/Cooperoceras): "long paired hollow spines
+  on its outer sides"; the shell form as in "Build notes"; the spines worn on the last third of the grown shell.
+- `sea`: Britannica, "Permian extinction" (https://www.britannica.com/science/Permian-extinction): "more than 95
+  percent of the marine species". Sam Noble Museum, "End-Permian extinction"
+  (https://samnoblemuseum.ou.edu/understanding-extinction/mass-extinctions/end-permian-extinction/): "more than
+  three-quarters of species of marine animals", about 252 million years ago; trilobites had lived for more than 250
+  million years. The sources disagree (three quarters to 96 %); "about nine in ten" on the card lies between.
+  The Siberian eruptions as the leading explanation: Britannica and Discover Magazine.
+
+**Not checked yet** (from Claude's knowledge; check before the text ships, and put the source next to the entry):
+
+- **Place.** The moment "about 280 million years ago"; sponges, not corals, as the builders of this rim; the depth
+  of the basin, the desert, the salt.
+- `helicoprion`: that the Texas find is from the Glass Mountains region; the body.
+- `sponge`, `coneshell` (richthofenids), `productid`: shapes, sizes, the spines as snowshoes.
 - `fusulinid`: single cells, sizes, rock-building, extinction at the end of the Permian.
 - `bryozoan`, `crinoid`, `ammonoid`: all facts.
-- `cooperoceras`: the species, its size and spines, the Glass Mountains, the fossils turned to quartz and freed
-  with acid.
-- `trilobite`: almost 270 million years (about 521 to 252 million years ago), which kinds lived here.
-- `reef`: depth of the basin, the desert, the salt, the mountains of today.
-- `sea`: the great dying, 252 million years ago, about nine in ten kinds of sea animals, the Siberian eruptions.
+- `cooperoceras`: its size.
+- `trilobite`: which kinds lived here.
 
 ## Zoo reach to start with
 

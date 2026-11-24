@@ -12,6 +12,28 @@ hunt their young.
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/today/` (the plesiosaur, the schools, the leaves and the kelp are there),
+   then take out everything of today.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/paleogene/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs paleogene <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Paleogene lasted from 66.0 to 23.04 million years ago. The world shows one moment in its second half, about 38
@@ -90,6 +112,68 @@ Order of work, easiest first: sand, seagrass, mangroves and nummulites, then `py
 What the engine already offers: the leaves of `today` for seagrass, the fish school, the manta for the turtle and
 the sea cow, a long animal that follows its path with its whole body (the plesiosaur) for the two whales. The
 whale calls of `today` exist in the soundscape: this is the first era that may use them.
+
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines); fine relief in the shader. Outline plus painted lines looks like a toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the plates of the turtle's shell, the scales of the fish, the teeth of the saw.
+  There they are relief, not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the
+  light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of any animal of this world was found in a source. Whales and sea cow:
+  smooth skin like their living relatives, dark above, pale below, as an assumption. Everything else plain. Low
+  saturation, each kind its own colour family, and no card says anything about colour.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags. What was stiff does not bend. Nothing repeats exactly.
+- **L10. The dead belong here.** Whale bones half in the sand (this is the valley of whale skeletons), shells, coins
+  of nummulites as the sand itself.
+
+### Skin of the large animals (why the fish of the Devonian failed)
+
+This world is full of large animals with skin. That is the hardest thing for this engine: the Dunkleosteus of the
+Devonian failed on it three times. So:
+
+- **One test animal first.** Stage 3 starts with `dorudon` alone. Stop after it and let Mario look. Only when he
+  accepts it, build the others the same way.
+- **K1. Smooth skin is smooth.** No scale texture, no cell noise, no wrinkle lines drawn on. The life is in the large
+  soft forms in the mesh: muscle swelling at the base of each flipper, the ribcage as a faint barrel, a fold where a
+  flipper or a neck bends, the eye in a socket, the lips of the mouth.
+- **K2. Colour in zones.** Dark back, flank, pale belly, with soft wandering borders. No stripes, no spots.
+- **K3. No shine,** no bright rim, no highlight but a small one in the eye.
+- **K4. Wear,** sparse and from the seed: a few long scratches, a nick in a flipper edge.
+- **K5. The test for every skin** is a living animal of the same build seen under water: a dolphin for the
+  ichthyosaurs, a leatherback turtle for the plesiosaurs and the placodont, a marine iguana for the lizard shapes.
+  If the render shows a pattern or a shine such an animal does not have, take it out.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `nummulite` | grains scattered as the smallest standing kind (`GRIT` of `cambrian`) | 30 |
+| `seagrass`, `mangrove` | the leaves of `today` | few |
+| `pycnodus` | the fish school of `today` | 2,000 |
+| `turtle`, `seacow` | the manta of `today` for the flippers | 10,000 |
+| `sawfish`, `shark` | `meshCladoselache` (`devonian`) | 15,000 |
+| `dorudon`, `basilosaurus` | the plesiosaur of `today` for path and zoo; a fluke that beats up and down is new | 20,000 and 45,000 |
+
+- **`dorudon`** (the test animal). Dorudon atrox, 5 m, about the size of a beluga. Built like a dolphin, with a pair
+  of tiny hind legs with feet and toes. Skeleton photographs: the PLOS ONE study of 2019 named under "Sources",
+  figure 1.
+- **`basilosaurus`.** Basilosaurus isis, 15 to 18 m. Hind legs under half a metre long, useless for swimming. It ate
+  young Dorudon and the large fish Pycnodus: both are in its stomach. Let one hunt pass through the world.
+- **`pycnodus`.** Pycnodus mokattamensis, known from this very valley as prey of Basilosaurus. A large fish.
+- **`mangrove`**, **`shark`**, **`turtle`.** Mangroves, sharks and turtles are shown in the museum of the valley.
+  Which kinds: not verified.
+- **`seacow`**, **`sawfish`**, **`seagrass`**, **`nummulite`.** That they are known from this valley: not verified.
+  Take the genus names from the source you find and put them into the `sub` lines.
 
 ## Texts
 
@@ -177,7 +261,22 @@ The sentences for the title menu:
   ancient Tethys Sea. A report on the same study (https://www.seattlestar.net/2019/01/ancient-killer-whale-snacked-on-fish-sharks-andother-whales/):
   the shark is named Carcharocles sokolowi there.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- `basilosaurus`, `dorudon`, `pycnodus`: a study of 2019 in PLOS ONE (https://pmc.ncbi.nlm.nih.gov/articles/PMC6326415):
+  Basilosaurus isis 15 to 18 m long, and "the 5-meter archaeocete Dorudon atrox"; stomach contents of
+  Basilosaurus hold young Dorudon and the large fish Pycnodus mokattamensis. Peters and others 2009, Palaios
+  (https://strata.geology.wisc.edu/reprints/Peters_etal2009.pdf): the whales of the valley "are fully aquatic but
+  retain external hind limbs". New York Institute of Technology, "Dorudon atrox" (https://www.nyit.edu/?p=4476):
+  about 5 m, "similar in size to the modern beluga".
+- Hind legs of Basilosaurus under half a metre: the UNESCO nomination file, as quoted by IFLScience
+  (https://www.iflscience.com/the-largest-ancient-whale-graveyard-in-the-world-is-in-the-middle-of-a-desert-80567).
+- `mangrove`, `shark`, `turtle`: Nature Middle East 2016 (https://www.natureasia.com/en/nmiddleeast/article/10.1038/nmiddleeast.2016.5):
+  the site shows "the rare bones of whales, sharks and turtles"; its museum holds fossil mangroves (the museum also
+  shows finds from other places).
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - **Place.** That sea cows, sawfish, sea turtles, seagrass, mangroves and nummulites are known from Wadi Al-Hitan.
   All are reported from there as Claude remembers it, but no source was read for this brief. Take the genus names

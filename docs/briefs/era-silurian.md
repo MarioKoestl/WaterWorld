@@ -11,6 +11,28 @@ mud, and at the edge of the lagoon the first plants with stems stand on bare lan
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 the facts were checked (see "Sources"; some numbers changed),
+and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor life, walkers and swarms are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/silurian/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs silurian <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Silurian lasted from 443.1 to 419.62 million years ago. The world shows one moment late in it, about 425 million
@@ -37,6 +59,7 @@ mud kept sea scorpions and whole shoals of small fish.
 | The shore with its plants is an exhibit, seen from the water | Claude |
 | A low, golden sun, so that this lagoon does not look like the midday sea of the Ordovician | Claude |
 | The list of the ten | Claude |
+| Reef builders at the sizes of the source: domes up to 0.3 m, honeycomb corals up to 0.25 m | Claude, 2026-11-23 |
 
 The decisions marked Claude are defaults. Mario can change them; ask before building something else.
 
@@ -73,13 +96,13 @@ of `scale.md`.
 
 | Id | What | Size | Shape | Movement | Where and how many |
 |---|---|---|---|---|---|
-| `eurypterus` | the sea scorpion Eurypterus | 0.15 to 0.25 | a flat head shield with two eyes, a body of twelve segments that narrows to a tail spike, walking legs, one pair of legs widened into paddles | rows with the paddles, walks on the mud | about 80, in the lagoon |
-| `erettopterus` | the large sea scorpion Erettopterus | about 0.9 | larger and slimmer, with two long arms ending in toothed claws, big eyes at the front corners of the head, a tail that ends in a flat two-lobed fin | swims in the open water of the channels | 4 |
+| `eurypterus` | the sea scorpion Eurypterus | 0.13 to 0.23 | a flat head shield with two eyes, a body of twelve segments that narrows to a tail spike, walking legs, one pair of legs widened into paddles | rows with the paddles, walks on the mud | about 80, in the lagoon |
+| `erettopterus` | the large sea scorpion Erettopterus | about 0.9 | larger and slimmer, with two long arms ending in toothed claws, short paddles, big eyes at the front corners of the head, a tail that ends in a flat two-lobed fin | swims in the open water of the channels | 4 |
 | `tremataspis` | the armoured fish Tremataspis | about 0.1, of which the shield 0.035 | a smooth, oval shield of bone over the head, two eyes close together on top, a scaly tail, no jaws, no paired fins | wriggles along the floor, rests on the mud | about 50 |
 | `phlebolepis` | the scale fish Phlebolepis | about 0.07 | a small flat-headed fish, covered all over in tiny scales, with a forked tail | swims in dense shoals | 3 shoals of about 200 |
 | `halysites` | chain coral | colonies 0.2 to 0.5 | upright tubes joined side by side into walls; from above a net of chains | small polyps | hundreds, on the reef |
-| `favosites` | honeycomb coral | 0.1 to 0.5 | domes and lumps whose surface is a honeycomb | small polyps | hundreds, on the reef |
-| `stromatoporoid` | stromatoporoids | 0.3 to 2 across | layered domes and thick crusts with a knobbly surface | none | the body of the reef |
+| `favosites` | honeycomb coral | 0.1 to 0.25 | domes and lumps whose surface is a honeycomb | small polyps | hundreds, on the reef |
+| `stromatoporoid` | stromatoporoids | 0.1 to 0.3 across | layered domes and thick crusts with a knobbly surface | none | the body of the reef |
 | `crinoid` | sea lilies | 0.3 to 0.8 high | a stalk with a crown of feathery arms | sway | meadows on the fore reef |
 | `orthocone` | straight-shelled cephalopods | 0.2 to 0.6 | a straight cone with a head and arms at the wide end | swim in the channels and outside | about 20 |
 | `shore` | the first green shore | plants a few centimetres high, no `size` | seen through the surface and at the waterline: thin, leafless, forked stems with a small knob at each tip, in low patches on bare ground | sway in the wind | the land side of the lagoon, as a backdrop |
@@ -91,6 +114,71 @@ What the engine already offers: scattering in masses, swarms, walkers and standi
 seen from the water. The plane above the world (`above` in the era's `AIR`) shows the sky; the plants stand where
 the floor comes out of the water.
 
+## The look: rules from the Cambrian and the Devonian
+
+Mario accepted the rebuilt trilobite of the Cambrian ("exactly like this") and rejected the fish of the Devonian as
+plastic and as cartoon. What made the difference:
+
+- **L1. Form at three sizes.** The outline; forms of a few percent of the body in the mesh (ribs, steps between
+  segments, lobes, spines, the cups of a coral); fine relief in the shader. Outline plus painted lines looks like a
+  toy.
+- **L2. Contrast belongs to light and shadow.** Detail of middle size is quiet. No noise that draws closed cells,
+  except where the fossil has them: the honeycomb of Favosites, the chains of Halysites, the scales of the fish.
+  There they are relief (walls that stand up, cups that sink), not outlines.
+- **L3. No drawn dark line of one width.** A joint, a suture, a growth line is a step or a groove, shaded by the light.
+- **L4. Nothing shines under water.** Shell, armour, stone and skin are matte, with a faint broad sheen at most.
+- **L5. Colour only from a source.** No colour of any animal of this world was found in a source. Everything gets
+  the plain colour of its material (armour of sea scorpions: browns; bone and scales: greys and browns; reef stone as
+  in "Atmosphere"), with low saturation, and no card says anything about it. Each kind still has its own colour
+  family. The brown of the fossil skins of Saaremaa is the colour of the fossil, not of the living animal.
+- **L6. Eyes are small and dark,** never the brightest thing on an animal.
+- **L7. Colour follows relief:** hollows darker and dirtier, edges and tops worn paler.
+- **L8. Individuals differ** in size, tone, wear and pose, from their seed.
+- **L9. Motion.** What was soft bends and lags (arms of sea lilies, the tail of a fish, plants in the wind). What
+  was stiff does not bend (shells, shields). Nothing repeats exactly.
+- **L10. The dead belong here.** Shed skins of sea scorpions on the mud (the fossils of Saaremaa are mostly such
+  skins: estimate), broken coral, loose discs of sea lilies on the fore reef.
+
+## Build notes
+
+| Id | Start from | Vertices each (guide) |
+|---|---|---|
+| `halysites`, `favosites`, `stromatoporoid` | a standing kind of `cambrian` (`standing.js`) | 500 to 3,000 |
+| `crinoid` | the sea lily of `ordovician` if it is built, else the one in `meshDriftwood` (`devonian`) | 1,500 |
+| `shore` | the leaves of the engine (`pal`, `types` in `LOOK`) | few |
+| `phlebolepis` | `meshKentuckia` (`devonian`): a small fish in shoals | 1,500 |
+| `orthocone` | `orthocones` of `ordovician` if built, else `meshGoniatite` (`devonian`) for head and arms | 1,500 |
+| `erettopterus`, `eurypterus` | `megalograptus` of `ordovician` if built, else the walker code of `TRILO` (`cambrian`) | 12,000 and 4,000 |
+| `tremataspis` | `astraspis` of `ordovician` if built, else `meshMetaspriggina` (`cambrian`) | 3,000 |
+
+- **The reef is a bank of small builders.** In the one reef bed of Saaremaa that was read about (Katri, Ludlow) no
+  stromatoporoid is wider than about 30 cm and no honeycomb coral wider than about 25 cm. The ridge of "Sea floor"
+  is therefore stone (`FLOOR`) covered edge to edge with thousands of low domes, crusts and coral heads, with rubble
+  between them. No single giant heads.
+- **`stromatoporoid`.** Low to high domes and flat crusts up to 0.3 m, layered, knobbly.
+- **`favosites`.** Favosites forbesi: bulbs and high domes up to 0.25 m, the surface a honeycomb (L2). Size of the
+  cells: not verified.
+- **`halysites`.** Known from Saaremaa (Halysites senior), in older beds than the fish. Shape and size: not verified;
+  find a museum page or a paper with a scale before modelling.
+- **`crinoid`.** Sea lily remains surround the reefs of neighbouring Gotland. Genera and heights: not verified.
+- **`shore`.** Cooksonia: bare forked stems 0.25 to 1.5 mm thick with a small round knob at each tip, some
+  centimetres high. Not reported from Saaremaa in what was read: the shore shows what grew on Silurian shores
+  elsewhere. Whether the stems themselves were green is debated (Boyce, "How green was Cooksonia?", not read): make
+  the green a low mat on the ground with the thin stems standing in it, and keep the card as it is until checked.
+- **`phlebolepis`.** 7 cm. Its body form is disputed. Use Wilson and Märss 2012, "Anatomy of the Silurian thelodont
+  Phlebolepis elegans Pander" (Estonian Journal of Earth Sciences 61 (4), 261 to 276, open access) and nothing
+  older; take outline, fins and tail from its figures.
+- **`orthocone`.** As in the Ordovician: a straight smooth cone. No colour found for a Silurian one of this region:
+  plain shell. Soft parts are not known: a plain head with a few arms, estimate.
+- **`erettopterus`.** Erettopterus osiliensis, 0.9 m, first found on Saaremaa. Long arms with claws that carry
+  small curved teeth; short swimming legs; the tail ends in a flat plate of two lobes. Sharp eyes. Outline and
+  proportions from the restoration and fossil figures in Wikipedia, "Erettopterus" (measure, do not copy).
+- **`eurypterus`.** Eurypterus tetragonophthalmus, 13 to 23 cm. The fossils of Saaremaa keep the skin itself, so
+  drawings of every part exist: use the dorsal and ventral plates in Wikipedia, "Eurypterus" (Nieszkowski 1858,
+  Holm). Count segments and legs there, not from this brief.
+- **`tremataspis`.** 10 cm. The shield is long and rounded and covers the whole front of the body, with no place
+  for paired fins; the shield of Tr. schmidti is 30 to 35 mm long. Thought to have burrowed in the mud.
+
 ## Texts
 
 For the zoo file of this era. Put the source links next to each entry as comments once the facts are checked (see
@@ -100,8 +188,8 @@ For the zoo file of this era. Put the source links next to each entry as comment
 // Zoo texts of the Silurian. name, sub and text are shown as they are, facts are [label, value] rows.
 const ZOO = {
   eurypterus: {
-    name: 'Sea scorpion', sub: 'Eurypterus tetragonophthalmus · the best known of all', size: 0.25,
-    facts: [['Length', '15 to 25 cm'], ['Swims with', 'two legs shaped like paddles'], ['Share of all sea scorpion fossils', 'more than 95 %']],
+    name: 'Sea scorpion', sub: 'Eurypterus tetragonophthalmus · the best known of all', size: 0.23,
+    facts: [['Length', '13 to 23 cm'], ['Swims with', 'two legs shaped like paddles'], ['Share of all sea scorpion fossils', 'more than 95 %']],
     text: 'Not a scorpion, but a relative of scorpions, spiders and horseshoe crabs. It walked on the mud and rowed through the water with a pair of legs shaped like paddles. No sea scorpion is known better: more than 95 of every 100 sea scorpion fossils ever found belong to this one genus.',
   },
   erettopterus: {
@@ -125,13 +213,13 @@ const ZOO = {
     text: 'Each link of the chain is a tube, and in each tube sat one small polyp. Together with honeycomb corals and stromatoporoids they build the first great reefs made by animals. None of the three will see the age of the dinosaurs: their groups die out before it.',
   },
   favosites: {
-    name: 'Honeycomb coral', sub: 'Favosites · a tabulate coral', size: 0.5,
-    facts: [['Colony', '10 to 50 cm'], ['Each cell', 'a few millimetres wide'], ['Lived', 'for more than 150 million years']],
+    name: 'Honeycomb coral', sub: 'Favosites · a tabulate coral', size: 0.25,
+    facts: [['Colony', 'up to about 25 cm'], ['Each cell', 'a few millimetres wide'], ['Lived', 'for more than 150 million years']],
     text: 'Tubes with six sides, packed without a gap: bees build like this, and so did this coral, long before there were bees. Every cell held one polyp. Small holes in the walls joined each to its neighbours, so the whole colony could share what one of them caught.',
   },
   stromatoporoid: {
-    name: 'Stromatoporoids', sub: 'sponges that build stone', size: 2,
-    facts: [['Width', '30 cm to 2 m'], ['What they are', 'sponges with a stony skeleton'], ['Role', 'the main builders of this reef']],
+    name: 'Stromatoporoids', sub: 'sponges that build stone', size: 0.3,
+    facts: [['Width', 'domes up to about 30 cm'], ['What they are', 'sponges with a stony skeleton'], ['Role', 'the main builders of this reef']],
     text: 'The knobbly domes that make up most of this reef are sponges. Unlike the soft sponges you know, they laid down a skeleton of stone, layer on layer, as stromatolites did before them. For 100 million years they were the most important reef builders of the seas.',
   },
   crinoid: {
@@ -161,6 +249,8 @@ The sentences for the title menu:
 
 ## Sources
 
+Quotations are word for word from the page named. Everything else in this brief is Claude's wording or conclusion.
+
 **Checked on 2026-11-16:**
 
 - **Dates.** International Chronostratigraphic Chart v2024/12
@@ -168,30 +258,58 @@ The sentences for the title menu:
 - **Place** and `phlebolepis`: Märss, Perens and Klaos, Proceedings of the Estonian Academy of Sciences, Geology
   2003 (https://kirj.ee/wp-content/plugins/kirj/pub/geol-3-2003-239-265_20211023231351.pdf): the fish bed of
   Himmiste on Saaremaa formed in a lagoon of the Palaeobaltic Sea in the tropics, in the late Silurian (Ludlow),
-  behind the reef belt towards the land; a shoal of the thelodont Phlebolepis elegans died in a shallow hollow at
-  low tide, probably from lack of oxygen in warm shallow water, and was covered quickly by mud.
-- `eurypterus`: Wikipedia, "Eurypterus" (https://en.Wikipedia.com/wiki/Eurypterus): lived in the Silurian from
-  about 432 to 418 million years ago, the best studied sea scorpion, probably more than 95 % of all known sea
-  scorpion specimens; the species from Saaremaa is E. tetragonophthalmus. University of Tartu collections
-  (https://geoloogia.info/en/collection/10125): Eurypterus from Saaremaa.
+  behind the reef belt towards the land; a shoal of Phlebolepis elegans died in a shallow hollow at low tide,
+  probably from lack of oxygen, and was covered quickly by mud.
+- `eurypterus`: Wikipedia, "Eurypterus" (https://en.wikipedia.org/wiki/Eurypterus): the best studied sea scorpion,
+  probably more than 95 % of all known sea scorpion specimens; the species from Saaremaa is E. tetragonophthalmus.
 - `tremataspis`: Luha, "Uusi ostrakoderme Saaremaa Eurypterus-lademest", University of Tartu
-  (https://dspace.ut.ee/bitstreams/abfe06c8-45fb-4370-b014-6054c8780aa5/download): Tremataspis from the Eurypterus
-  beds of Saaremaa, shield of Tr. schmidti 30 to 35 mm long.
+  (https://dspace.ut.ee/bitstreams/abfe06c8-45fb-4370-b014-6054c8780aa5/download): shield of Tr. schmidti 30 to
+  35 mm long.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23:**
 
-- The moment "about 425 million years ago". The sea scorpion beds and the fish bed of Saaremaa are not exactly the
-  same age; the world puts them into one lagoon.
-- Whether chain corals, honeycomb corals, stromatoporoids, sea lilies and straight-shelled cephalopods are known
-  from the Silurian reefs of Saaremaa and neighbouring Gotland. They are typical of Silurian reefs in general.
-- `eurypterus`: 15 to 25 cm; paddles; relatives.
-- `erettopterus`: that a species of it (E. osiliensis) is known from Saaremaa, its length, the shape of its tail,
-  and the size of its largest relatives (more than 2 m).
-- `tremataspis`: whole length about 10 cm; first jawed fish in the Silurian.
-- `phlebolepis`: 7 cm, scales, forked tail.
-- `halysites`, `favosites`, `stromatoporoid`, `crinoid`, `orthocone`: all sizes and facts, the extinction dates,
-  "100 million years", the limestone slabs.
-- `shore`: Cooksonia as the plant meant here, its height, the first land animals.
+- `eurypterus`: Wikipedia, "Eurypterus", opening paragraph: "averaged at about 13 to 23 cm". Same article: the
+  specimens from Estonia often keep the skin of the animal itself. (For the species of Saaremaa alone no size was
+  found; the card gives the size of the genus.)
+- `erettopterus`: Wikipedia, "Erettopterus" (https://en.wikipedia.org/wiki/Erettopterus), opening paragraph: "the
+  largest species of Erettopterus, E. osiliensis, reached 90 cm"; a tail plate of two lobes; long claws with small
+  curved teeth; short swimming legs; sharp sight. Geoscience literature of Estonia, reference 50210
+  (https://kirjandus.geoloogia.info/en/reference/50210): "previously known only from Saaremaa, Estonia".
+  Wikipedia, "Pterygotidae" (https://en.wikipedia.org/wiki/Pterygotidae): the family holds the largest arthropods
+  known, some "exceeding 2 metres".
+- `tremataspis`: Wikipedia, "Tremataspis": "about 10 centimetres"; a long rounded shield over the whole front of the
+  body; thought to have burrowed.
+- `phlebolepis`: Wikipedia, "Phlebolepis": "average-sized for a thelodont, 7 cm long". Wilson and Märss 2012,
+  abstract (https://doaj.org/article/7f6c94ce2dbc4072bc3654bb19166a52): "experts seldom agree about its probable
+  body form".
+- `stromatoporoid`, `favosites`: Kershaw and Mõtus 2016, "Palaeoecology of corals and stromatoporoids in a late
+  Silurian biostrome in Estonia", Acta Palaeontologica Polonica 61 (1), abstract
+  (https://app.pan.pl/archive/published/app61/app000942014.pdf): Favosites forbesi "bulbous to high domical up to
+  ca. 25 cm wide"; stromatoporoid domes up to about 30 cm; the bed at Katri on Saaremaa, middle Ludlow.
+- **Reefs of stromatoporoids, with sea lilies.** Hess and Simms, "Silurian of Gotland, Sweden", in "Fossil
+  Crinoids" (Cambridge, summary): reefs "predominantly composed of stromatoporoids", surrounded by beds made
+  largely of sea lily remains. This is Gotland, the neighbouring island, not Saaremaa.
+- `halysites`: Mõtus 2003, "A small tabulate coral assemblage from the Wenlock of Saaremaa (Estonia)"
+  (https://opac.geologie.ac.at/ais312/dokumente/Ber_Inst_Geol_Pal_Univ_Graz_07_072.pdf): Halysites senior occurs
+  on Saaremaa, in beds of Wenlock age (older than the fish bed).
+- `shore`: Wikipedia, "Cooksonia" (https://en.wikipedia.org/wiki/Cooksonia): "The earliest Cooksonia date from the
+  middle of the Silurian"; the oldest known plant with a stem with pipes for water; most type specimens from
+  Britain. Lack and Evans, "Early evolution of vascular plants" (abstract, taylorfrancis.com): "photosynthetic stems
+  but no leaves or roots". Stem widths of 0.25 to 1.5 mm: Banks, "The early history of land plants" (scan at
+  archive.org, biostor-165032).
+
+**Not checked yet** (from Claude's knowledge; check before the text ships, and put the source next to the entry):
+
+- The moment "about 425 million years ago". The sea scorpion beds, the fish bed, the coral bed of Katri and the
+  beds with Halysites are not the same age; the world puts them into one lagoon and one reef.
+- `eurypterus`: number of segments; how it swam.
+- `erettopterus`: where its eyes sit.
+- `tremataspis`: eyes on top, mouth below; first fish with jaws in the Silurian.
+- `phlebolepis`: scales all over, the shape of the tail (read Wilson and Märss 2012).
+- `halysites`: sizes and all facts of the card. `favosites`: width of a cell, the holes in the walls, "150 million
+  years". `stromatoporoid`: "100 million years". The extinction dates.
+- `crinoid`, `orthocone`: all sizes and facts; the limestone slabs.
+- `shore`: Cooksonia on this shore, its height, whether it was green, the first land animals.
 
 ## Zoo reach to start with
 

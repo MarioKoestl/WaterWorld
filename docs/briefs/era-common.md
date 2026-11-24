@@ -176,6 +176,8 @@ Both gates of `CLAUDE.md`, for this era's own six poses and flight path.
   animal from eight sides, with the question whether it is a solid body or a flat cut-out) and one render of an
   open card. For the largest and the smallest kind add a render with something of known size in the picture, and
   ask whether the size can be read from it. For a world of small things add renders as a fish and as a shrimp.
+- **The quality gate, for every kind** (since 2026-11-24): `quality-gate.md`. The subagent `visual-critic` judges
+  each kind by twelve questions, against a living model. No kind is done before it passes.
 - **Performance.** The benchmark of this era's flight, and once more the one of `today`, which must not have
   changed.
 

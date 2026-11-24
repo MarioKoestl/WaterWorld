@@ -10,6 +10,28 @@ sea beside a bare volcanic island, where microbes build one of the oldest reefs 
 Read `CLAUDE.md`, then `era-common.md`: stages, rules, acceptance criteria, verification and how to treat facts are
 there. This brief says what this world is.
 
+## How to work (version 2 of this brief, 2026-11-23)
+
+Written for Claude Code on Opus 4.6. With `CLAUDE.md` and `era-common.md` this brief is all you need for this era.
+Do not read the briefs of the Devonian or of the Dunkleosteus. Since version 1 some facts were checked (see
+"Sources"), and "The look" and "Build notes" are new.
+
+1. **Stages** as in `era-common.md`, five of them. Each ends with a hand-over, and then you stop. Never start a stage
+   before Mario has accepted the one before.
+2. **Start** from a copy of `source/eras/cambrian/` (floor, standing kinds and scattering are there), then take out
+   everything Cambrian.
+3. **One kind at a time,** in the order given under "The ten exhibits". For each kind:
+   a. Notes in `docs/research/archean/<id>.md` from the sources named in "Build notes": what they print, what you
+      measured on which figure, what stays an estimate.
+   b. The mesh, with its figures in lengths of the body in a comment.
+   c. `node tools/turntable.mjs archean <id> <name>` (look at `node tools/chrome.mjs status` first).
+   d. The visual critic on the turntable, with the list of "The look" as its questions.
+   e. Correct, twice at most. Then the next kind.
+4. **A source that cannot be opened:** say so in the notes and mark the figure as estimate. Never invent a
+   measurement, a quotation or a colour.
+5. **Budget.** Small edits in place. The engine is the only renderer. Hand-overs of 20 lines or fewer: what is in,
+   what Mario should open and look at, what is still not verified, one commit message.
+
 ## The place
 
 The Archean lasted from 4031 to 2500 million years ago. The world shows one moment, about 3.4 billion years ago, and
@@ -86,6 +108,33 @@ Sizes in metres, one unit is one metre. Most of this world is small: it asks for
 What the engine already offers: things that stand in masses (the way sponges and corals are scattered today), the
 standing kinds of `cambrian` for cones and domes, sprites for bubbles, the plane above the world for the sky.
 
+## The look: rules from the worlds built so far
+
+This world has no animals. Its exhibits are rock, water, light and films of microbes. What makes such things look
+real and not like plastic props:
+
+- **R1. Form at three sizes.** The outline; lumps, ledges, cracks and layers of a few percent of the size in the mesh;
+  grain in the shader. A smooth shape with a painted texture looks like a toy.
+- **R2. No pattern that repeats,** and no noise that draws closed cells, except where the rock has them: the egg-
+  carton field of small cones, the needle fans of the komatiite. There they are relief, not outlines.
+- **R3. No drawn dark line of one width.** A layer is a step, a crack is a groove, shaded by the light.
+- **R4. Nothing shines under water.** Rock and mats are matte. No glow anywhere.
+- **R5. Colours** as in "Atmosphere", with low saturation. Colour follows relief: hollows darker and dustier, edges
+  and tops paler.
+- **R6. No two alike.** Every dome, chimney or block differs in size, lean, wear and tone, from its seed.
+- **R7. Motion** comes from water, particles, bubbles and light only. Nothing repeats exactly.
+- **R8. Broken pieces belong here:** fallen blocks, rubble at the foot of every structure, a broken one that shows its
+  inside.
+
+## Build notes
+
+Everything is a standing kind or part of the floor: start from `standing.js` and `FLOOR` of `cambrian`.
+
+- **`cones`, `domes`.** The source describes more than seven kinds of structure along 10 km of outcrop, among them a
+  surface like an egg carton and large cones. Sizes in the table are estimates: measure on the photographs of
+  Allwood and others 2006 (a copy is on the site of the University of New South Wales) before modelling.
+- **The others.** As in the table: not verified beyond version 1.
+
 ## Texts
 
 For the zoo file of this era. Put the source links next to each entry as comments once the facts are checked (see
@@ -158,7 +207,15 @@ The sentences for the title menu:
   pigments for green light did well in it. The same pages date the Great Oxidation Event to about 2.4 billion years
   ago.
 
-**Not checked yet** (from Claude's knowledge, check before the text ships):
+**Checked on 2026-11-23** (quotations are word for word from the page named):
+
+- **Place**, `cones`: Allwood and others 2006, Nature, abstract: "The 3,430-million-year-old Strelley Pool Chert",
+  with layered structures of probable biological origin. Scientific American, "Findings Strengthen Case for Signs of
+  Early Life in Australian Rocks" (https://www.scientificamerican.com/article/findings-strengthen-case): a stretch
+  of 10 km; more than seven kinds of structure; "a surface resembling egg-carton ripples", others large cones.
+
+**Not checked yet** (from Claude's knowledge, check before the text ships; what is listed as checked above is no
+longer open):
 
 - **Place.** The stromatolite reef in the Strelley Pool rocks of the Pilbara, about 3.43 billion years old, described
   by Allwood and others in Nature in 2006: cone shapes like an egg carton, domes and other forms along about 10 km.

@@ -43,6 +43,51 @@ const LOOK = {
     alb *= select(1., 1.15, mat == 1);
     bump = mix(.12, .65, rock);
     hgt = mix(.7, hgt, rock);
+  } else if (mat == 2) {
+    // brachiopod shell: cream to grey-brown
+    let lp = i.op - sd * 37.;
+    let ao = abs(i.ao);
+    var sh = mix(vec3f(.42, .40, .36), vec3f(.52, .48, .42), sd);
+    let gl = sin(ao * 80. + B.c * 6.) * .5 + .5;
+    sh *= .92 + .12 * gl * ao;
+    let rib = select(0., sin(atan2(lp.z, lp.x) * 14.) * ao * .4, sd > .5);
+    sh *= 1. + rib * .1;
+    let inner = select(0., 1., i.ao < 0.);
+    sh *= 1. - .3 * inner;
+    alb = sh * (.85 + .2 * ao + .1 * C.c) * (.9 + .2 * A.c);
+    hgt = .7 + .3 * rib; bump = .35; gloss = .05;
+  } else if (mat == 3) {
+    // bryozoan: stony twigs with pinprick pores
+    var by = mix(vec3f(.32, .30, .27), vec3f(.40, .38, .34), sd);
+    by *= .82 + .22 * i.ao;
+    by *= 1. - .15 * ss(.45, .55, A.c) * i.ao;
+    alb = by * (.9 + .2 * B.c);
+    hgt = .65 + .35 * A.h; bump = .55; gloss = .04;
+  } else if (mat == 4) {
+    // horn coral: ringed stone, tentacles and cup interior
+    let lp = i.op - sd * 37.;
+    let isTent = select(0., 1., i.ao < 0.);
+    let ao = abs(i.ao);
+    var hc = mix(vec3f(.36, .33, .28), vec3f(.48, .44, .38), sd);
+    let rng = sin(lp.z * 1500.) * .5 + .5;
+    hc *= .88 + .18 * rng;
+    hc *= .9 + .15 * ao + .15 * B.c;
+    let cup = vec3f(.25, .24, .22) * (.85 + .3 * A.c);
+    let tent = vec3f(.52, .48, .42) * (.85 + .3 * C.c);
+    alb = mix(hc, mix(cup, tent, ss(-.6, -.3, i.ao)), isTent);
+    hgt = mix(.7 + .3 * rng, .5, isTent); bump = mix(.6, .2, isTent); gloss = mix(.04, .08, isTent);
+  } else {
+    // crinoid: stalk of stacked discs, cup, feathery arms
+    let lp = i.op - sd * 37.;
+    let isArm = ss(.52, .58, i.ao);
+    var cr = mix(vec3f(.42, .40, .36), vec3f(.50, .47, .42), sd);
+    let disc = sin(lp.y * 1500.) * .5 + .5;
+    let discAmt = (1. - isArm) * ss(.03, .4, i.ao);
+    cr *= .88 + .18 * disc * discAmt;
+    cr *= 1. - .08 * ss(.44, .52, i.ao) * (1. - isArm);
+    cr = mix(cr, vec3f(.46, .40, .34) * (.85 + .3 * C.c), isArm);
+    alb = cr * (ss(.02, .08, i.ao) * .5 + .5) * (.9 + .2 * B.c);
+    hgt = .65 + .35 * disc * discAmt; bump = mix(.5, .25, isArm); gloss = .05;
   }
 `,
   pal: /*wgsl*/`
