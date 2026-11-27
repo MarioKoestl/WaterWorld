@@ -282,6 +282,11 @@ for (const k of KINDS) { if (!k.solid) k.n = k.data.length / 8; if (k.n) k.buf =
 // instances in that order in every frame. For that the first three floats of such an instance have to say (about)
 // where the animal is. ord: the order, kept from frame to frame. far: how far each one is. out: the instances in order
 for (const k of GLASS) { k.ord = new Uint16Array(k.n); for (let i = 0; i < k.n; i++) k.ord[i] = i; k.far = new Float32Array(k.n); k.out = new Float32Array(k.n * 8); }
+// An animal kind with a simpler mesh (lod) for far ones: render() splits its instances by the distance of their
+// first three floats from the camera, from lodFrom metres on the simpler mesh is drawn. out: near ones at the
+// front of the buffer, far ones behind
+const ALOD = KINDS.filter((k) => !k.solid && !k.glass && k.lm);
+for (const k of ALOD) { k.out = new Float32Array(k.n * 8); k.nNear = k.n; k.nFar0 = k.n; }
 const ibBig = buf(new Uint8Array(Wd.big.buf), BU.VERTEX), ibBigF = buf(new Uint8Array(Wd.bigF.buf), BU.VERTEX), ibSmall = buf(new Uint8Array(Wd.small.buf), BU.VERTEX);
 const ibBubbles = buf(Wd.bubbles, BU.VERTEX), ibSnowB = buf(Wd.snow, BU.VERTEX);
 const ibGl = buf(Wd.glints, BU.VERTEX), nGl = Wd.glints.length / 8;
@@ -437,6 +442,20 @@ function render() {
     for (let j = 0; j < n; j++) { const s = o[j] * 8, t = j * 8; for (let q = 0; q < 8; q++) k.out[t + q] = d[s + q]; }
     Q.writeBuffer(k.buf, 0, k.out);
   }
+  // animals with a simpler far mesh: near ones to the front of the buffer, far ones behind (ALOD above). A kind
+  // with `far` leaves out what is further than that from the camera: its first three floats, widened by its
+  // fourth (how far one animal strays from them)
+  for (let i = 0; i < ALOD.length; i++) {
+    const k = ALOD[i], d = k.data, out = k.out, lf = k.lodFrom * k.lodFrom, fr = k.far || 0, n = k.n; if (!n) continue;
+    let a = 0, b = n * 8;
+    for (let j = 0; j < n; j++) {
+      const o = j * 8, x = d[o] - cx, y = d[o + 1] - cy, z = d[o + 2] - cz, dd = x * x + y * y + z * z;
+      if (dd < lf) { for (let q = 0; q < 8; q++) out[a + q] = d[o + q]; a += 8; }
+      else if (!fr || dd < (fr + d[o + 3]) * (fr + d[o + 3])) { b -= 8; for (let q = 0; q < 8; q++) out[b + q] = d[o + q]; }
+    }
+    k.nNear = a / 8; k.nFar0 = b / 8;
+    Q.writeBuffer(k.buf, 0, k.out);
+  }
 
   { let cr = floor((cz - OZ) / CELLW) | 0; cr = cr < 0 ? 0 : cr > CELLS - 1 ? CELLS - 1 : cr; let n = 0; rowOrd[n++] = cr; for (let d = 1; d < CELLS; d++) { if (cr - d >= 0) rowOrd[n++] = cr - d; if (cr + d < CELLS) rowOrd[n++] = cr + d; } }
   const e = device.createCommandEncoder();
@@ -459,7 +478,10 @@ function render() {
     const k = KINDS[i]; if (!k.n || k.glass) continue;
     if (k.pipe !== p) r.setPipeline(p = k.pipe);
     r.setVertexBuffer(1, k.buf);
-    if (!k.cells) r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0);
+    if (!k.cells) {
+      if (k.lm) { if (k.nNear) r.drawIndexed(k.m.ib.length, k.nNear, k.m.i0, k.m.v0, 0); if (k.n - k.nFar0) r.drawIndexed(k.lm.ib.length, k.n - k.nFar0, k.lm.i0, k.lm.v0, k.nFar0); }
+      else r.drawIndexed(k.m.ib.length, k.n, k.m.i0, k.m.v0, 0);
+    }
     else if (k.lod) { drawCells(r, k.start, k.lo, k.hi, 3, k.m, 0, 0, k.lodFrom); drawCells(r, k.start, k.lo, k.hi, 3, k.lm, 0, k.lodFrom, k.far); }
     else drawCells(r, k.start, k.lo, k.hi, 3, k.m, 0, 0, k.far);
   }

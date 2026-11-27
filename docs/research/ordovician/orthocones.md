@@ -25,6 +25,16 @@ upper side only" and "a little wider than high".
 - Underside plain and pale
 - Tentacles pinkish-brown (estimate, as in living nautilus)
 
+## Middle forms (after Nautilus, the living model)
+
+1. **Hood** — tough leathery wrinkled flap over the top of the head, shaped to close the opening; about 8% of body length
+2. **Eye swelling** — round bulge on each side under the hood, with a small dark pinhole (no lens); about 4% of body size
+3. **Funnel** — soft tube under the head for jet propulsion, pulses when swimming; about 6% of body length
+4. **Tentacle sheaths** — thicker bases from which 35 tentacles emerge, arranged around the mouth; each about 3% of body length
+5. **Rim of the shell opening** — flared lip with visible thickness, one looks into dark interior past it; about 5% of opening diameter
+6. **Body bulge** — where the soft mantle swells over the shell rim, filling the opening; about 3% of shell radius
+7. **Growth undulations** — subtle radius variations along the shell parallel to the opening; about 1% of local radius
+
 ## What stays an estimate
 - Soft parts entirely (head, eyes, arms, funnel): no soft tissue known
 - Shell thickness and inner surface

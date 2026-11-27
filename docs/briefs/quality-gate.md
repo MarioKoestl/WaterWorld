@@ -42,15 +42,32 @@ The first cephalopods were put together from basic shapes. Do not do that. For e
 
 ## The gate, for every kind
 
-1. Render: `node tools/turntable.mjs <era> <id> <name>` (look at `node tools/chrome.mjs status` first).
-2. Copy the side view, one angle view and the diver's view into `tools/out/qa/<era>/<id>/`, at most 1600 wide.
+0. **Build first, every round:** `cd source; npm run build; npm run build:dev; cd ..`. The turntable renders the dev
+   page (`<era>-dev.html`). If that page is older than a source file of the era, the picture shows the old animal. On
+   2026-11-24 six rounds judged yesterday's model this way. The tool must refuse to render then (see below).
+1. Render: `node tools/turntable.mjs <era> <id> <name> --qa` (look at `node tools/chrome.mjs status` first).
+2. Three pictures of ONE animal into `tools/out/qa/<era>/<id>/`, at most 1600 wide: `body` (side view, the animal
+   fills at least half the picture's width), `head` (the front fifth of the animal fills half the picture; for a
+   thing without a head, its most detailed part) and `diver` (from 1 m, a little above). Never a school, never an
+   animal smaller than a quarter of the picture, never one cut by the edge. A picture that breaks this rule is
+   made again, not shown to the critic.
 3. Call the subagent `visual-critic` (`.claude/agents/visual-critic.md`). Give it the id, what it is, its size, its
-   living model and the three paths. Nothing else: no code, no reasons, no excuses.
-4. FAIL: correct what it lists, worst first, and go back to 1. Two corrections at most.
-5. Append the verdict of every round, word for word, to `tools/out/qa/<era>/verdicts.md`.
+   living model and the three paths. Nothing else: no code, no reasons, no excuses. One exception, the given form:
+   where the real animal has a geometric form (the straight cone of an orthocone's shell), `docs/briefs/qa/<era>.md`
+   says so in one sentence, and that sentence goes to the critic too. Only that file may name a given form.
+4. FAIL: correct what it lists, worst first, and go back to 0. Two corrections at most. The critic knows no
+   sources: where one of its fixes contradicts the brief (a colour, a count, a part the animal did not have), the
+   brief wins, and the hand-over names the fix that was not followed.
+5. Append the critic's whole answer of every round, word for word (not a summary), to
+   `tools/out/qa/<era>/verdicts.md`.
 6. A kind that still fails after two corrections is not done. Stop, hand over, and say so in the first line.
 
 The list of twelve questions is in the agent file. Read it before you build, not after.
+
+**The tool guards the build.** `turntable.mjs` (and `kinds.mjs`, `poses.mjs`) compare the time of the dev page with
+the newest file under `source/` and stop with a clear message if the page is older. And before the critic is
+called, look at the `head` picture yourself and name one thing in it that your last change made. If you cannot,
+the picture is not of your change.
 
 **Once, before the first use:** copy `docs/briefs/ref/visual-critic.agent.md` to `.claude/agents/visual-critic.md`
 (Claude in the chat cannot write into `.claude`). The copy in `ref/` stays the master: change it there, copy again.

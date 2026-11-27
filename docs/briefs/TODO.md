@@ -119,3 +119,7 @@ These change the engine. One Claude Code instance at a time, in this order.
 - [ ] **19. The quality gate.** `quality-gate.md` and `.claude/agents/visual-critic.md`: every kind is judged by a
   separate critic against a living model. First: rebuild `orthocones` and `endoceras` of the Ordovician after
   Nautilus (`era-ordovician.md`), then put its other kinds through the gate. Mario, 2026-11-24.
+- [ ] **20. The Ordovician comes alive.** `ordovician-life.md`: stage A raises the numbers (clouds, not rings),
+  stage B gives the two cephalopods their motion (shell tip first, one jet one cycle, every arm by itself). One
+  session per stage. The cephalopods themselves passed Mario's look on 2026-11-24 (`qa/ordovician.md`, 5b). Mario,
+  2026-11-24.

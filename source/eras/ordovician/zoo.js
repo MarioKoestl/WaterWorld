@@ -11,16 +11,28 @@ const ZOO = {
   // "Endocerida" (https://en.wikipedia.org/wiki/Endocerida): possibly top hunters, close to the sea floor
   endoceras: {
     name: 'Endoceras', sub: 'Endoceras giganteum · giant relative of squid and nautilus', size: 5.7,
+    // where the eye sits for the eye picture of --qa (turntable.mjs): along the zoo line, to the side, up, and
+    // its size across, all as fractions of the line's length (the mesh coordinates of the ball in swimmers.js)
+    // the eye sits at up 0.0062, across 0.0078. The zoo line of this floor-follower is only good to several
+    // centimetres (its shader reads the mud formula, the zoo the ground grid), so the eye picture aims a little
+    // higher and keeps a wide margin: the eye fills a seventh of the picture, not a quarter
+    qaEye: [0.738, 0.024, 0.0122, 0.0125],
     facts: [['Shell', 'up to about 5.7 m long'], ['Longest piece found', '3 m'], ['Hunted', 'probably close to the sea floor']],
     text: 'The largest animal of its time, and perhaps the first giant of all: a relative of the squid in a straight shell longer than a car. The longest piece ever found measures 3 m, and it is only part of a shell. Its owner probably hunted trilobites and other animals of the sea floor.',
   },
   orthocones: {
     name: 'Straight-shelled cephalopods', sub: 'small relatives of the giant', size: 0.4,
+    qaEye: [0.602, 0.065, 0.019, 0.042],
     facts: [['Shell', '15 to 40 cm long'], ['Moved by', 'squirting water'], ['Living relative', 'the nautilus']],
     text: 'The shell is a row of chambers filled with gas. They carry the animal like a diving tank, and it lives only in the last and widest one. To move, it squirts water out of a tube. Squid still swim like that. The nautilus is the last animal that still carries such a shell.',
   },
   isotelus: {
     name: 'Trilobite', sub: 'Isotelus · a giant among trilobites', size: 0.4,
+    // the eye picture of --qa (turntable.mjs), as fractions of the zoo line's length (the line is 0.8 of the
+    // body, from 0.4 behind the middle to 0.4 ahead): the eye tower sits at mesh z 0.3, x 0.132, about 0.14
+    // over the ground, and its bean is 0.06 long. The walkers' zoo line is exact to a millimetre or two (it
+    // stands on the measured plane of its ground), so the true measures serve
+    qaEye: [0.875, 0.165, 0.055, 0.075],
     facts: [['Length', 'up to about 40 cm'], ['Largest relative', 'over 70 cm, found in Canada'], ['Shell', 'shed again and again as it grew']],
     text: 'Most trilobites would fit in your hand. This one is as long as your forearm, and a relative from the same time reached more than 70 cm, the largest complete trilobite ever found. It ploughed through the mud for food. The ice age at the end of the Ordovician wiped out most of its kind.',
   },
@@ -30,6 +42,9 @@ const ZOO = {
   // coprolite with remains of Isotelus
   megalograptus: {
     name: 'Sea scorpion', sub: 'Megalograptus · an early sea scorpion', size: 0.78,
+    // up: the height of the eye mound over the zoo line, measured off eye.png after the animal was given its
+    // thickness and stood higher (M3). It was 0.021 while the shield was flat
+    qaEye: [0.94, 0.06, 0.027, 0.031],
     facts: [['Length', 'up to 78 cm'], ['Colour', 'brown and black, read from the fossils'], ['Tail', 'a spike between two grasping blades']],
     text: 'Sea scorpions are new in this sea. They are not true scorpions, but relatives of them, and of spiders and horseshoe crabs. This one swept the floor with two long, spiny arms, like a rake. Droppings found with it hold pieces of trilobites, and of its own kind. Later relatives will become the largest arthropods that ever lived.',
   },
@@ -66,6 +81,11 @@ const ZOO = {
   // dorsal headshield of polygonal tesserae with star-shaped or smooth bumps; Harding Sandstone, Colorado
   astraspis: {
     name: 'Astraspis', sub: 'Astraspis desiderata · an early fish in armour', size: 0.2,
+    // the eye picture of --qa (turntable.mjs), as fractions of the zoo line (tail tip to nose, one body long):
+    // the socket sits at mesh z +0.24 (0.74 along), x 0.083, y 0.024, its opening 0.035 across. The line of
+    // this floor-follower is good to a few centimetres (ground grid), so the picture aims a little higher with
+    // a wide margin: the eye fills about a sixth of the picture, not a quarter
+    qaEye: [0.74, 0.083, 0.04, 0.07],
     facts: [['Length', 'about 20 cm'], ['Armour', 'small plates of bone'], ['Jaws', 'none']],
     text: 'One of the first animals with bone. It carries it on the outside, as a shield of small plates over head and chest. It has no jaws and no fins except its tail, so it could neither bite nor steer well. All the same, this is your side of the family: an early fish.',
   },

@@ -17,6 +17,9 @@
 //   distance at which it has shrunk away, 0 for never), bobbing (above 0: up and down by that much, below 0: it sways)
 // An animal (it brings its own shaders, see W_ANIM in shaders.js):
 //   wgsl     its vertex and fragment shader, vs and fs their names
+//   lod, lodFrom   as above: from that distance of its first three floats the simpler mesh is drawn
+//   far      with lod only: an animal whose first three floats, widened by its fourth (how far one animal strays
+//            from them), lie further than this from the camera is not drawn at all
 //   glass    1: it is see-through. It is drawn after everything solid and laid over it, far ones first: for that
 //            the first three floats of its instances have to say about where each one is
 //   makeWorld sets its instances: k.data, a Float32Array with eight floats each

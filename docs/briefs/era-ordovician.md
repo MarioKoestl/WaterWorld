@@ -102,16 +102,22 @@ Sizes in metres, one unit is one metre.
 
 | Id | What | Size | Shape | Movement | Where and how many |
 |---|---|---|---|---|---|
-| `endoceras` | Endoceras, the giant | shell 5.7 long, 0.3 thick at the opening | a long straight cone with low rings around it; at the wide end a head with eyes and a ring of arms | glides slowly just above the floor, shell level, head first or backwards; the arms reach down | 2 |
-| `orthocones` | small straight-shelled relatives | 0.15 to 0.4 | the same in small, smooth, with darker bands on the upper side only | swim in loose groups, in short jerks | 5 groups of about 30 |
-| `isotelus` | the trilobite Isotelus | up to 0.4 | a broad smooth oval in three parts, head and tail like shovels, small eyes | walks, ploughs through the mud; some lie half dug in | about 60 |
-| `megalograptus` | the sea scorpion Megalograptus | up to 0.78 | a scorpion shape: head shield, two long spiny grasping arms, paddles, a tail spike between two grasping blades | walks on the floor, swims in short bursts | about 6 |
-| `crinoid` | sea lilies | 0.3 to 1 high | a stalk of stacked discs, a cup on top with feathery arms | sway; the arms bend into a bowl against the current | thousands, in meadows |
-| `horncoral` | horn corals | 0.05 to 0.13 | a ringed horn of stone lying loose on the mud, a ring of tentacles in its opening | the tentacles move | hundreds |
-| `bryozoan` | moss animals | twigs 0.05 to 0.15, mounds up to 0.3 | stony twigs, branching, and low domes, covered with pinprick pores | none | thickets on every ledge |
+| `endoceras` | Endoceras, the giant | shell 5.7 long, 0.3 thick at the opening | a long straight cone with low rings around it; at the wide end a head with eyes and a ring of arms | glides slowly 1 to 12 m over the floor, shell level, shell tip first; the arms of the low ones reach down | 100, from 1.8 to 5.7 m long, their rounds may cross |
+| `orthocones` | small straight-shelled relatives | 0.15 to 0.4 | the same in small, smooth, with darker bands on the upper side only | swim in loose groups, in short jerks, shell tip first | 45 groups of 20 to 80, and 150 alone: about 2,500 |
+| `isotelus` | the trilobite Isotelus | up to 0.4 | a broad smooth oval in three parts, head and tail like shovels, small eyes | walks, ploughs through the mud; some lie half dug in | about 600 |
+| `megalograptus` | the sea scorpion Megalograptus | up to 0.78 | a scorpion shape: head shield, two long spiny grasping arms, paddles, a tail spike between two grasping blades | walks on the floor, swims in short bursts | about 45, each alone |
+| `crinoid` | sea lilies | 0.3 to 1 high | a stalk of stacked discs, a cup on top with feathery arms | sway; the arms bend into a bowl against the current | meadows of 3 to 6 a square metre on about a quarter of the floor: tens of thousands |
+| `horncoral` | horn corals | 0.05 to 0.13 | a ringed horn of stone lying loose on the mud, a ring of tentacles in its opening | the tentacles move | about 3,000, in loose fields |
+| `bryozoan` | moss animals | twigs 0.05 to 0.15, mounds up to 0.3 | stony twigs, branching, and low domes, covered with pinprick pores | none | every ledge covered edge to edge |
 | `brachiopod` | lamp shells | 0.02 to 0.05 | ribbed shells of two unequal halves, a little open | none | tens of thousands, in pavements |
-| `graptolite` | graptolites | 0.02 to 0.1 | thin dark blades with a saw edge, hanging in the water | drift | swarms in the open water |
-| `astraspis` | the armoured fish Astraspis | about 0.2 | like a large tadpole: head and chest in a shield of small bony plates, a row of gill openings on each side, a scaly tail, no other fins, no jaws | swims with its whole tail, a little clumsily, near the floor | 3 groups of about 15 |
+| `graptolite` | graptolites | 0.02 to 0.1 | thin dark blades with a saw edge, hanging in the water | drift | 80 swarms of 80 to 220 in the open water |
+| `astraspis` | the armoured fish Astraspis | about 0.2 | like a large tadpole: head and chest in a shield of small bony plates, a row of gill openings on each side, a scaly tail, no other fins, no jaws | swims with its whole tail, a little clumsily, near the floor | 30 groups of 15 to 45 |
+
+Numbers raised on 2026-11-24 and again on 2026-11-25, with a smaller sea (Mario: far too few, the map too large).
+Details and the motion of the cephalopods: `ordovician-life.md`.
+
+The heads of the two cephalopods changed the same day: ten arms and no hood (stage E of that file). Where the
+build notes below say otherwise (hood, 30 to 40 tentacles), that file wins.
 
 Order of work, easiest first: what stands or lies (`brachiopod`, `bryozoan`, `horncoral`, `crinoid`), then the
 swimmers (`graptolite`, `orthocones`, `astraspis`, `endoceras`), then the walkers (`isotelus`, `megalograptus`).

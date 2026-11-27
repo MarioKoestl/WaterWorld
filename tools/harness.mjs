@@ -6,7 +6,7 @@
 // The sources stay untouched, and the test page is written to tools/out, which Git ignores.
 //   node tools/harness.mjs [era]        era: the id of the era, default today. Needs `npm run build:dev` first
 // As a module: harness(era) returns the path of the test page.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, outFile, PORT } from './cdp.mjs';
@@ -21,6 +21,30 @@ const SUM = `const __sum = (o, p = '', out = {}) => {
 const __world = (Wd) => ({ big: Wd.big, bigF: Wd.bigF, small: Wd.small, glints: Wd.glints, bubbles: Wd.bubbles, volD: Wd.volD, gm: Wd.gm, snow: Wd.snow, zoo: Wd.zoo,
   kinds: KINDS.map((k) => (k.solid ? { data: k.data, start: k.start, lo: k.lo, hi: k.hi } : { data: k.data })), movers: ZA.map((o) => o.list) });
 `;
+
+export function guardBuild(era = 'today') {
+  const page = path.join(ROOT, era === 'today' ? 'dev.html' : era + '-dev.html');
+  const srcDir = path.join(ROOT, 'source');
+  let pageMtime;
+  try { pageMtime = statSync(page).mtimeMs; } catch {
+    console.error(page + ' not found: run `cd source && npm run build:dev` first.');
+    process.exit(1);
+  }
+  let newest = 0, newestFile = '';
+  for (const entry of readdirSync(srcDir, { recursive: true })) {
+    if (entry.includes('node_modules')) continue;
+    const full = path.join(srcDir, entry);
+    try {
+      const s = statSync(full);
+      if (s.isFile() && s.mtimeMs > newest) { newest = s.mtimeMs; newestFile = entry; }
+    } catch {}
+  }
+  if (newest > pageMtime) {
+    const d = (ms) => new Date(ms).toISOString().replace('T', ' ').slice(0, 19);
+    console.error(`STALE BUILD: ${path.basename(page)} (${d(pageMtime)}) is older than source/${newestFile} (${d(newest)})\nRun \`cd source && npm run build && npm run build:dev\` first.`);
+    process.exit(1);
+  }
+}
 
 // published: the code of the published page instead (index.html, <id>.html): the dev page without what engine/dev.js
 // adds at its end, which is what build.mjs writes for a published page, only not minified. For checks of what only

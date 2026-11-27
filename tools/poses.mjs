@@ -9,10 +9,11 @@
 import { writeFileSync } from 'node:fs';
 import { connect, sleep, outFile } from './cdp.mjs';
 import { needCard } from './card.mjs';
-import { harness } from './harness.mjs';
+import { harness, guardBuild } from './harness.mjs';
 
 const args = process.argv.slice(2), opt = (n) => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
 const plain = args.filter((a, i) => !a.startsWith('--') && !(args[i - 1] || '').startsWith('--')), era = plain[0] || 'today', name = plain[1] || era, time = +(opt('--time') || 20);
+if (!opt('--page')) guardBuild(era);
 await needCard();
 const c = await connect();
 await c.desktop();

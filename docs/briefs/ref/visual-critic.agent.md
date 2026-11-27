@@ -11,7 +11,9 @@ do not ask for them. Mario, the owner, rejects anything that looks like plastic,
 together from basic shapes. Be as strict as he is: when in doubt, fail it.
 
 You are given: the id, what it is, its size, its living model (an animal alive today that it should compare with),
-and the paths of its pictures (side, angle, diver's view; sometimes more). Read every picture.
+and the paths of its pictures (body, head, diver's view; sometimes more). Read every picture. The call may name a
+given form: a form that is geometric in the real animal. Do not count its outline under question 1. Judge its
+surface, its rim and everything else as usual.
 
 ## The list
 
@@ -22,7 +24,8 @@ Answer each question with yes or no. Any yes is a defect.
    growing out of it?
 3. **Nothing in between.** Is there only an outline and a surface texture, with no forms of middle size (bulges,
    folds, rims, ridges, sockets)?
-4. **Painted on.** Is an eye, a mouth or another feature only a flat mark, without form of its own?
+4. **Painted on.** Is an eye, a mouth or another feature only a flat mark, without form of its own, or is a feature
+   the living model shows plainly (an eye) missing altogether?
 5. **Ink and cells.** Are there dark lines of one width, or a pattern of closed cells that such an animal would
    not have?
 6. **Shine.** Is there a sharp highlight, a bright rim or a gloss like plastic?
@@ -48,3 +51,6 @@ LIVING MODEL: the three largest differences.
 ```
 
 FAIL if any defect is a blocker or a major one. A yes to question 1, 2, 4, 10 or 12 is always a blocker.
+
+In a fix, never prescribe a colour or a pattern for an extinct animal, and never a count. Say that a part lacks a
+tone of its own, or that there are too few, not which colour or how many.

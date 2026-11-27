@@ -22,6 +22,17 @@ Sources: Wikipedia "Endoceras" (checked 2026-11-16); Wikipedia "Endocerida" (che
 - Arms: 10 tentacles from head front, length ~0.08, using curve()+tube()
 - Funnel (hyponome): under the head
 
+## Middle forms (after Nautilus, the living model)
+
+1. **Hood** — tough leathery wrinkled flap over the top of the head, shaped to close the opening; about 6% of body length
+2. **Eye swelling** — round bulge on each side under the hood, with a small dark pinhole (no lens); about 2% of body size
+3. **Funnel** — soft tube under the head for propulsion, steady glide; about 4% of body length
+4. **Tentacle sheaths** — thicker bases from which 38 tentacles emerge, arranged around the mouth; each about 2% of body length
+5. **Rim of the shell opening** — flared lip with visible thickness, dark interior; about 5% of opening diameter
+6. **Body bulge** — soft mantle swelling over the shell rim; about 3% of shell radius
+7. **Annulations** — low ring bumps running around the shell, visible as geometric relief; about 3-4% of local radius
+8. **Growth lines** — finer lines between annulations, parallel to the opening; about 0.5% of local radius
+
 ## What stays an estimate
 - Soft parts entirely (head, eyes, arms, funnel): no soft tissue known
 - Shell thickness and inner surface

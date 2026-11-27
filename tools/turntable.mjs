@@ -20,20 +20,31 @@
 // --walk: in addition eight consecutive pictures, 0.2 s of scene time apart, of angle-level and of diver.
 // --list: only the list of all individuals (it loads the world, so it needs the card too), no pictures.
 // --flip: its front is the other end of its line (for an exhibit whose line the zoo gives from head to tail).
+// --swim: with --qa, two more pictures of an animal that leaves the ground now and then (a swimming burst), at
+//         the top of the next burst of the chosen individual: swim-side.png from the side and swim-below.png
+//         from below and behind, and eight swim-0..7.png from the side over --span seconds round that top, to
+//         judge what the limbs do. For an animal that stays on the ground it says so and takes none.
+// --feel: with --qa, eight pictures feel-0..7.png of the same individual while it walks (the moment it is
+//         lowest), --every seconds apart, from the front and above, for the motion of the limbs in front.
+// --every, --span: seconds between the eight --feel pictures (default 0.5) and over all eight of --swim
+//         (default 0.9, about one stroke).
 // Output: tools/out/turntable/<name>/<id>-front.png ... -diver.png, <id>-angle-level-walk1.jpg ... and <id>.html, a
 // page that shows them all
 import { writeFileSync, rmSync } from 'node:fs';
 import { connect, sleep, outFile } from './cdp.mjs';
 import { needCard } from './card.mjs';
-import { harness } from './harness.mjs';
+import { harness, guardBuild } from './harness.mjs';
 import { readPng } from './png.mjs';
 
 const args = process.argv.slice(2), opt = (n) => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
-// (--walk, --list, --flip and --mock take no value: what follows them is a name)
-const plain = args.filter((a, i) => !a.startsWith('--') && !/^--(?!walk$|list$|flip$|mock$)/.test(args[i - 1] || ''));
+// (--walk, --list, --flip, --mock, --qa, --swim and --feel take no value: what follows them is a name)
+const plain = args.filter((a, i) => !a.startsWith('--') && !/^--(?!walk$|list$|flip$|mock$|qa$|swim$|feel$)/.test(args[i - 1] || ''));
 const [era, id, name = era] = plain, time = +(opt('--time') || 20), fill = +(opt('--fill') || 1 / 3), walk = args.includes('--walk');
-const pick = opt('--pick') === null ? null : +opt('--pick'), near = opt('--at') ? opt('--at').split(',').map(Number) : null;
+const pick = opt('--pick') === null ? null : +opt('--pick'), near = opt('--at') ? opt('--at').split(',').map(Number) : null, qa = args.includes('--qa');
+const swim = args.includes('--swim'), feel = args.includes('--feel');
+const every = +(opt('--every') || 0.5), span = +(opt('--span') || 0.9);
 if (!id) { console.log('usage: node tools/turntable.mjs <era> <zoo id> [name] [--page <test.html>] [--time <seconds>] [--pick <n>] [--at <x,z>] [--fill <share>] [--walk]'); process.exit(1); }
+if (!opt('--page')) guardBuild(era);
 
 // What runs inside the test page, in the scope of its bundle (it goes there as text). It knows no era: where the
 // exhibit is it reads from the zoo (ZK, the places in Wd.zoo, the animals in ZA)
@@ -98,11 +109,56 @@ const inpage = (id) => {
     for (const [q, n] of own) q.n = hide && patch(q) === (hide === 1) ? 0 : n;
     return 0;
   };
-  // is the spot p in open water, 0.6 m from the rock, with a clear line to t?
-  const free = (p, t) => { let ok = rock(p) < -0.6; for (let s = 0.2; ok && s < 0.9; s += 0.2) ok = rock(p.map((v, j) => v + (t[j] - v) * s)) < -0.1; return ok; };
+  // is the spot p in open water, m from the rock (0.6 unless the caller asks for less), with a clear line to t?
+  const free = (p, t, m = 0.6) => { let ok = rock(p) < 0 - m; for (let s = 0.2; ok && s < 0.9; s += 0.2) ok = rock(p.map((v, j) => v + (t[j] - v) * s)) < -0.1; return ok; };
   // one frame at the scene time T, without hint and card (the frame loop is stopped: nothing else draws)
   const draw = async (T) => { F[TIME] = T; zooOff(); render(); render(); await Q.onSubmittedWorkDone(); return 0; };
-  return { k, ids: ZK, name: k < 0 ? '' : ZOO[id].name, tanh: TANH, near: NEAR, sun: ERA.sun, all, chosen, at: (m, i, T) => at(ZA[m], i, T), cam, rock, free, draw };
+  // draw with dodge suppressed: the view matrix uses the real camera (from cam()), but g.cam.xyz in the uniform
+  // buffer is overridden to fc so the dodge shader thinks the viewer is far away
+  const _fc = new Float32Array(4);
+  const drawNoDodge = async (T, fx, fy, fz) => {
+    F[TIME] = T; zooOff();
+    const os = Q.submit.bind(Q);
+    let hits = 0;
+    Q.submit = function(c) { hits++; _fc[0] = fx; _fc[1] = fy; _fc[2] = fz; _fc[3] = UB[35]; Q.writeBuffer(ubo, 128, _fc); return os(c); };
+    render(); render();
+    Q.submit = os;
+    await Q.onSubmittedWorkDone();
+    return 0;
+  };
+  const headLen = (m, i) => {
+    if (m < 0) return [0, 0];
+    const o = ZA[m], sz = o.list[i * 8 + 6];
+    let kk = KINDS.find(q => q.data === o.list);
+    if (!kk) kk = KINDS.find(q => q.data && q.data.length === o.list.length && q.data[0] === o.list[0] && q.data[1] === o.list[1]);
+    // without a marked soft head (aux .875 to 1 in front of the body), a walker's head is the front third:
+    // a little larger and further forward, so limbs round the head stay in the frame
+    if (!kk || !kk.m || !kk.m.vb) return [sz * 0.3, 0.37 * sz];
+    const f = new Float32Array(kk.m.vb), s = new Int8Array(kk.m.vb), nv = kk.m.nv;
+    let mZ = -1e9, sZ = -1e9, mR = 0;
+    for (let v = 0; v < nv; v++) { const z = f[v * 4 + 2], a = s[v * 16 + 15]; if (z > mZ) mZ = z; if (a >= 0 && a <= 56 && z > sZ) sZ = z; }
+    if (sZ < 0 || sZ > mZ * 0.95 || mZ < 1e-6) return [sz * 0.3, 0.37 * sz];
+    for (let v = 0; v < nv; v++) { const z = f[v * 4 + 2], a = s[v * 16 + 15]; if (a > 56 && a < 64 && abs(z - sZ) < mZ * 0.03) { const r = hypot(f[v * 4], f[v * 4 + 1]); if (r > mR) mR = r; } }
+    if (mR < 1e-6) return [sz * 0.3, 0.37 * sz];
+    return [(mZ - sZ + 2 * mR) / mZ * sz, ((sZ + mZ) / 2 - 0.5) * sz];
+  };
+  // The scene time in [T0, T0 + W] at which this individual's middle is highest, how far that is over its lowest
+  // in the same window, the time at which it is lowest, and its line at the highest: for an animal that leaves
+  // the ground now and then (a swimming burst) those are the top of one burst and a moment of plain walking.
+  // Stepped by st seconds, the camera far away meanwhile (it would give way to a near one, and then the line
+  // would not be where the animal is)
+  const peak = (m, i, T0, W, st) => {
+    if (m < 0) return [T0, 0, T0];
+    const o = ZA[m], cx = F[CX], cy = F[CY], cz = F[CZ];
+    F[CX] = F[CZ] = 0; F[CY] = 1e4;
+    let bt = T0, lt = T0, hi = -1e9, lo = 1e9;
+    for (let T = T0; T <= T0 + W; T += st) { const y = mid(at(o, i, T))[1]; if (y > hi) { hi = y; bt = T; } if (y < lo) { lo = y; lt = T; } }
+    const l = at(o, i, bt);
+    F[CX] = cx; F[CY] = cy; F[CZ] = cz;
+    at(o, i, T0);
+    return [bt, hi - lo, lt, ...l];
+  };
+  return { k, ids: ZK, name: k < 0 ? '' : ZOO[id].name, qaEye: k < 0 ? null : ZOO[id].qaEye || null, tanh: TANH, near: NEAR, sun: ERA.sun, all, chosen, at: (m, i, T) => at(ZA[m], i, T), cam, rock, free, draw, drawNoDodge, bz: (m, i) => m >= 0 ? ZA[m].list[i * 8 + 6] : 0, headLen, peak };
 };
 
 await needCard();
@@ -114,7 +170,7 @@ const js = JSON.stringify, tt = (call) => c.w('__tt.' + call);
 const end = async (code, say) => { if (say) console.log(say); const logs = c.news(); console.log(logs.length ? 'console:\n' + logs.join('\n') : 'console: no messages'); await c.done(); process.exit(code); };
 // into the scene as with a captured mouse, frame loop stopped, full resolution and full draw distance
 await c.w(`ui(false); body.className = 'g p'; frame = () => {}; F[TIME] = ${time}; pix = PIXMAX; det = 1; dynT = -Infinity; resize(); zooOff(); window.__tt = (${inpage})(${js(id)}); 0`);
-const I = await c.ev('({ k: __tt.k, ids: __tt.ids, name: __tt.name, tanh: __tt.tanh, near: __tt.near, sun: __tt.sun })');
+const I = await c.ev('({ k: __tt.k, ids: __tt.ids, name: __tt.name, qaEye: __tt.qaEye, tanh: __tt.tanh, near: __tt.near, sun: __tt.sun })');
 if (I.k < 0) await end(1, `${id}: no entry of ZOO has this id. There are: ${I.ids.join(', ')}`);
 await sleep(2600); // the menu's blur fades out
 console.log('canvas', await c.w("W + 'x' + H"));
@@ -197,6 +253,137 @@ const shot = async (w, f, T, clip, hide) => { await cam(w, w === diver ? 1 : ps,
 // goes up in steps of 5 degrees until it is seen, and on while much more of it comes out. (Only for an animal with
 // kinds of its own, which the page can leave out. A stone in front of it, or a plant, is not noticed.)
 const [pw, ph] = await c.ev('[innerWidth, innerHeight]'), box = Math.min(ph, Math.round(1.2 * fill * ph)), clip = { x: (pw - box) >> 1, y: (ph - box) >> 1, width: box, height: box }, FEW = 0.005;
+if (qa) {
+  const bz = animal ? await tt(`bz(${e.m}, ${e.i})`) : S;
+  if (bz <= 0) await end(1, 'QA: cannot read body size for a static exhibit; use the turntable instead');
+  const qaF = (f) => outFile('qa', era, `${id}/${f}`);
+  const qw = Math.min(pw, 1600), qh = Math.round(qw * ph / pw);
+  const qClip = { x: (pw - qw) >> 1, y: (ph - qh) >> 1, width: qw, height: qh };
+  const qps = (dist) => [1, 0.1, 0.01].find((q) => I.near * q <= dist / 5) || 0.01;
+  const qShot = async (f, qp, p, target) => {
+    await tt(`cam(${qp}, ${js(p)}, ${js(target)}, null, 0, 0)`);
+    await tt(`draw(${time})`); await sleep(350); await c.shot(qaF(f), qClip);
+  };
+  console.log(`QA: ${id}, body ${cm(bz)}`);
+  // a third further out than the body alone needs: limbs reach past the body, and no animal may be cut by the edge
+  const dB = bz * ph / (pw * I.tanh) * 1.3;
+  await qShot('body.png', qps(dB), add(t, r, dB * lit), t);
+  console.log(`body from ${cm(dB)}`);
+  const hArr = animal ? await tt(`headLen(${e.m}, ${e.i})`) : [bz * 0.2, bz * 0.4];
+  const hSz = hArr[0], ht = add(t, h, hArr[1]);
+  const dH = hSz * ph / (pw * I.tanh);
+  // from the side a little above and ahead, so limbs round the head (a basket, a crown) do not fill the lens
+  const hdir = unit([0, 1, 2].map((j) => r[j] * 0.78 * lit + u[j] * 0.5 + h[j] * 0.25));
+  if (animal && dH < bz) {
+    const fCam = add(ht, r, bz * lit);
+    await tt(`cam(${qps(dH)}, ${js(add(ht, hdir, dH))}, ${js(ht)}, null, 0, 0)`);
+    await tt(`drawNoDodge(${time}, ${fCam[0]}, ${fCam[1]}, ${fCam[2]})`);
+    await sleep(350); await c.shot(qaF('head.png'), qClip);
+  } else {
+    await qShot('head.png', qps(dH), add(ht, hdir, dH), ht);
+  }
+  console.log(`head from ${cm(dH)} (head region ${cm(hSz)})${animal && dH < bz ? ', dodge suppressed' : ''}`);
+  const qLevel = [hl, cross(hl, [0, 1, 0]), [0, 1, 0]];
+  const qEl = (await tt(`rock(${js(t)})`)) > -0.5 ? 50 : 20;
+  let dp = null;
+  for (const az of [40, -40, 90, -90, 0, 180]) { const p = add(t, turn(qLevel, az * lit, qEl), 1); if (await tt(`free(${js(p)}, ${js(t)})`)) { dp = p; break; } }
+  if (!dp) dp = add(t, turn(qLevel, 40 * lit, qEl), 1);
+  await qShot('diver.png', 1, dp, t);
+  console.log('diver from 1 m');
+  // stage F of ordovician-life.md: the skin (the head from half the head distance, about 2 D for a cephalopod)
+  // and the eye (a quarter of the picture wide), both with the dodge suppressed
+  const mdir = (A, B, C, fa, fb, fc) => unit([0, 1, 2].map((j) => A[j] * fa + B[j] * fb + C[j] * fc));
+  const fFar = add(ht, r, bz * lit);
+  const noDodge = async (f, qp, p, target) => {
+    await tt(`cam(${qp}, ${js(p)}, ${js(target)}, null, 0, 0)`);
+    await tt(`drawNoDodge(${time}, ${fFar[0]}, ${fFar[1]}, ${fFar[2]})`);
+    await sleep(350); await c.shot(qaF(f), qClip);
+  };
+  // the eye's and the skin's places come from the era: ZOO[id].qaEye = [along the line, to the side, up,
+  // across], as fractions of the line's length. Without it, skin aims at the head's middle and there is no eye
+  const sc = len(v) || bz, st = e.l.slice(0, 3);
+  const qE = I.qaEye && animal ? I.qaEye : null;
+  const skd = dH * 0.5;
+  // the skin picture looks down on the top of the head, where the relief is strongest
+  const tSk = qE ? [0, 1, 2].map((j) => st[j] + h[j] * qE[0] * sc + u[j] * qE[2] * sc * 2.5) : ht;
+  await noDodge('skin.png', qps(skd), add(tSk, mdir(r, u, h, lit * .6, .65, .3), skd), tSk);
+  console.log(`skin from ${cm(skd)} at ${m3(tSk)}`);
+  if (qE) {
+    const [eA, eS, eU, eX] = qE;
+    const ep = [0, 1, 2].map((j) => st[j] + h[j] * eA * sc + r[j] * lit * eS * sc + u[j] * eU * sc);
+    const dE = 2 * eX * sc * ph / (pw * I.tanh);
+    await noDodge('eye.png', qps(dE), add(ep, mdir(r, u, h, lit * .94, .31, .15), dE), ep);
+    console.log(`eye from ${cm(dE)} (eye ${cm(eX * sc)}) at ${m3(ep)}, line start ${m3(st)}`);
+  } else console.log('eye.png skipped: no qaEye on the ZOO entry');
+  // --swim: two more pictures of an animal that leaves the ground now and then (a swimming burst), at the top
+  // of the next burst of this individual: from the side and from below and behind, so the pose can be judged
+  // the frame of an individual at the scene time T: its middle, and heading, right and up as they are then
+  const frameAt = async (T) => {
+    const l = await tt(`at(${e.m}, ${e.i}, ${T})`), c = mid(l), v = l.slice(3, 6);
+    const hh = len(v) > 1e-6 ? unit(v) : h, hz = unit([hh[0], 0, hh[2]]), aa = Math.asin(hh[1]);
+    const uu = [-Math.sin(aa) * hz[0], Math.cos(aa), -Math.sin(aa) * hz[2]];
+    return { c, l, fr: [hh, cross(hh, uu), uu] };
+  };
+  // a run of eight pictures <stem>-0..7.png: the camera keeps az round from its front and el up, as far as d,
+  // and follows the animal, so only what it does with itself shows. fwd moves what it looks at that far ahead
+  // of the middle of the line, for a view in which the limbs in front have to fit
+  const run8 = async (stem, T0, step, az, el, d, qp, fwd = 0) => {
+    for (let k = 0; k < 8; k++) {
+      const T = T0 + k * step, f = await frameAt(T), aim = add(f.c, f.fr[0], fwd);
+      await tt(`cam(${qp}, ${js(add(aim, turn(f.fr, az * lit, el), d))}, ${js(aim)}, null, 0, 0)`);
+      await tt(`draw(${T})`); await sleep(320); await c.shot(qaF(`${stem}-${k}.png`), qClip);
+    }
+  };
+  let gotSwim = false, gotFeel = false;
+  if ((swim || feel) && animal) {
+    const pk = await tt(`peak(${e.m}, ${e.i}, ${time}, 120, .5)`), sT = pk[0], rise = pk[1], wT = pk[2];
+    // --feel: while it walks, from the front and above, so the limbs in front are what one sees
+    if (feel) {
+      // (the limbs in front reach past the line, so the camera looks a fifth of the body ahead of its middle
+      // and stands far enough out that all of them fit)
+      const f0 = await frameAt(wT), dF = size(f0.l) * ph / (pw * I.tanh) * 1.75, fw = bz * 0.2;
+      await run8('feel', wT, every, 0, 42, dF, qps(dF), fw);
+      gotFeel = true;
+      console.log(`feel: 8 pictures ${every} s apart from scene time ${wT.toFixed(1)} s (it walks there), from the front, 42 degrees up, ${cm(dF)} away, looking ${cm(fw)} ahead of the middle`);
+    }
+    if (!swim) { /* nothing more */ }
+    else if (rise < bz * 0.5) console.log(`swim: it never gets more than ${cm(rise)} off its path in 120 s of scene time: no swim pictures`);
+    else {
+      const sl = pk.slice(3), sm = mid(sl), sv = sl.slice(3, 6);
+      const sh2 = len(sv) > 1e-6 ? unit(sv) : h, shl = unit([sh2[0], 0, sh2[2]]), sa = Math.asin(sh2[1]);
+      const su = [-Math.sin(sa) * shl[0], Math.cos(sa), -Math.sin(sa) * shl[2]], sFr = [sh2, cross(sh2, su), su];
+      const dS = size(sl) * ph / (pw * I.tanh) * 1.3, qp = qps(dS);
+      // the first of these angles with open water to it: a view from under the animal would otherwise end up
+      // in the mud, which would hide it
+      // (the view from under a swimming animal passes near the mud: there 25 cm of water is enough, where the
+      // other cameras of the tool want 60)
+      const spotFor = async (list, m) => {
+        for (const [az, el] of list) { const p = add(sm, turn(sFr, az * lit, el), dS); if (await tt(`free(${js(p)}, ${js(sm)}, ${m})`)) return [p, az, el]; }
+        const [az, el] = list[list.length - 1];
+        return [add(sm, turn(sFr, az * lit, el), dS), az, el];
+      };
+      const sShot = async (f, p) => {
+        await tt(`cam(${qp}, ${js(p)}, ${js(sm)}, null, 0, 0)`);
+        await tt(`draw(${sT})`); await sleep(350); await c.shot(qaF(f), qClip);
+      };
+      const [sp, saz, sel] = await spotFor([[90, 0], [-90, 0], [90, 12], [-90, 12]], 0.6);
+      await sShot('swim-side.png', sp);
+      const [bp, baz, bel] = await spotFor([[180, -55], [155, -50], [180, -42], [155, -36], [180, -28], [180, -16]], 0.25);
+      await sShot('swim-below.png', bp);
+      // eight from the side over --span seconds round the top of the burst, to judge what the limbs do
+      await run8('swim', sT - span / 2, span / 7, 90, 0, dS, qp);
+      console.log(`swim: 8 more from the side, ${(span / 7).toFixed(3)} s apart over ${span} s round the top`);
+      gotSwim = true;
+      console.log(`swim: at ${m3(sm)} at scene time ${sT.toFixed(1)} s, ${cm(rise)} over its lowest, both from ${cm(dS)}, the player ${qp} of a diver`);
+      console.log(`swim-side ${saz} degrees round from its front, ${sel} up; swim-below ${baz} degrees round, ${bel} up`);
+    }
+  }
+  const fig = (f, label) => `<figure><a href="${f}"><img src="${f}" alt="${label}"></a><figcaption>${label}</figcaption></figure>`;
+  const row8 = (stem, label) => `<h3>${label}</h3><div>` + Array.from({ length: 8 }, (_, k) => fig(`${stem}-${k}.png`, `${k}`)).join('') + '</div>';
+  writeFileSync(qaF('qa.html'), `<!doctype html><meta charset="utf-8"><title>QA: ${id}</title>\n<style>body{margin:0;padding:14px;background:#0b1013;color:#c8d3d8;font:14px/1.4 system-ui,sans-serif}h2,h3{margin:14px 0 8px}div{display:flex;gap:10px;flex-wrap:wrap}img{max-width:520px}</style>\n<h2>${I.name} (${id}), body ${cm(bz)}</h2>\n<div>${fig('body.png', 'body')}${fig('head.png', 'head')}${fig('diver.png', 'diver')}${fig('skin.png', 'skin')}${I.qaEye && animal ? fig('eye.png', 'eye') : ''}${gotSwim ? fig('swim-side.png', 'swimming, from the side') + fig('swim-below.png', 'swimming, from below and behind') : ''}</div>\n${gotFeel ? row8('feel', `walking, from the front and above, ${every} s apart`) : ''}\n${gotSwim ? row8('swim', `swimming, from the side, over ${span} s`) : ''}`);
+  console.log('page', qaF('qa.html'));
+  await end(0);
+}
 const seen = async (w) => {
   const px = []; for (const hide of [0, 2]) { await shot(w, 'part.png', time, clip, hide); px.push(readPng(out('part.png'))); }
   const [a, b] = px; let n = 0;

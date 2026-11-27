@@ -49,8 +49,9 @@ const ERA = {
   views: POSES, fly: PATH,
   // the sun: high, from the east and a little south, so that ledges cast shadows across the pale mud
   sun: [0.3, 1.0, -0.2], expo: 0.62, rays: 0.40,
-  // the shelf is 10 to 25 m deep: the surface is close, and the player can swim nearly to it
-  top: -1.5, bottom: -30, edge: 110,
+  // the shelf is 10 to 25 m deep: the surface is close, and the player can swim nearly to it. The sea is small
+  // (stage G1 of ordovician-life.md): life is dense to 85 m and thins to 105 m, and the player stays inside it
+  top: -1.5, bottom: -30, edge: 75,
   // what the loading bar says
   load: ['Laying down lime mud…', 'Raising the ledges…', 'Scattering shells…', 'Stirring the water…', 'Letting the sunlight in…'],
   // sound: surface wash, soft clicks and crackle from the floor, no calls (there are no whales yet)
