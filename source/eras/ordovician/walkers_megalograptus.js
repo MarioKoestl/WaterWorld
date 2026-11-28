@@ -34,7 +34,7 @@
 const MW = {
   l0: 0.50, l1: 0.78, lp: 0.6, z0: 0.41, dz: 0.05, nl: 2, lam: 0.08, be: 0.65, lf: 0.015,
   wave: 0.5, rp: 0.5, v0: 0.06, v1: 0.025, hc: 0.096, hh: 0.06, rb: 1.5, ra: 3.0, rf: 0.5, kd: 0.65,
-  line: 0.5, rad: 0.14, hb: 0.060, hd: 0.068,
+  line: 0.5, rad: 0.14, hb: 0.060, hd: 0.068, minc: 0.78,
 };
 const MXF = [0.150, 0.190];
 const mgNum = (v) => { const s = String(+v.toFixed(6)); return /[.e]/.test(s) ? s : s + '.'; };
@@ -419,31 +419,118 @@ const MG_XF = array<f32, 2>(${MXF.map(mgNum).join(', ')});
 const MG_LAM = ${mgNum(MW.lam)}; const MG_BE = ${mgNum(MW.be)}; const MG_LF = ${mgNum(MW.lf)}; const MG_WAVE = ${mgNum(MW.wave)};
 const MG_RP = ${mgNum(MW.rp)}; const MG_V0 = ${mgNum(MW.v0)}; const MG_V1 = ${mgNum(MW.v1)};
 const MG_HC = ${mgNum(MW.hc)}; const MG_HH = ${mgNum(MW.hh)}; const MG_KD = ${mgNum(MW.kd)};
-const MG_BEND = .15; const MG_PIV = ${mgNum(MW.hb + 0.025)};
-// The swimming burst (stage I3): every 20 to 40 s, each at its own time, the animal lifts 0.5 to 1.5 m off the
-// mud, rows with both paddles together, travels 4 to 8 m along its round with the arms folded and the blades
-// spread, glides down and walks on. Everything from one cycle, so nothing can jump (C1). Returns the extra way
-// along the round (in body lengths), the lift over the plane (m) and how deep in the burst it is (0 walks,
-// 1 swims). mgAt repeats this: change one, change the other
-fn mgB(t: f32, sd: f32, L: f32) -> vec3f {
+const MG_BEND = .15; const MG_PIV = ${mgNum(MW.hb + 0.025)}; const MG_MINC = ${mgNum(MW.minc)};
+// ---------------------------------------------------------------- the flight (M5)
+// A burst is a flight of its own, no longer a way along the walking round: that round is a small polygon, and
+// adding way to it in mid-water made the swimmer turn corners in the open (Mario, 2026-11-27, "the swimming is
+// nothing"). Every 20 to 40 s the animal crouches, kicks once with its tail, glides out, cruises on its paddles
+// and lands back on its round, one whole segment further on. The path is a cubic through the pose it leaves and
+// the pose it lands in, both read at the current time so it tracks the walk, with tangents 2.2 times the chord:
+// it goes straight out in the heading it had (the cruise), makes one wide turn on the way back, and comes in
+// straight. Every phase is a smooth function of the one time since lift-off, so nothing jumps (stage C1).
+// mgAt repeats all of this in JavaScript: change one, change the other.
+struct MGF {
+  p: vec3f,    // where it is on the plane and which way it faces (x, y in body lengths, heading)
+  s: f32,      // the way along the walking round, for the legs
+  fly: f32,    // 0 it walks, 1 it is in the air
+  h: f32,      // how far it is lifted over the height it walks at, in body lengths
+  pit: f32,    // nose up
+  bank: f32,   // lean into the turn
+  row: f32,    // how hard the paddles row
+  rph: f32,    // the phase of the stroke
+  kick: f32,   // seconds since the tail stroke began
+  lif: f32,    // how fully it is held clear of the mud
+  grip: f32,   // how far the feet hold the ground (0 in the air)
+  curl: f32,   // the crouch: the tail curled up
+};
+// how far along the flight it is in metres, and how far it goes in all: the kick throws it to about 1 m/s, the
+// glide runs out to the cruising .5 m/s, the cruise is even with a small surge at every stroke, the landing slows
+fn mgQ(tb: f32, t2: f32, t3: f32, t4: f32, t5: f32, Tc: f32, Sp: f32) -> vec2f {
+  let a1 = sat((tb - .30) / (t2 - .30));
+  let a2 = sat((tb - t2) / (t3 - t2));
+  let a3 = sat((tb - t3) / (t4 - t3));
+  let a4 = sat((tb - t4) / (t5 - t4));
+  let dc = .5 * Tc;
+  let surge = .05 * sin(6.2831853 * a3 * Tc / Sp) * 4. * a3 * (1. - a3);
+  return vec2f(.125 * a1 * a1 + .6 * (a2 - .25 * a2 * a2) + dc * a3 + surge + 1.5 * (.5 * a4 - .21 * a4 * a4), 1.01 + dc);
+}
+// how high the middle of the body is over the plane, in metres: it sinks a little while it crouches, the kick
+// and the glide carry it up, the cruise rides one long wave of Hw, the landing sets it down again
+fn mgHm(tb: f32, t3: f32, t4: f32, t5: f32, Hw: f32, hw0: f32) -> f32 {
+  let a3 = sat((tb - t3) / (t4 - t3));
+  return mix(hw0 - .010 * ss(0., .30, tb) * ss(t3, .40, tb), .78 + Hw * 16. * a3 * a3 * (1. - a3) * (1. - a3),
+    ss(.30, t3 + .35, tb) * ss(t5 + .1, t4, tb));
+}
+// (the tangent it leaves by is far longer than the one it comes in by: so it runs out straight in the heading
+// it had, and what turning there is waits for the way back)
+fn mgHerm(q: f32, PA: vec3f, PB: vec3f, T0: f32, T1: f32) -> vec2f {
+  let q2 = q * q; let q3 = q2 * q;
+  return (2. * q3 - 3. * q2 + 1.) * PA.xy + (q3 - 2. * q2 + q) * T0 * vec2f(cos(PA.z), sin(PA.z))
+       + (3. * q2 - 2. * q3) * PB.xy + (q3 - q2) * T1 * vec2f(cos(PB.z), sin(PB.z));
+}
+fn mgHermD(q: f32, PA: vec3f, PB: vec3f, T0: f32, T1: f32) -> vec2f {
+  let q2 = q * q;
+  return (6. * q2 - 6. * q) * PA.xy + (3. * q2 - 4. * q + 1.) * T0 * vec2f(cos(PA.z), sin(PA.z))
+       + (6. * q - 6. * q2) * PB.xy + (3. * q2 - 2. * q) * T1 * vec2f(cos(PB.z), sin(PB.z));
+}
+fn mgFlight(t: f32, sd: f32, L: f32, w: WK, v: f32, mv: f32) -> MGF {
+  var o: MGF;
   let T = 20. + 20. * fract(sd * 11.3);
-  let D = 6.5 + 2. * fract(sd * 5.9);
-  let A = 4. + 4. * fract(sd * 3.3);
-  let H = .5 + 1. * fract(sd * 7.7);
   let u = t / T + fract(sd * 13.1);
   let N = floor(u);
-  let q = sat((u - N) * T / D);
-  let e = q * q * (3. - 2. * q);
-  let b = 16. * q * q * (1. - q) * (1. - q);
-  let fw = ss(.04, .14, q) * ss(.97, .86, q);
-  return vec3f((A / L) * (N + e), H * b, fw);
+  let tb = (u - N) * T;
+  let sw = wkS(t, w, sd, v);
+  let PA = wkPose(sw + w.Ls * N, w);
+  let PB = wkPose(sw + w.Ls * (N + 1.), w);
+  let ch = distance(PA.xy, PB.xy);
+  // the cruise lasts as long as the way it has to cover at half a metre a second
+  let Tc = clamp((1.9 * ch * L - 1.01) * 2., 5., 13.);
+  let Sp = .9 + .4 * fract(sd * 17.1);
+  let Hw = 1. + fract(sd * 7.7);
+  let t2 = .55; let t3 = 1.15; let t4 = t3 + Tc; let t5 = t4 + 1.5;
+  let act = (1. - step(t5, tb)) * mv;
+  let dd = mgQ(tb, t2, t3, t4, t5, Tc, Sp);
+  let q = sat(dd.x / dd.y);
+  // M6.2: the way along the walking round follows the flight instead of jumping a whole segment at the end.
+  // wkFoot plants the feet by that round's pose at s; while the two were a segment apart the legs at touchdown
+  // were stretched out to feet standing metres behind. At q = 0 and q = 1 the two poses are the same one
+  o.s = sw + w.Ls * (N + q * mv);
+  o.fly = ss(.30, t3 + .25, tb) * ss(t5, t4 + .4, tb) * mv;
+  // (the clearance over the mud is held full from the start of the cruise, where the pose still eases in)
+  o.lif = ss(.30, t3, tb) * ss(t5, t4 + .4, tb) * mv;
+  // M6.2: how far the feet hold the ground. In the air they let go, and they take hold again only once the
+  // body is back on its round, so no leg is ever drawn out to a foot the flight has left behind
+  o.grip = 1. - ss(.18, .45, tb) * ss(t5 + .5, t5 - .1, tb) * mv;
+  let T0 = .62 * ch; let T1 = .62 * ch;
+  let xy = mgHerm(q, PA, PB, T0, T1);
+  let tg = mgHermD(q, PA, PB, T0, T1);
+  o.p = mix(wkPose(o.s, w), vec3f(xy, atan2(tg.y, tg.x)), act);
+  // the slope it flies at: how much it rises against how far it goes in the next tenth of a second
+  let hw0 = MG_HC * L;
+  let hM = mgHm(tb, t3, t4, t5, Hw, hw0);
+  let q2 = sat(mgQ(tb + .25, t2, t3, t4, t5, Tc, Sp).x / dd.y);
+  let ds = distance(mgHerm(q2, PA, PB, T0, T1), xy) * L;
+  o.h = (hM - hw0) / L * mv;
+  o.pit = (clamp(atan2(mgHm(tb + .25, t3, t4, t5, Hw, hw0) - hM, max(ds, .12)), -.45, .45) * o.fly
+    + .46 * ss(.30, .48, tb) * ss(t3 + .45, t2 + .08, tb) * mv);
+  // it banks into the turn: how far the heading runs round in that tenth of a second
+  let tg2 = mgHermD(q2, PA, PB, T0, T1);
+  let dh = atan2(tg2.y, tg2.x) - atan2(tg.y, tg.x);
+  o.bank = clamp((dh - 6.2831853 * round(dh / 6.2831853)) * 2.6, -.45, .45) * o.fly;
+  o.row = ss(t3, t3 + 2. * Sp, tb) * ss(t4 + .3, t4 - 2. * Sp, tb) * mv;
+  o.rph = 6.2831853 * (tb - t3) / Sp;
+  o.kick = tb - .30;
+  o.curl = ss(0., .24, tb) * ss(.44, .30, tb) * mv;
+  return o;
 }
 @vertex fn vsMega(i: VI) -> VO {
   var o: VO;
   let t = g.cam.w; let L = i.b.z; let sd = fract(i.b.w); let au = i.n.w; let mv = abs(sign(i.a.w));
-  let B = mgB(t, sd, L) * mv;
-  let rwa = t * 7.5 + sd * 31.; // the stroke of the paddles: the swimming pose hangs on the same phase (M3.7)
-  let w = wkOf(i.a, i.b, MG_RP); let s = wkS(t, w, sd, MG_V0 + MG_V1 * fract(sd * 7.3)) + B.x; let P = wkPose(s, w);
+  let w = wkOf(i.a, i.b, MG_RP);
+  let F = mgFlight(t, sd, L, w, MG_V0 + MG_V1 * fract(sd * 7.3), mv);
+  let B = vec3f(0., 0., F.fly);          // (B.z: 0 it walks, 1 it is in the air, as the limbs read it)
+  let rwa = F.rph;                       // the stroke of the paddles: the swimming pose hangs on the same phase
+  let s = F.s; let P = F.p;
   var l = i.p; let sg = select(-1., 1., l.x > 0.);
   // every turn a limb makes below turns its normal with it, or the surface keeps the light of the pose it was
   // modelled in: a paddle blade swung broadside on would still be lit as if it lay flat, and read as a pale plate
@@ -496,9 +583,13 @@ fn mgB(t: f32, sd: f32, L: f32) -> vec3f {
   let sp2 = step(.61, au) * step(au, .69); let tpd = sat((au - .62) / .06);
   let fnT = 11. + 8. * fract(sd * 23.7);
   let fnu = fract(t / fnT + fract(sd * 17.3) + .07 * sg);
-  let fan = ss(0., .08, fnu) * ss(.56, .48, fnu) * (1. - B.z) * mv;
-  let stp = mix(fnu / .56 * 6.2831853, rwa, B.z);
-  let amp = max(B.z, fan);
+  let fan = ss(0., .08, fnu) * ss(.56, .48, fnu) * (1. - F.fly) * mv;
+  // while it flies the paddles row at the flight's own stroke, which grows over the first two and dies over the
+  // last two (M5.4); between flights the limb lies folded and now and then fans once
+  // (a hard switch, not a blend: the two phases run at their own rates, and where it switches the stroke has
+  // no size yet, so nothing of it can be seen)
+  let stp = select(fnu / .56 * 6.2831853, F.rph, F.row > .001);
+  let amp = max(F.row, fan);
   let bld = step(.650, au) * sp2;
   // the blade feathers first, on the axis it has while the limb lies back
   let fph = 1.5708 * ss(-.2, .5, sin(stp)) * amp * bld;
@@ -517,13 +608,21 @@ fn mgB(t: f32, sd: f32, L: f32) -> vec3f {
   l = vec3f(sg * .042, .054, .300) + pv;
   nl = vec3f(nl.x * cro - nl.z * sro, nl.y, nl.z * cro + nl.x * sro);
   l += vec3f(sg * .007 * sin(t * .4 + sd * 29.), .005 * sin(t * .55 + sd * 13.), .003 * sin(t * .5 + sd * 37.)) * (sp2 * tpd * mv);
-  // the cercal blades open and close by .03 on their own slow time; while it swims they spread as a rudder (I3)
+  // M6.1: each cercal blade turns about its hinge at the side of the bulb, the root staying in its socket.
+  // It was moved sideways instead, by up to .075 of the body against a bulb .03 wide there, so it slid off.
+  // About 10 degrees out and in on its own slow time, about 35 degrees spread while it swims (I3)
   let cb = step(.90, au) * step(au, .96);
-  l.x += sg * (.015 + .015 * sin(t * .29 + sd * 41.) + .045 * B.z) * cb * mv;
+  let cba = (.087 + .087 * sin(t * .29 + sd * 41.) + .61 * B.z) * cb * mv;
+  let ccb = cos(cba); let scb = sin(cba) * sg;
+  var cv = l - vec3f(sg * .028, .0895, -.262);
+  cv = vec3f(cv.x * ccb - cv.z * scb, cv.y, cv.z * ccb + cv.x * scb);
+  l = vec3f(sg * .028, .0895, -.262) + cv;
+  nl = vec3f(nl.x * ccb - nl.z * scb, nl.y, nl.z * ccb + nl.x * scb);
   // the body bends about its own middle: sideways into a turn, the tail trailing a little raised, and while it
   // swims the tail bends at its joints too, up at the stroke and trailing between (M3.7)
   var zc = clamp(l.z, -.5, .5); let ze = l.z - zc;
-  let da = (wkHead(s + MG_BEND * zc, w) - P.z) * mv;
+  // (the body follows the bend of the walking round only while it walks: in the air the path is its own)
+  let da = (wkHead(s + MG_BEND * zc, w) - wkHead(s, w)) * mv * (1. - F.fly);
   // M4.5: walking shows in the body. The head nods with every step (the step is s / MG_LAM), and the whole
   // animal rolls a little to the side with it: the roll is taken out of a leg that holds the ground (wl), so no
   // foot slides. M4.4: the tail lifts by 6 to 12 degrees, each animal its own, once in 6 to 10 s, and sinks
@@ -531,23 +630,30 @@ fn mgB(t: f32, sd: f32, L: f32) -> vec3f {
   let stw = 6.2831853 * s / MG_LAM;
   let th = mv * (.015 * sin(t * .4 + sd * 20.) - .012 * ss(.5, 1., sin(t * .17 + sd * 47.)) + .022 * sin(stw + 1.1) * (1. - B.z));
   let tlf = (.105 + .105 * fract(sd * 29.3)) * (.5 - .5 * cos(t * 6.2831853 / (6. + 4. * fract(sd * 11.7)) + sd * 19.));
-  let tt = mv * (.012 - tlf) + B.z * .085 * sin(rwa - .7);
+  // M5.1 and M5.2: while it crouches the tail curls up, the spike rising; then one stroke runs down and back
+  // from the root to the spike, each ring a little later than the one before it. A positive tt lets the tail
+  // hang, so the curl is taken off and the stroke added. While it cruises the tail is held straight and only
+  // nods with the paddles (M5.4)
+  let kw = sat((0. - zc - .02) / .46);
+  let kt = F.kick - .13 * kw;
+  let kp = ss(0., .09, kt) * ss(.30, .17, kt) * mv;
+  let tt = mv * (.012 - tlf * (1. - F.fly)) - .50 * F.curl + 1.05 * kp + F.row * .035 * sin(rwa - .7);
   let u1 = sat((zc - .02) / .28); let u2 = sat((0. - zc - .02) / .3);
   let pa = th * u1 * u1 * (3. - 2. * u1) + tt * u2 * u2 * (3. - 2. * u2);
   let yc = th * (.28 * (u1 * u1 * u1 - .5 * u1 * u1 * u1 * u1) + max(zc - .3, 0.)) - tt * (.3 * (u2 * u2 * u2 - .5 * u2 * u2 * u2 * u2) + max(0. - zc - .32, 0.));
   let cp = cos(pa); let spa = sin(pa); let cy = cos(da); let sy = sin(da);
   let yr = l.y - MG_PIV; let z1 = ze * cp - yr * spa;
   var bd = vec3f(l.x * cy - z1 * sy - .5 * da * zc, MG_PIV + yc + yr * cp + ze * spa, zc + l.x * sy + z1 * cy);
-  l = mix(bd, l, wl) + vec3f(d.x * wl, d.y * pow(wl, 2.5), d.z * wl);
+  let gw2 = wl * F.grip;
+  l = mix(bd, l, wl) + vec3f(d.x * gw2, d.y * pow(gw2, 2.5), d.z * gw2);
   // while it swims the legs fold forward and in, under the head shield, out of the paddles' room (M4.2)
   l += vec3f(0. - sg * .105 * tf, .030 * tf, .055 * tf) * (B.z * leg);
   let n1 = vec3f(nl.x, nl.y * cp + nl.z * spa, nl.z * cp - nl.y * spa); var n = vec3f(n1.x * cy - n1.z * sy, n1.y, n1.x * sy + n1.z * cy);
-  // Swimming is a pose of its own (M3.7): the whole animal noses up by 8 to 15 degrees, each its own, with a
-  // little more at every stroke, and leans into the turn of its round with a small roll of the stroke. Both
-  // turns are about the pivot in the middle of the body, and both come out of the burst's one phase: at the
-  // ends of the burst B.z is 0 and the walker's level pose is back, so nothing jumps
-  let nz = (.145 + .115 * fract(sd * 3.7) + .030 * sin(rwa * .5)) * B.z;
-  let rl = (.055 * sin(rwa * .5 + 1.2) - .13 * sign(i.a.w)) * B.z + .030 * sin(stw) * mv * (1. - B.z) * (1. - wl);
+  // Flying is a pose of its own: the nose follows the slope of the path and rises steeply through the kick, a
+  // small pitch rides on every stroke, and it banks into the turn (M5). Both turns are about the pivot in the
+  // middle of the body, and both are 0 at the ends of the flight, so nothing jumps
+  let nz = F.pit + .045 * sin(rwa) * F.row;
+  let rl = F.bank + .030 * sin(stw) * mv * (1. - B.z) * (1. - wl);
   let cnz = cos(nz); let snz = sin(nz); let crl = cos(rl); let srl = sin(rl);
   let yq = l.y - MG_PIV;
   l = vec3f(l.x, MG_PIV + yq * cnz + l.z * snz, l.z * cnz - yq * snz);
@@ -555,9 +661,17 @@ fn mgB(t: f32, sd: f32, L: f32) -> vec3f {
   let yv = l.y - MG_PIV;
   l = vec3f(l.x * crl - yv * srl, MG_PIV + yv * crl + l.x * srl, l.z);
   n = vec3f(n.x * crl - n.y * srl, n.y * crl + n.x * srl, n.z);
-  let fr = wkFrame(i.b); let c = wkWorld(i.a, L, fr, P, vec3f(0., MG_HC, 0.));
-  // the small rise at every stroke of the paddles rides on the burst's lift
-  let wp = wkWorld(i.a, L, fr, P, l) + fr.N * (B.y + .014 * sin(rwa) * B.z) + wkGive(c, MG_KD * L, MG_HH * L, i.b) * mv;
+  let fr = wkFrame(i.b);
+  // How high it rides: the flight's own height over the plane, plus a small rise at every stroke. The plane is
+  // the drawn mud only within the round; the flight leaves it, so the body is lifted where the real mud (the
+  // formula of floor.js) would come nearer than MG_MINC. The lift is read once, at the middle of the body, and
+  // moves every vertex alike, so the animal does not bend over a bump
+  let up = (F.h + .018 * sin(rwa) * F.row) * L;
+  let c0 = wkWorld(i.a, L, fr, P, vec3f(0., MG_HC, 0.)) + fr.N * up;
+  let need = ground(c0.xz) + MG_MINC - c0.y;
+  let lift = max(0., need) * F.lif;
+  let c = c0 + vec3f(0., lift, 0.);
+  let wp = wkWorld(i.a, L, fr, P, l) + fr.N * up + vec3f(0., lift, 0.) + wkGive(c, MG_KD * L, MG_HH * L, i.b) * mv;
   o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = wkDir(fr, P, n); o.op = i.p; o.sd = floor(L * 4000.) + sd; o.lt = au;
   return o;
 }
@@ -648,13 +762,14 @@ const S_MEGA_SHADOW = /*wgsl*/`
 @vertex fn vsMegaShadow(i: VI) -> VO {
   var o: VO;
   let L = i.b.z; let sd = fract(i.b.w); let mv = abs(sign(i.a.w));
-  let B = mgB(g.cam.w, sd, L) * mv;
-  let w = wkOf(i.a, i.b, MG_RP); let P = wkPose(wkS(g.cam.w, w, sd, MG_V0 + MG_V1 * fract(sd * 7.3)) + B.x, w);
+  let w = wkOf(i.a, i.b, MG_RP);
+  let F = mgFlight(g.cam.w, sd, L, w, MG_V0 + MG_V1 * fract(sd * 7.3), mv);
+  let P = F.p;
   let fr = wkFrame(i.b); let c = wkWorld(i.a, L, fr, P, vec3f(0., MG_HC, 0.));
   let w0 = wkWorld(i.a, L, fr, P, vec3f(i.p.x * .55, 0., i.p.z * .72 - .02)); let sh = normalize(vec2f(g.sun.x, g.sun.z) + 1e-5);
-  let so = sh * (((MG_HC * L + B.y) * .9 / max(g.sun.y, .25) + .7 * max(0. - dot((w0 - wkWorld(i.a, L, fr, P, vec3f(0., 0., -.02))).xz, sh), 0.)) * mv);
+  let so = sh * (((MG_HC * L + F.h * L) * .9 / max(g.sun.y, .25) + .7 * max(0. - dot((w0 - wkWorld(i.a, L, fr, P, vec3f(0., 0., -.02))).xz, sh), 0.)) * mv);
   let wp = w0 - vec3f(so.x, i.b.x * so.x + i.b.y * so.y, so.y) + fr.N * (min(.002, .05 * L) + .0003) + wkGive(c, MG_KD * L, MG_HH * L, i.b) * mv;
-  o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = fr.N; o.op = i.p; o.sd = sd; o.lt = 1. - .6 * sat(B.y);
+  o.cp = g.vp * vec4f(wp, 1.); o.wp = wp; o.n = fr.N; o.op = i.p; o.sd = sd; o.lt = 1. - .6 * sat(F.h * L);
   return o;
 }
 @fragment fn fsMegaShadow(i: VO) -> @location(0) vec4f {
@@ -670,32 +785,101 @@ function meshMegaShadow() {
 }
 
 // ---------------------------------------------------------------- where they are, for the zoo
-// wkAt of the trilobite with the swimming burst of mgB on top (stage I3): the same numbers, so the line follows
-// the animal through lift-off, row and glide. Change mgB, change this. Runs in every frame and allocates nothing
+// wkAt of the trilobite with the flight of mgFlight on top (M5): the same numbers, so the line follows the
+// animal through crouch, kick, glide, cruise and landing. Change mgFlight, change this. Runs in every frame and
+// allocates nothing, so every smoothstep is written out: no call here is handed a float
 const mgAt = (a, i) => {
   const L = a[i + 6], f = a[i + 7], nn = floor(f), sd = f - nn, w = a[i + 3], dir = w > 0 ? 1 : w < 0 ? -1 : 0, rc = (w < 0 ? -w : w) / L;
-  const A = TAU / nn, Lp = MW.rp * A, Ls = Lp + 2 * rc * sin(0.5 * A), q7 = sd * 7.3, v = MW.v0 + MW.v1 * (q7 - floor(q7));
-  const u = F[TIME] * v * TAU / Ls + sd * 53.1;
-  let s = (dir === 0 ? 0 : Ls) * (u - 4 / 3 * sin(u) + sin(2 * u) / 6) / TAU, lift = 0, bz = 0;
-  if (dir !== 0) {
-    const h1 = sd * 11.3, h2 = sd * 5.9, h3 = sd * 3.3, h4 = sd * 7.7, h5 = sd * 13.1;
-    const T = 20 + 20 * (h1 - floor(h1)), D = 6.5 + 2 * (h2 - floor(h2)), Am = 4 + 4 * (h3 - floor(h3)), H = 0.5 + (h4 - floor(h4));
-    const ub = F[TIME] / T + (h5 - floor(h5)), N = floor(ub), qb = min(max((ub - N) * T / D, 0), 1);
-    s += (Am / L) * (N + qb * qb * (3 - 2 * qb));
-    lift = H * 16 * qb * qb * (1 - qb) * (1 - qb);
-    // how deep in the burst it is, the fw of mgB (the two smoothsteps written out: no call with a float here)
-    const b1 = min(max((qb - 0.04) / 0.1, 0), 1), b2 = min(max((qb - 0.97) / -0.11, 0), 1);
-    bz = b1 * b1 * (3 - 2 * b1) * b2 * b2 * (3 - 2 * b2);
+  const A = TAU / nn, Lp = MW.rp * A, Ls = Lp + 2 * rc * sin(0.5 * A), b0 = sd * 37.7;
+  const q7 = sd * 7.3, v = MW.v0 + MW.v1 * (q7 - floor(q7));
+  const uu = F[TIME] * v * TAU / Ls + sd * 53.1;
+  const sw = (dir === 0 ? 0 : Ls) * (uu - 4 / 3 * sin(uu) + sin(2 * uu) / 6) / TAU;
+  const h1 = sd * 11.3, h5 = sd * 13.1, T = 20 + 20 * (h1 - floor(h1));
+  const ub = F[TIME] / T + (h5 - floor(h5)), N = floor(ub), tb = (ub - N) * T;
+  // the pose it leaves from and the pose it lands in, one whole segment further on, both read now
+  const sA = sw + Ls * N, kA = floor(sA / Ls), rA = sA - kA * Ls, aA = b0 + kA * A * dir, hA = aA + dir * (PI / 2 + 0.5 * A);
+  const qA = rA < Lp ? rA / Lp : 1, pA = hA - dir * A * (1 - qA * qA * (3 - 2 * qA)), gA = rA > Lp ? rA - Lp : 0;
+  const axA = rc * cos(aA) + cos(hA) * gA, azA = rc * sin(aA) + sin(hA) * gA;
+  const sB = sA + Ls, kB = floor(sB / Ls), rB = sB - kB * Ls, aB = b0 + kB * A * dir, hB = aB + dir * (PI / 2 + 0.5 * A);
+  const qB = rB < Lp ? rB / Lp : 1, pB = hB - dir * A * (1 - qB * qB * (3 - 2 * qB)), gB = rB > Lp ? rB - Lp : 0;
+  const axB = rc * cos(aB) + cos(hB) * gB, azB = rc * sin(aB) + sin(hB) * gB;
+  const ch = sqrt((axB - axA) * (axB - axA) + (azB - azA) * (azB - azA));
+  const Tc = min(max((1.9 * ch * L - 1.01) * 2, 5), 13), hSp = sd * 17.1, Sp = 0.9 + 0.4 * (hSp - floor(hSp));
+  const hHw = sd * 7.7, Hw = 1 + (hHw - floor(hHw));
+  const t2 = 0.55, t3 = 1.15, t4 = t3 + Tc, t5 = t4 + 1.5;
+  const act = dir !== 0 && tb < t5 ? 1 : 0, fin = dir !== 0 && tb >= t5 ? 1 : 0;
+  const s = sw + Ls * (N + fin);
+  // how far along the flight it is, now and a tenth of a second on (for the slope and the bank)
+  let ax = 0, az = 0, ps = 0, hM = (dir === 0 ? MW.hd : MW.hc) * L, pit = 0, fly = 0, lif = 0;
+  if (act) {
+    const b1 = (tb - 0.30) / 0.25, a1 = b1 < 0 ? 0 : b1 > 1 ? 1 : b1;
+    const b2 = (tb - t2) / 0.60, a2 = b2 < 0 ? 0 : b2 > 1 ? 1 : b2;
+    const b3 = (tb - t3) / Tc, a3 = b3 < 0 ? 0 : b3 > 1 ? 1 : b3;
+    const b4 = (tb - t4) / 1.5, a4 = b4 < 0 ? 0 : b4 > 1 ? 1 : b4;
+    const dc = 0.5 * Tc, tot = 1.01 + dc;
+    const dist = 0.125 * a1 * a1 + 0.6 * (a2 - 0.25 * a2 * a2) + dc * a3
+      + 0.05 * sin(TAU * a3 * Tc / Sp) * 4 * a3 * (1 - a3) + 1.5 * (0.5 * a4 - 0.21 * a4 * a4);
+    const tn = tb + 0.25;
+    const c1 = (tn - 0.30) / 0.25, n1 = c1 < 0 ? 0 : c1 > 1 ? 1 : c1;
+    const c2 = (tn - t2) / 0.60, n2 = c2 < 0 ? 0 : c2 > 1 ? 1 : c2;
+    const c3 = (tn - t3) / Tc, n3 = c3 < 0 ? 0 : c3 > 1 ? 1 : c3;
+    const c4 = (tn - t4) / 1.5, n4 = c4 < 0 ? 0 : c4 > 1 ? 1 : c4;
+    const dis2 = 0.125 * n1 * n1 + 0.6 * (n2 - 0.25 * n2 * n2) + dc * n3
+      + 0.05 * sin(TAU * n3 * Tc / Sp) * 4 * n3 * (1 - n3) + 1.5 * (0.5 * n4 - 0.21 * n4 * n4);
+    const qq = dist / tot < 0 ? 0 : dist / tot > 1 ? 1 : dist / tot;
+    const q2 = dis2 / tot < 0 ? 0 : dis2 / tot > 1 ? 1 : dis2 / tot;
+    const T0 = 0.62 * ch, T1 = 0.62 * ch, dAx = cos(pA), dAz = sin(pA), dBx = cos(pB), dBz = sin(pB);
+    const e0 = qq * qq, e3 = e0 * qq;
+    const f00 = 2 * e3 - 3 * e0 + 1, f10 = e3 - 2 * e0 + qq, f01 = 3 * e0 - 2 * e3, f11 = e3 - e0;
+    ax = f00 * axA + f10 * T0 * dAx + f01 * axB + f11 * T1 * dBx;
+    az = f00 * azA + f10 * T0 * dAz + f01 * azB + f11 * T1 * dBz;
+    const g00 = 6 * e0 - 6 * qq, g10 = 3 * e0 - 4 * qq + 1, g01 = 6 * qq - 6 * e0, g11 = 3 * e0 - 2 * qq;
+    ps = Math.atan2(g00 * azA + g10 * T0 * dAz + g01 * azB + g11 * T1 * dBz, g00 * axA + g10 * T0 * dAx + g01 * axB + g11 * T1 * dBx);
+    const j0 = q2 * q2, j3 = j0 * q2;
+    const k00 = 2 * j3 - 3 * j0 + 1, k10 = j3 - 2 * j0 + q2, k01 = 3 * j0 - 2 * j3, k11 = j3 - j0;
+    const nx2 = k00 * axA + k10 * T0 * dAx + k01 * axB + k11 * T1 * dBx;
+    const nz2 = k00 * azA + k10 * T0 * dAz + k01 * azB + k11 * T1 * dBz;
+    const ds = sqrt((nx2 - ax) * (nx2 - ax) + (nz2 - az) * (nz2 - az)) * L;
+    // how high it rides: it sinks a little in the crouch, the kick carries it up, the cruise rides one wave
+    const hw0 = MW.hc * L;
+    const d1 = tb / 0.30, s1 = d1 < 0 ? 0 : d1 > 1 ? 1 : d1, w1 = s1 * s1 * (3 - 2 * s1);
+    const d2 = (tb - t3) / (0.40 - t3), s2 = d2 < 0 ? 0 : d2 > 1 ? 1 : d2, w2 = s2 * s2 * (3 - 2 * s2);
+    const d3 = (tb - 0.30) / (t3 + 0.35 - 0.30), s3 = d3 < 0 ? 0 : d3 > 1 ? 1 : d3, w3 = s3 * s3 * (3 - 2 * s3);
+    const d4 = (tb - t5 - 0.1) / (t4 - t5 - 0.1), s4 = d4 < 0 ? 0 : d4 > 1 ? 1 : d4, w4 = s4 * s4 * (3 - 2 * s4);
+    const hEnv = w3 * w4;
+    // fly is the shader's o.fly, the one that gates the pitch and the lift over the mud
+    const d5 = (tb - 0.30) / (t3 + 0.25 - 0.30), s5 = d5 < 0 ? 0 : d5 > 1 ? 1 : d5, w5 = s5 * s5 * (3 - 2 * s5);
+    const d7 = (tb - 0.30) / (t3 - 0.30), s7 = d7 < 0 ? 0 : d7 > 1 ? 1 : d7, w7 = s7 * s7 * (3 - 2 * s7);
+    const d6 = (tb - t5) / (t4 + 0.4 - t5), s6 = d6 < 0 ? 0 : d6 > 1 ? 1 : d6, w6 = s6 * s6 * (3 - 2 * s6);
+    fly = w5 * w6; lif = w7 * w6;
+    hM = (hw0 - 0.010 * w1 * w2) * (1 - hEnv) + (0.78 + Hw * 16 * a3 * a3 * (1 - a3) * (1 - a3)) * hEnv;
+    const hN3 = (tn - t3) / Tc, m3 = hN3 < 0 ? 0 : hN3 > 1 ? 1 : hN3;
+    const e4 = (tn - 0.30) / (t3 + 0.35 - 0.30), v4 = e4 < 0 ? 0 : e4 > 1 ? 1 : e4, y4 = v4 * v4 * (3 - 2 * v4);
+    const e5 = (tn - t5 - 0.1) / (t4 - t5 - 0.1), v5 = e5 < 0 ? 0 : e5 > 1 ? 1 : e5, y5 = v5 * v5 * (3 - 2 * v5);
+    const h2b = hw0 * (1 - y4 * y5) + (0.78 + Hw * 16 * m3 * m3 * (1 - m3) * (1 - m3)) * y4 * y5;
+    const kk = (tb - 0.30) / 0.18, p1 = kk < 0 ? 0 : kk > 1 ? 1 : kk;
+    const kl = (tb - t3 - 0.45) / (t2 + 0.08 - t3 - 0.45), p2 = kl < 0 ? 0 : kl > 1 ? 1 : kl;
+    pit = min(max(Math.atan2(h2b - hM, ds > 0.12 ? ds : 0.12), -0.45), 0.45) * fly
+      + 0.46 * (p1 * p1 * (3 - 2 * p1)) * (p2 * p2 * (3 - 2 * p2));
+  } else {
+    const k = floor(s / Ls), r = s - k * Ls, ak = b0 + k * A * dir, h = ak + dir * (PI / 2 + 0.5 * A);
+    const q = r < Lp ? r / Lp : 1, go = r > Lp ? r - Lp : 0;
+    ps = h - dir * A * (1 - q * q * (3 - 2 * q));
+    ax = rc * cos(ak) + cos(h) * go; az = rc * sin(ak) + sin(h) * go;
+    hM = (dir === 0 ? MW.hd : MW.hc) * L;
   }
-  const k = floor(s / Ls), r = s - k * Ls, ak = sd * 37.7 + k * A * dir, h = ak + dir * (PI / 2 + 0.5 * A), q = r < Lp ? r / Lp : 1;
-  const ps = h - dir * A * (1 - q * q * (3 - 2 * q)), go = r > Lp ? r - Lp : 0, px = rc * cos(ak) + cos(h) * go, pz = rc * sin(ak) + sin(h) * go;
   const gx = a[i + 4], gz = a[i + 5], l1 = sqrt(1 + gx * gx), e1x = 1 / l1, e1y = gx / l1, l2 = sqrt(1 + gx * gx + gz * gz), nx = -gx / l2, ny = 1 / l2, nz = -gz / l2;
-  const e2x = e1y * nz, e2y = -e1x * nz, e2z = e1x * ny - e1y * nx, cs = cos(ps), sn = sin(ps), hc = (dir === 0 ? MW.hd : MW.hc) * L + lift;
-  // the swimming pose noses up (M3.7): while the burst runs, the line tilts with the body
-  const h37 = sd * 3.7, pit = (0.145 + 0.115 * (h37 - floor(h37)) + 0.030 * sin((F[TIME] * 7.5 + sd * 31) * 0.5)) * bz;
+  const e2x = e1y * nz, e2y = -e1x * nz, e2z = e1x * ny - e1y * nx, cs = cos(ps), sn = sin(ps);
   const cq = cos(pit), sq = sin(pit);
   WKP[3] = (e1x * cs + e2x * sn) * cq + nx * sq; WKP[4] = (e1y * cs + e2y * sn) * cq + ny * sq; WKP[5] = e2z * sn * cq + nz * sq;
-  const mx = a[i] + L * (e1x * px + e2x * pz) + nx * hc, my = a[i + 1] + L * (e1y * px + e2y * pz) + ny * hc, mz = a[i + 2] + L * e2z * pz + nz * hc;
+  let mx = a[i] + L * (e1x * ax + e2x * az) + nx * hM, my = a[i + 1] + L * (e1y * ax + e2y * az) + ny * hM, mz = a[i + 2] + L * e2z * az + nz * hM;
+  // the plane is the drawn mud only within the round: where the flight leaves it, the body is lifted so that it
+  // keeps MW.minc over the real mud, exactly as the shader does
+  if (lif > 0) {
+    ZP[0] = mx; ZP[1] = 0; ZP[2] = mz; zooGround();
+    const need = ZP[1] + MW.minc - my;
+    if (need > 0) my += need * lif;
+  }
   ZP[0] = mx; ZP[1] = my; ZP[2] = mz;
   if (dir !== 0) { ZH[0] = MW.hh * L; ZH[1] = MW.kd * L; zooDodge(1); ZP[1] = my + gx * (ZP[0] - mx) + gz * (ZP[2] - mz); }
   WKP[0] = ZP[0]; WKP[1] = ZP[1]; WKP[2] = ZP[2];
@@ -718,7 +902,10 @@ function makeMegalograptus(W) {
   let still = 0;
   const tryPlace = (sx, sz, stand, rcW, tol) => {
     const L = mix(MW.l0, MW.l1, pow(rnd(), MW.lp));
-    const n = 2 + floor(rnd() * 5), dir = rnd() < 0.5 ? -1 : 1, sd = rr(0.001, 0.999);
+    // M5: four to six corners, not two to six. A flight carries the animal one whole segment on, so the corner
+    // it has to come round on the way back must be a gentle one (90 degrees at most, not 180). The radius stays
+    // what the ground allows: a hard floor under it leaves almost nowhere flat enough to stand
+    const n = 4 + floor(rnd() * 3), dir = rnd() < 0.5 ? -1 : 1, sd = rr(0.001, 0.999);
     const rc = stand ? 0 : max(rcW, 0.6 * L);
     const pR = stand ? L : rc + MW.rf * L + 0.6 * (MW.kd * L + 0.02);
     if (W.nearPose(sx, sz, 1.5) || W.nearFly(sx, W.gy(sx, sz), sz, 1.0)) return false;
@@ -728,8 +915,20 @@ function makeMegalograptus(W) {
     if (obs.some((o) => hypot(sx - o[0], sz - o[1]) < pR + o[2] + 0.05)) return false;
     const pl = isoPlane(W, net, sx, sz, pR, min(tol, (tol / 0.022) * 0.04 * L), (MW.hc + MW.hh) * L);
     if (!pl) return false;
+    // M5: the flight rises to MW.minc plus the depth wave over the round, so the water over it has to be clear
+    // that far up as well. isoPlane only asks for the hand's breadth a walker needs
+    if (!stand) {
+      const ceil = MW.minc + 2.4;
+      for (let hv = 0.12; hv < ceil; hv += 0.25) if (W.Dw(sx, pl[0] + hv, sz) > 0) return false;
+      for (const rr2 of [0.35, 0.65, 0.9, 1.15]) for (let a = 0; a < 16; a++) {
+        const rd = rc * rr2 + 0.5, cx2 = sx + cos(a * TAU / 16) * rd, cz2 = sz + sin(a * TAU / 16) * rd;
+        for (let hv = 0.12; hv < ceil; hv += 0.25) if (W.Dw(cx2, pl[0] + hv, cz2) > 0) return false;
+      }
+    }
     // a loose fit (rough ground) rides a little higher, so no point of the animal goes under a bulge of it
-    megas.push(sx, pl[0] + max(0, tol - 0.026), sz, rc * dir, pl[1], pl[2], L, n + sd);
+    // (M5: and 1.2 cm more. The round is a different polygon now and visits other parts of the fitted plane,
+    // where the drawn ground stands up to a centimetre higher than the plane does)
+    megas.push(sx, pl[0] + max(0, tol - 0.026) + 0.012, sz, rc * dir, pl[1], pl[2], L, n + sd);
     placed.push([sx, sz]);
     if (stand) still++;
     return true;

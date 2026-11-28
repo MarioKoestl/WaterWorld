@@ -42,7 +42,7 @@ const plain = args.filter((a, i) => !a.startsWith('--') && !/^--(?!walk$|list$|f
 const [era, id, name = era] = plain, time = +(opt('--time') || 20), fill = +(opt('--fill') || 1 / 3), walk = args.includes('--walk');
 const pick = opt('--pick') === null ? null : +opt('--pick'), near = opt('--at') ? opt('--at').split(',').map(Number) : null, qa = args.includes('--qa');
 const swim = args.includes('--swim'), feel = args.includes('--feel');
-const every = +(opt('--every') || 0.5), span = +(opt('--span') || 0.9);
+const every = +(opt('--every') || 0.5), span = +(opt('--span') || 0.9), every2 = +(opt('--swim-every') || 0.4);
 if (!id) { console.log('usage: node tools/turntable.mjs <era> <zoo id> [name] [--page <test.html>] [--time <seconds>] [--pick <n>] [--at <x,z>] [--fill <share>] [--walk]'); process.exit(1); }
 if (!opt('--page')) guardBuild(era);
 
@@ -153,10 +153,15 @@ const inpage = (id) => {
     F[CX] = F[CZ] = 0; F[CY] = 1e4;
     let bt = T0, lt = T0, hi = -1e9, lo = 1e9;
     for (let T = T0; T <= T0 + W; T += st) { const y = mid(at(o, i, T))[1]; if (y > hi) { hi = y; bt = T; } if (y < lo) { lo = y; lt = T; } }
+    // when it left the ground: the last time before the top at which it was still as low as it gets
+    const back = Math.max(T0, bt - 20);
+    let lo2 = 1e9, st0 = bt;
+    for (let T = back; T <= bt; T += st) { const y = mid(at(o, i, T))[1]; if (y < lo2) lo2 = y; }
+    for (let T = back; T <= bt; T += st) if (mid(at(o, i, T))[1] < lo2 + 0.05) st0 = T;
     const l = at(o, i, bt);
     F[CX] = cx; F[CY] = cy; F[CZ] = cz;
     at(o, i, T0);
-    return [bt, hi - lo, lt, ...l];
+    return [bt, hi - lo, lt, st0, ...l];
   };
   return { k, ids: ZK, name: k < 0 ? '' : ZOO[id].name, qaEye: k < 0 ? null : ZOO[id].qaEye || null, tanh: TANH, near: NEAR, sun: ERA.sun, all, chosen, at: (m, i, T) => at(ZA[m], i, T), cam, rock, free, draw, drawNoDodge, bz: (m, i) => m >= 0 ? ZA[m].list[i * 8 + 6] : 0, headLen, peak };
 };
@@ -336,7 +341,7 @@ if (qa) {
   };
   let gotSwim = false, gotFeel = false;
   if ((swim || feel) && animal) {
-    const pk = await tt(`peak(${e.m}, ${e.i}, ${time}, 120, .5)`), sT = pk[0], rise = pk[1], wT = pk[2];
+    const pk = await tt(`peak(${e.m}, ${e.i}, ${time}, 120, .5)`), sT = pk[0], rise = pk[1], wT = pk[2], fT = pk[3];
     // --feel: while it walks, from the front and above, so the limbs in front are what one sees
     if (feel) {
       // (the limbs in front reach past the line, so the camera looks a fifth of the body ahead of its middle
@@ -349,7 +354,7 @@ if (qa) {
     if (!swim) { /* nothing more */ }
     else if (rise < bz * 0.5) console.log(`swim: it never gets more than ${cm(rise)} off its path in 120 s of scene time: no swim pictures`);
     else {
-      const sl = pk.slice(3), sm = mid(sl), sv = sl.slice(3, 6);
+      const sl = pk.slice(4), sm = mid(sl), sv = sl.slice(3, 6);
       const sh2 = len(sv) > 1e-6 ? unit(sv) : h, shl = unit([sh2[0], 0, sh2[2]]), sa = Math.asin(sh2[1]);
       const su = [-Math.sin(sa) * shl[0], Math.cos(sa), -Math.sin(sa) * shl[2]], sFr = [sh2, cross(sh2, su), su];
       const dS = size(sl) * ph / (pw * I.tanh) * 1.3, qp = qps(dS);
@@ -371,8 +376,17 @@ if (qa) {
       const [bp, baz, bel] = await spotFor([[180, -55], [155, -50], [180, -42], [155, -36], [180, -28], [180, -16]], 0.25);
       await sShot('swim-below.png', bp);
       // eight from the side over --span seconds round the top of the burst, to judge what the limbs do
-      await run8('swim', sT - span / 2, span / 7, 90, 0, dS, qp);
-      console.log(`swim: 8 more from the side, ${(span / 7).toFixed(3)} s apart over ${span} s round the top`);
+      // eight from the side from the crouch on, --swim-every seconds apart, and eight from above over the
+      // whole flight, for a swim that is a flight of its own and not a way along a round
+      const dW = dS * 1.5, dT = dS * 2.1;
+      await run8('swim', fT, every2, 90, 0, dW, qps(dW), bz * 0.1);
+      await run8('swim-top', fT, (sT - fT) * 2.2 / 7, 0, 86, dT, qps(dT), bz * 0.1);
+      console.log(`swim: 8 from the side ${every2} s apart from scene time ${fT.toFixed(1)} s (the crouch), from ${cm(dW)}, and 8 from above over ${((sT - fT) * 2.2).toFixed(1)} s from ${cm(dT)}`);
+      // eight from below through the kick and the cruise, and eight of the landing from the side
+      const dB2 = dS * 1.7, dL = dS * 1.5, endT = fT + (sT - fT) * 2.2;
+      await run8('swim-below', fT, (sT - fT) * 1.7 / 7, 165, -45, dB2, qps(dB2), bz * 0.1);
+      await run8('land', endT - 1.9, 0.25, 90, 0, dL, qps(dL), bz * 0.1);
+      console.log(`swim-below: 8 from below and behind over ${((sT - fT) * 1.7).toFixed(1)} s from the crouch, from ${cm(dB2)}; land: 8 from the side 0.25 s apart from ${(endT - 1.9).toFixed(1)} s, from ${cm(dL)}`);
       gotSwim = true;
       console.log(`swim: at ${m3(sm)} at scene time ${sT.toFixed(1)} s, ${cm(rise)} over its lowest, both from ${cm(dS)}, the player ${qp} of a diver`);
       console.log(`swim-side ${saz} degrees round from its front, ${sel} up; swim-below ${baz} degrees round, ${bel} up`);
@@ -380,7 +394,7 @@ if (qa) {
   }
   const fig = (f, label) => `<figure><a href="${f}"><img src="${f}" alt="${label}"></a><figcaption>${label}</figcaption></figure>`;
   const row8 = (stem, label) => `<h3>${label}</h3><div>` + Array.from({ length: 8 }, (_, k) => fig(`${stem}-${k}.png`, `${k}`)).join('') + '</div>';
-  writeFileSync(qaF('qa.html'), `<!doctype html><meta charset="utf-8"><title>QA: ${id}</title>\n<style>body{margin:0;padding:14px;background:#0b1013;color:#c8d3d8;font:14px/1.4 system-ui,sans-serif}h2,h3{margin:14px 0 8px}div{display:flex;gap:10px;flex-wrap:wrap}img{max-width:520px}</style>\n<h2>${I.name} (${id}), body ${cm(bz)}</h2>\n<div>${fig('body.png', 'body')}${fig('head.png', 'head')}${fig('diver.png', 'diver')}${fig('skin.png', 'skin')}${I.qaEye && animal ? fig('eye.png', 'eye') : ''}${gotSwim ? fig('swim-side.png', 'swimming, from the side') + fig('swim-below.png', 'swimming, from below and behind') : ''}</div>\n${gotFeel ? row8('feel', `walking, from the front and above, ${every} s apart`) : ''}\n${gotSwim ? row8('swim', `swimming, from the side, over ${span} s`) : ''}`);
+  writeFileSync(qaF('qa.html'), `<!doctype html><meta charset="utf-8"><title>QA: ${id}</title>\n<style>body{margin:0;padding:14px;background:#0b1013;color:#c8d3d8;font:14px/1.4 system-ui,sans-serif}h2,h3{margin:14px 0 8px}div{display:flex;gap:10px;flex-wrap:wrap}img{max-width:520px}</style>\n<h2>${I.name} (${id}), body ${cm(bz)}</h2>\n<div>${fig('body.png', 'body')}${fig('head.png', 'head')}${fig('diver.png', 'diver')}${fig('skin.png', 'skin')}${I.qaEye && animal ? fig('eye.png', 'eye') : ''}${gotSwim ? fig('swim-side.png', 'swimming, from the side') + fig('swim-below.png', 'swimming, from below and behind') : ''}</div>\n${gotFeel ? row8('feel', `walking, from the front and above, ${every} s apart`) : ''}\n${gotSwim ? row8('swim', `swimming, from the side, ${every2} s apart from the crouch`) + row8('swim-top', 'the same flight from above') + row8('swim-below', 'from below, through the kick and the cruise') + row8('land', 'the landing from the side, 0.25 s apart') : ''}`);
   console.log('page', qaF('qa.html'));
   await end(0);
 }

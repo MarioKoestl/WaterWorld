@@ -468,3 +468,31 @@ degrees during the kick, 1.5 elsewhere) and of its place as a multiple of the av
 largest change of heading in the cruise (target 30 degrees); the smallest height over the mud. `ways.mjs`. Then
 eight pictures of one burst from the side, 0.4 s apart from the crouch on (`swim-0..7.png`), and eight from above
 over the whole flight (`swim-top-0..7.png`). No critic. Mario looks.
+
+**M6. Two faults of the flight (Mario, 2026-11-27, after M5).** (1) Seen from below while it swims, the hindmost
+parts of the tail do not hang on to it. (2) At the landing long thin pieces suddenly pop out of the animal.
+
+1. **The blades beside the spike float free.** In `vsMega` they are moved sideways by translation
+   (`l.x += sg * (.015 + .015 * sin(..) + .045 * B.z) * cb * mv`): up to 0.075 of the body's length while it
+   swims, against a bulb that is about 0.03 wide at that point. So they slide off it. The wording of M4.4 ("open
+   and close by about 0.03") invited this; it meant an angle.
+   - A blade turns about its hinge at the side of the bulb, the root staying in its socket at every moment: about
+     10 degrees out and in on its slow time while it walks, about 35 degrees spread while it swims (estimates).
+   - Normals turn with it.
+   - Check in numbers: the largest distance of a blade's root vertices from their place on the bulb, over a
+     whole flight and a whole walk. Target: 0.
+   - Look at the spike and the last rings the same way, through the kick.
+2. **The long pieces at the landing.** Find out first which part they are; Mario's picture shows two thin pale
+   lines from the left side of the body, about two body lengths long, all pointing back the same way. Claude's
+   suspect, from the code (not run): the walking legs.
+   - While it flies `wl` is 0 and hides the foot offset `d`. At touchdown `wl` comes back, and `d` is taken from
+     `wkFoot(s, P, ...)`, which places the feet by `wkPose` of the walking round at the start and end of the
+     current step. Wherever the flight's `P` is not that round's pose at the same `s`, the feet are still planted
+     on the round, metres away, and each leg is stretched out to them.
+   - What must hold: at touchdown every foot comes down under the body where the leg reaches, and the next steps
+     start from there. No leg is ever longer than it is built.
+   - Check in numbers: over every flight and the 5 s after its landing, the largest distance between a foot and
+     its root, against the leg's own length. Target: never over 1.05 times it.
+
+Then eight pictures from below through the kick and the cruise (`swim-below-0..7.png`) and eight of the landing
+from the side, 0.25 s apart (`land-0..7.png`). `ways.mjs`. No critic. Mario looks.
